@@ -1,0 +1,14 @@
+{
+  "name": "store-gym-bigboys",
+  "private": true,
+  "description": "Monorepo: frontend Next.js + backend NestJS (Big Boys Gym)",
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,magenta \"npm run start:dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "dev:backend": "npm run start:dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

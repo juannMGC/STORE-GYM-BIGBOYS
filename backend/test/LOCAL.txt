@@ -1,0 +1,17 @@
+Pruebas e2e (npm run test:e2e)
+===============================
+
+1. Copiá `.env.example` a `.env` en la raíz del backend (no subas `.env` al repositorio).
+
+2. Variables usadas por el flujo admin en admin-flow.e2e-spec.ts:
+   - DATABASE_URL (misma base que desarrollo, p. ej. file:./dev.db)
+   - JWT_SECRET
+   - ADMIN_EMAIL y ADMIN_PASSWORD (misma semilla que `prisma db seed`)
+
+3. El test asegura el usuario admin en la base antes de llamar al API (equivalente al seed).
+
+4. Pagos: sin pasarela externa; métodos de pago como datos + confirmación/admin (sin Stripe/PayPal salvo que se pida después).
+
+5. PDF / dominio: CRUD de tallas como entidad aparte (ya en API); textos de UI del frontend en español coherentes.
+
+6. Next.js 16: el build puede avisar que la convención "middleware" evoluciona hacia "proxy"; no invalida el proyecto hasta migrar.
