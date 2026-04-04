@@ -72,15 +72,15 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-12 text-zinc-600">Cargando…</div>
+      <div className="mx-auto max-w-lg px-4 py-12 text-zinc-500">Cargando…</div>
     );
   }
 
   if (!order || order.items.length === 0) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <p className="text-zinc-600">No hay productos para pagar.</p>
-        <Link href="/tienda" className="mt-4 inline-block text-amber-700 underline">
+        <p className="text-zinc-400">No hay productos para pagar.</p>
+        <Link href="/tienda" className="mt-4 inline-block text-brand-yellow hover:underline">
           Ir a la tienda
         </Link>
       </div>
@@ -94,28 +94,30 @@ export default function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-10">
-      <h1 className="text-3xl font-bold text-zinc-900">Checkout</h1>
-      <p className="mt-2 text-zinc-600">
+      <h1 className="font-display text-5xl uppercase tracking-wide text-white">Checkout</h1>
+      <p className="mt-2 text-zinc-400">
         Elegí la forma de pago y confirmá el pedido. El equipo de Big Boys lo
         revisará según el flujo del administrador.
       </p>
 
-      <div className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-zinc-500">Total estimado</p>
-        <p className="text-2xl font-bold text-amber-600">${subtotal.toFixed(2)}</p>
+      <div className="panel-brand mt-8 p-6">
+        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+          Total estimado
+        </p>
+        <p className="font-display text-4xl text-brand-yellow">${subtotal.toFixed(2)}</p>
       </div>
 
       <div className="mt-8">
-        <label className="block text-sm font-medium text-zinc-800">
+        <label className="block text-sm font-medium text-zinc-300">
           Forma de pago
         </label>
         <select
           value={method}
           onChange={(e) => setMethod(e.target.value)}
-          className="mt-2 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2"
+          className="select-brand mt-2"
         >
           {METHODS.map((m) => (
-            <option key={m.value} value={m.value}>
+            <option key={m.value} value={m.value} className="bg-brand-steel">
               {m.label}
             </option>
           ))}
@@ -124,26 +126,26 @@ export default function CheckoutPage() {
           type="button"
           disabled={saving}
           onClick={() => void savePayment()}
-          className="mt-3 text-sm font-medium text-amber-800 hover:underline"
+          className="mt-3 text-sm font-medium text-brand-yellow hover:underline"
         >
           Guardar forma de pago
         </button>
       </div>
 
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-4 text-sm text-brand-red">{error}</p>}
 
       <button
         type="button"
         disabled={saving}
         onClick={() => void confirmOrder()}
-        className="mt-8 w-full rounded-lg bg-amber-500 py-3 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+        className="btn-brand mt-8 w-full disabled:opacity-50"
       >
         {saving ? "Procesando…" : "Confirmar pedido"}
       </button>
 
       <Link
         href="/carrito"
-        className="mt-4 block text-center text-sm text-zinc-600 hover:text-zinc-900"
+        className="mt-4 block text-center text-sm text-zinc-500 hover:text-brand-yellow"
       >
         Volver al carrito
       </Link>

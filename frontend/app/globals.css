@@ -1,19 +1,74 @@
 @import "tailwindcss";
 
+/* BIG BOYS GYM — identidad: rojo pesas, amarillo tipografía, negro/gris carbón */
 :root {
-  --background: #fafafa;
-  --foreground: #18181b;
+  --brand-red: #d91920;
+  --brand-red-dark: #9f1419;
+  --brand-yellow: #f7e047;
+  --brand-yellow-dim: #c9a227;
+  --brand-black: #050505;
+  --brand-charcoal: #0f0f0f;
+  --brand-steel: #1a1a1a;
+  --brand-border: #2a2a2a;
+  --background: var(--brand-charcoal);
+  --foreground: #f4f4f5;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-brand-red: var(--brand-red);
+  --color-brand-red-dark: var(--brand-red-dark);
+  --color-brand-yellow: var(--brand-yellow);
+  --color-brand-yellow-dim: var(--brand-yellow-dim);
+  --color-brand-black: var(--brand-black);
+  --color-brand-charcoal: var(--brand-charcoal);
+  --color-brand-steel: var(--brand-steel);
+  --color-brand-border: var(--brand-border);
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bebas), Impact, "Arial Narrow", sans-serif;
 }
 
 body {
-  background: var(--background);
+  background: var(--brand-charcoal);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+/* Textura sutil tipo “grit” del logo */
+body::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.font-display {
+  font-family: var(--font-bebas), Impact, "Arial Narrow", sans-serif;
+  letter-spacing: 0.02em;
+}
+
+/* Botón primario estilo gym: bloque, rojo, mayúsculas */
+.btn-brand {
+  @apply inline-flex items-center justify-center border-2 border-brand-red bg-brand-red px-6 py-3 font-display text-lg uppercase tracking-wider text-white shadow-[4px_4px_0_0_rgba(0,0,0,0.4)] transition hover:bg-brand-red-dark hover:shadow-[2px_2px_0_0_rgba(0,0,0,0.5)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none;
+}
+
+.btn-brand-outline {
+  @apply inline-flex items-center justify-center border-2 border-brand-yellow bg-transparent px-6 py-3 font-display text-lg uppercase tracking-wider text-brand-yellow shadow-[4px_4px_0_0_rgba(247,224,71,0.25)] transition hover:bg-brand-yellow/10;
+}
+
+/* Tarjetas / paneles */
+.panel-brand {
+  @apply border-2 border-brand-border bg-brand-steel shadow-[6px_6px_0_0_rgba(0,0,0,0.35)];
+}
+
+.input-brand {
+  @apply w-full border-2 border-brand-border bg-brand-black px-3 py-2.5 text-zinc-100 placeholder:text-zinc-600 focus:border-brand-red focus:outline-none;
+}
+
+.select-brand {
+  @apply w-full border-2 border-brand-border bg-brand-black px-3 py-2.5 text-zinc-100 focus:border-brand-red focus:outline-none;
 }

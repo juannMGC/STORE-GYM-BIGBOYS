@@ -39,6 +39,8 @@ model Size {
 model Product {
   id          String         @id @default(uuid())
   title       String
+  // slug único para URLs /tienda/productos/:slug
+  slug        String?        @unique
   description String?
   price       Float
   categoryId  String

@@ -1,27 +1,29 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bebas_Neue, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
   subsets: ["latin"],
+  variable: "--font-dm-sans",
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const bebasNeue = Bebas_Neue({
+  weight: "400",
   subsets: ["latin"],
+  variable: "--font-bebas",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Big Boys Gym · Tienda",
-    template: "%s · Big Boys",
+    default: "BIG BOYS GYM · Tienda",
+    template: "%s · BIG BOYS",
   },
   description:
-    "Gimnasio Big Boys: equipamiento, indumentaria y suplementación. Tienda en línea.",
+    "BIG BOYS GYM: fuerza real, equipo real. Tienda oficial — suplementación e indumentaria.",
 };
 
 export default function RootLayout({
@@ -32,12 +34,12 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${dmSans.variable} ${bebasNeue.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900">
+      <body className="relative min-h-full flex flex-col font-sans text-zinc-100">
         <Providers>
           <SiteHeader />
-          <div className="flex-1">{children}</div>
+          <div className="relative z-10 flex flex-1 flex-col">{children}</div>
           <SiteFooter />
         </Providers>
       </body>

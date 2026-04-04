@@ -30,44 +30,52 @@ export default function TiendaPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-12 text-zinc-600">Cargando categorías…</div>
+      <div className="mx-auto max-w-6xl px-4 py-16 text-center text-zinc-500">
+        Cargando categorías…
+      </div>
     );
   }
 
   if (error) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-12 text-red-600">
+      <div className="mx-auto max-w-6xl px-4 py-16 text-brand-red">
         {error}{" "}
         <span className="text-zinc-500">
-          (¿Está el backend en <code className="rounded bg-zinc-200 px-1">localhost:3001</code>?)
+          (¿Está el backend en{" "}
+          <code className="rounded bg-brand-steel px-1 text-brand-yellow">localhost:3001</code>
+          ?)
         </span>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold text-zinc-900">Tienda</h1>
-      <p className="mt-2 text-zinc-600">
-        Elegí una categoría para ver los productos.
+    <div className="mx-auto max-w-6xl px-4 py-12">
+      <h1 className="font-display text-5xl uppercase tracking-wide text-white md:text-6xl">
+        Tienda
+      </h1>
+      <p className="mt-3 max-w-xl text-zinc-400">
+        Elegí una categoría y encontrá lo que necesitás para el entrenamiento.
       </p>
-      <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {categories.map((c) => (
           <li key={c.id}>
             <Link
               href={`/categoria/${c.id}`}
-              className="block rounded-xl border border-zinc-200 bg-white p-6 shadow-sm transition hover:border-amber-400 hover:shadow-md"
+              className="panel-brand block p-6 transition hover:border-brand-red"
             >
-              <span className="text-lg font-semibold text-zinc-900">{c.name}</span>
+              <span className="font-display text-2xl uppercase tracking-wide text-brand-yellow">
+                {c.name}
+              </span>
               {c.slug && (
-                <span className="mt-1 block text-sm text-zinc-500">{c.slug}</span>
+                <span className="mt-2 block font-mono text-xs text-zinc-500">{c.slug}</span>
               )}
             </Link>
           </li>
         ))}
       </ul>
       {categories.length === 0 && (
-        <p className="mt-8 text-zinc-500">
+        <p className="mt-10 text-zinc-500">
           No hay categorías todavía. Creá algunas desde el panel admin (API).
         </p>
       )}

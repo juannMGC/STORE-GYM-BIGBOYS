@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -15,6 +16,15 @@ export class CreateProductDto {
   @IsNotEmpty({ message: 'campo necesario' })
   @MaxLength(300)
   title: string;
+
+  /** Slug para URL /tienda/productos/:slug. Si se omite, se genera desde el título. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message: 'slug: solo minúsculas, números y guiones',
+  })
+  slug?: string;
 
   @IsOptional()
   @IsString()

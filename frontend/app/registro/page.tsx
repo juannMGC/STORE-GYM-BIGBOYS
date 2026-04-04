@@ -32,28 +32,30 @@ export default function RegistroPage() {
     <div className="mx-auto max-w-6xl px-4 py-16">
       <form
         onSubmit={(e) => void onSubmit(e)}
-        className="mx-auto max-w-md rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm"
+        className="panel-brand mx-auto max-w-md p-8"
       >
-        <h1 className="text-2xl font-bold text-zinc-900">Crear cuenta</h1>
-        <p className="mt-2 text-sm text-zinc-600">
+        <h1 className="font-display text-4xl uppercase tracking-wide text-white">
+          Crear cuenta
+        </h1>
+        <p className="mt-2 text-sm text-zinc-400">
           ¿Ya tenés cuenta?{" "}
-          <Link href="/login" className="font-medium text-amber-700 hover:underline">
+          <Link href="/login" className="font-medium text-brand-yellow hover:underline">
             Iniciá sesión
           </Link>
         </p>
         <p className="mt-4 text-xs text-zinc-500">
           La contraseña debe tener al menos 8 caracteres.
         </p>
-        <label className="mt-4 block text-sm font-medium text-zinc-700">Email</label>
+        <label className="mt-4 block text-sm font-medium text-zinc-300">Email</label>
         <input
           type="email"
           autoComplete="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
+          className="input-brand mt-1"
         />
-        <label className="mt-4 block text-sm font-medium text-zinc-700">
+        <label className="mt-4 block text-sm font-medium text-zinc-300">
           Contraseña
         </label>
         <input
@@ -63,13 +65,13 @@ export default function RegistroPage() {
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
+          className="input-brand mt-1"
         />
-        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-4 text-sm text-brand-red">{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          className="mt-6 w-full rounded-lg bg-amber-500 py-3 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+          className="btn-brand mt-6 w-full disabled:opacity-50"
         >
           {loading ? "Creando…" : "Registrarme"}
         </button>

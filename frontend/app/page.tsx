@@ -1,11 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
+import { InstagramCarousel } from "@/components/instagram-carousel";
+import { InstagramHomeCta } from "@/components/instagram-home-cta";
 
 export default function HomePage() {
   return (
-    <main>
-      <section className="relative overflow-hidden bg-zinc-950 text-white">
-        <div className="absolute inset-0 opacity-40">
+    <main className="relative z-10">
+      <section className="relative overflow-hidden border-b-4 border-brand-border bg-brand-black">
+        <div className="absolute inset-0 opacity-[0.35]">
           <Image
             src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&q=80"
             alt=""
@@ -15,65 +17,59 @@ export default function HomePage() {
             sizes="100vw"
           />
         </div>
-        <div className="relative mx-auto max-w-6xl px-4 py-24 sm:py-32">
-          <p className="text-sm font-semibold uppercase tracking-widest text-amber-400">
-            Big Boys Gym
-          </p>
-          <h1 className="mt-2 max-w-2xl text-4xl font-black leading-tight tracking-tight sm:text-5xl">
-            Fuerza, disciplina y comunidad
-          </h1>
-          <p className="mt-4 max-w-xl text-lg text-zinc-300">
-            Entrená en un ambiente serio, con equipamiento de calidad y el apoyo
-            de un equipo que empuja tus límites. Conocé nuestra tienda y llevate
-            lo mejor para tu rutina.
-          </p>
-          <Link
-            href="/tienda"
-            className="mt-8 inline-flex rounded-lg bg-amber-500 px-6 py-3 text-base font-semibold text-zinc-950 hover:bg-amber-400"
-          >
-            Ir a la tienda
-          </Link>
+        <div className="absolute inset-0 bg-gradient-to-r from-brand-black via-brand-black/85 to-brand-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-brand-black via-transparent to-brand-black/50" />
+
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-8 px-4 py-20 sm:flex-row sm:items-center sm:py-28">
+          <div className="relative mx-auto h-40 w-40 shrink-0 border-4 border-brand-yellow shadow-[8px_8px_0_0_rgba(217,25,32,0.6)] sm:h-48 sm:w-48">
+            <Image
+              src="/brand/logo-bigboys.jpg"
+              alt="BIG BOYS GYM"
+              fill
+              className="object-cover"
+              sizes="200px"
+              priority
+            />
+          </div>
+          <div className="min-w-0 flex-1 text-center sm:text-left">
+            <p className="font-display text-xl uppercase tracking-[0.35em] text-brand-yellow">
+              BIG BOYS GYM
+            </p>
+            <h1 className="mt-2 font-display text-5xl uppercase leading-[0.95] text-white sm:text-6xl md:text-7xl">
+              Fuerza real
+              <span className="block text-brand-red">Sin excusas</span>
+            </h1>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
+              Equipamiento serio, comunidad que empuja tus límites y tienda con lo que
+              necesitás para entrenar duro. Bienvenido a la familia.
+            </p>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4 sm:justify-start">
+              <Link href="/tienda" className="btn-brand">
+                Ir a la tienda
+              </Link>
+              <Link href="/registro" className="btn-brand-outline">
+                Crear cuenta
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-16">
-        <h2 className="text-center text-2xl font-bold text-zinc-900">
-          El lugar para crecer
-        </h2>
-        <p className="mx-auto mt-3 max-w-2xl text-center text-zinc-600">
-          Sala de pesas, zona funcional y asesoramiento. Sumate a Big Boys y
-          formá parte de la familia.
-        </p>
-        <div className="mt-10 grid gap-6 sm:grid-cols-3">
-          {[
-            {
-              src: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80",
-              alt: "Entrenamiento con pesas",
-            },
-            {
-              src: "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&q=80",
-              alt: "Zona de gimnasio",
-            },
-            {
-              src: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80",
-              alt: "Equipamiento",
-            },
-          ].map((img) => (
-            <div
-              key={img.src}
-              className="relative aspect-[4/3] overflow-hidden rounded-xl shadow-lg"
-            >
-              <Image
-                src={img.src}
-                alt={img.alt}
-                fill
-                className="object-cover transition hover:scale-105"
-                sizes="(max-width: 640px) 100vw, 33vw"
-              />
-            </div>
-          ))}
+      <section className="border-b-4 border-brand-border bg-brand-steel py-16">
+        <div className="mx-auto max-w-6xl px-4">
+          <h2 className="text-center font-display text-4xl uppercase tracking-wide text-white md:text-5xl">
+            El lugar para <span className="text-brand-yellow">crecer</span>
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-center text-zinc-400">
+            Sala de pesas, zona funcional y asesoramiento. Sumate al ritmo de BIG
+            BOYS.
+          </p>
         </div>
       </section>
+
+      <InstagramCarousel />
+
+      <InstagramHomeCta />
     </main>
   );
 }

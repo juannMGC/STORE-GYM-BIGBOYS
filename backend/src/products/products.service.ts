@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { slugify } from './slug.util';
 
 const productPublicInclude = {
   category: true,
@@ -41,6 +42,37 @@ export class ProductsService {
     return product;
   }
 
+  async findOnePublicBySlug(slug: string) {
+    const normalized = decodeURIComponent(slug).trim().toLowerCase();
+    const product = await this.prisma.product.findFirst({
+      where: { slug: normalized },
+      include: productPublicInclude,
+    });
+    if (!product) throw new NotFoundException('Producto no encontrado');
+    return product;
+  }
+
+  private async ensureUniqueSlug(
+    base: string,
+    excludeProductId?: string,
+  ): Promise<string> {
+    let candidate = base;
+    let n = 0;
+    for (;;) {
+      const existing = await this.prisma.product.findFirst({
+        where: {
+          slug: candidate,
+          ...(excludeProductId
+            ? { NOT: { id: excludeProductId } }
+            : {}),
+        },
+      });
+      if (!existing) return candidate;
+      n += 1;
+      candidate = `${base}-${n}`;
+    }
+  }
+
   private async assertCategoryExists(categoryId: string) {
     const c = await this.prisma.category.findUnique({ where: { id: categoryId } });
     if (!c) throw new BadRequestException('categoryId no existe');
@@ -62,10 +94,13 @@ export class ProductsService {
     if (dto.sizeIds?.length) {
       await this.assertSizesExist(dto.sizeIds);
     }
+    const baseSlug = (dto.slug ?? slugify(dto.title)).toLowerCase();
+    const uniqueSlug = await this.ensureUniqueSlug(baseSlug);
     return this.prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
         data: {
           title: dto.title,
+          slug: uniqueSlug,
           description: dto.description,
           price: dto.price,
           categoryId: dto.categoryId,
@@ -104,6 +139,14 @@ export class ProductsService {
     if (dto.sizeIds?.length) {
       await this.assertSizesExist(dto.sizeIds);
     }
+    let nextSlug: string | null | undefined = undefined;
+    if (dto.slug !== undefined) {
+      if (dto.slug === null) {
+        nextSlug = null;
+      } else {
+        nextSlug = await this.ensureUniqueSlug(dto.slug.toLowerCase(), id);
+      }
+    }
 
     return this.prisma.$transaction(async (tx) => {
       await tx.product.update({
@@ -113,6 +156,7 @@ export class ProductsService {
           ...(dto.description !== undefined && { description: dto.description }),
           ...(dto.price !== undefined && { price: dto.price }),
           ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
+          ...(nextSlug !== undefined && { slug: nextSlug }),
         },
       });
       if (dto.imageUrls !== undefined) {

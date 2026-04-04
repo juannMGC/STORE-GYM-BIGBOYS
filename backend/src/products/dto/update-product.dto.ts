@@ -6,8 +6,10 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
 export class UpdateProductDto {
@@ -16,6 +18,15 @@ export class UpdateProductDto {
   @IsNotEmpty({ message: 'campo necesario' })
   @MaxLength(300)
   title?: string;
+
+  @IsOptional()
+  @ValidateIf((o: UpdateProductDto) => o.slug !== null && o.slug !== undefined)
+  @IsString()
+  @MaxLength(200)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message: 'slug: solo minúsculas, números y guiones',
+  })
+  slug?: string | null;
 
   @IsOptional()
   @IsString()

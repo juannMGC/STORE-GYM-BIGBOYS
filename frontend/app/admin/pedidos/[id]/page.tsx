@@ -77,11 +77,11 @@ export default function AdminPedidoDetailPage() {
   }
 
   if (loading) {
-    return <p className="text-zinc-600">Cargando…</p>;
+    return <p className="text-zinc-500">Cargando…</p>;
   }
 
   if (error && !order) {
-    return <p className="text-red-600">{error}</p>;
+    return <p className="text-brand-red">{error}</p>;
   }
 
   if (!order) {
@@ -98,41 +98,41 @@ export default function AdminPedidoDetailPage() {
     <div>
       <Link
         href="/admin/pedidos"
-        className="text-sm font-medium text-amber-700 hover:underline"
+        className="text-sm font-medium text-brand-yellow hover:underline"
       >
         ← Volver al listado
       </Link>
-      <h1 className="mt-4 text-2xl font-bold text-zinc-900">Pedido</h1>
+      <h1 className="mt-4 font-display text-4xl uppercase tracking-wide text-white">Pedido</h1>
       <p className="mt-1 font-mono text-sm text-zinc-500">{order.id}</p>
 
-      <div className="mt-6 grid gap-4 rounded-xl border border-zinc-200 bg-white p-6 sm:grid-cols-2">
+      <div className="panel-brand mt-6 grid gap-4 p-6 sm:grid-cols-2">
         <div>
           <p className="text-xs font-semibold uppercase text-zinc-500">Cliente</p>
-          <p className="text-zinc-900">{order.user.email}</p>
+          <p className="text-zinc-100">{order.user.email}</p>
         </div>
         <div>
           <p className="text-xs font-semibold uppercase text-zinc-500">Estado</p>
-          <p className="text-lg font-semibold text-zinc-900">{order.status}</p>
+          <p className="font-display text-2xl text-brand-yellow">{order.status}</p>
         </div>
         <div>
           <p className="text-xs font-semibold uppercase text-zinc-500">Pago</p>
-          <p className="text-zinc-800">{order.paymentMethod ?? "—"}</p>
+          <p className="text-zinc-300">{order.paymentMethod ?? "—"}</p>
         </div>
         <div>
           <p className="text-xs font-semibold uppercase text-zinc-500">Total</p>
-          <p className="text-lg font-bold text-amber-600">${total.toFixed(2)}</p>
+          <p className="font-display text-2xl text-brand-yellow">${total.toFixed(2)}</p>
         </div>
       </div>
 
-      <h2 className="mt-8 font-semibold text-zinc-900">Líneas</h2>
-      <ul className="mt-2 divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
+      <h2 className="mt-8 font-display text-xl uppercase text-white">Líneas</h2>
+      <ul className="panel-brand mt-2 divide-y divide-brand-border">
         {order.items.map((line) => (
           <li key={line.id} className="flex justify-between px-4 py-3 text-sm">
-            <span>
+            <span className="text-zinc-300">
               {line.product.title}
               {line.size ? ` · ${line.size.name}` : ""} × {line.quantity}
             </span>
-            <span className="text-zinc-700">
+            <span className="text-brand-yellow">
               ${(line.priceSnapshot * line.quantity).toFixed(2)}
             </span>
           </li>
@@ -140,20 +140,20 @@ export default function AdminPedidoDetailPage() {
       </ul>
 
       {options.length > 0 && (
-        <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-6">
-          <p className="text-sm font-medium text-amber-950">
+        <div className="panel-brand mt-8 border-brand-yellow/40 p-6">
+          <p className="text-sm font-medium text-zinc-300">
             Cambiar estado (solo transiciones permitidas por la API)
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
-              <label className="text-xs text-amber-900">Nuevo estado</label>
+              <label className="text-xs text-zinc-500">Nuevo estado</label>
               <select
                 value={nextStatus}
                 onChange={(e) => setNextStatus(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2"
+                className="select-brand mt-1"
               >
                 {options.map((o) => (
-                  <option key={o.value} value={o.value}>
+                  <option key={o.value} value={o.value} className="bg-brand-steel">
                     {o.label} ({o.value})
                   </option>
                 ))}
@@ -163,7 +163,7 @@ export default function AdminPedidoDetailPage() {
               type="button"
               disabled={saving || !nextStatus}
               onClick={() => void submitStatus()}
-              className="rounded-lg bg-amber-600 px-6 py-2 font-semibold text-white hover:bg-amber-500 disabled:opacity-50"
+              className="btn-brand disabled:opacity-50"
             >
               {saving ? "Guardando…" : "Aplicar"}
             </button>
@@ -178,7 +178,7 @@ export default function AdminPedidoDetailPage() {
         </p>
       )}
 
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-4 text-sm text-brand-red">{error}</p>}
     </div>
   );
 }

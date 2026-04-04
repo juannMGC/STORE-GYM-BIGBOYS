@@ -3,8 +3,10 @@ import Link from "next/link";
 export default function AdminHomePage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold text-zinc-900">Panel administrador</h1>
-      <p className="mt-2 text-zinc-600">
+      <h1 className="font-display text-4xl uppercase tracking-wide text-white">
+        Panel administrador
+      </h1>
+      <p className="mt-2 text-zinc-400">
         Gestioná pedidos desde aquí. El alta de categorías, tallas y productos puede
         hacerse vía API (Postman, etc.) hasta que se añadan formularios en esta UI.
       </p>
@@ -12,20 +14,20 @@ export default function AdminHomePage() {
         <li>
           <Link
             href="/admin/pedidos"
-            className="block rounded-xl border border-zinc-200 bg-white p-6 shadow-sm transition hover:border-amber-400"
+            className="panel-brand block p-6 transition hover:border-brand-red"
           >
-            <span className="font-semibold text-zinc-900">Pedidos</span>
+            <span className="font-display text-xl uppercase text-white">Pedidos</span>
             <span className="mt-1 block text-sm text-zinc-500">
               Listar y cambiar estado (pagado, enviado, cancelado)
             </span>
           </Link>
         </li>
-        <li className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 p-6 text-zinc-500">
-          <span className="font-medium">Catálogo</span>
+        <li className="panel-brand border-dashed p-6 text-zinc-500">
+          <span className="font-medium text-zinc-300">Catálogo</span>
           <span className="mt-1 block text-sm">
-            Endpoints: <code className="text-xs">/api/admin/categories</code>,{" "}
-            <code className="text-xs">/api/admin/sizes</code>,{" "}
-            <code className="text-xs">/api/admin/products</code>
+            Endpoints: <code className="text-xs text-brand-yellow">/api/admin/categories</code>,{" "}
+            <code className="text-xs text-brand-yellow">/api/admin/sizes</code>,{" "}
+            <code className="text-xs text-brand-yellow">/api/admin/products</code>
           </span>
         </li>
       </ul>

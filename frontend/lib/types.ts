@@ -28,6 +28,8 @@ export type Size = {
 export type ProductListItem = {
   id: string;
   title: string;
+  /** Para URLs /tienda/productos/:slug */
+  slug: string | null;
   description: string | null;
   price: number;
   categoryId: string;
