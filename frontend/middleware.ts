@@ -5,27 +5,57 @@ import { auth0 } from "@/lib/auth0";
 const PROTECTED_PREFIXES = ["/carrito", "/checkout", "/admin"];
 
 export async function middleware(request: NextRequest) {
-  const authRes = await auth0.middleware(request);
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/auth")) {
+  if (!auth0) {
+    const needsAuth = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+    if (needsAuth) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("error", "config");
+      url.searchParams.set(
+        "reason",
+        "Auth0 no está configurado en el servidor (faltan variables en Vercel).",
+      );
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
+  try {
+    const authRes = await auth0.middleware(request);
+
+    if (pathname.startsWith("/auth")) {
+      return authRes;
+    }
+
+    const needsAuth = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+    if (!needsAuth) {
+      return authRes;
+    }
+
+    const session = await auth0.getSession(request);
+    if (!session) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/login";
+      url.searchParams.set("returnTo", pathname);
+      return NextResponse.redirect(url);
+    }
+
     return authRes;
+  } catch (err) {
+    console.error("[middleware] Auth0:", err);
+    const needsAuth = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+    const msg = err instanceof Error ? err.message.slice(0, 280) : "Error en middleware";
+    if (needsAuth || pathname.startsWith("/auth")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("error", "config");
+      url.searchParams.set("reason", msg);
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
   }
-
-  const needsAuth = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
-  if (!needsAuth) {
-    return authRes;
-  }
-
-  const session = await auth0.getSession(request);
-  if (!session) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/auth/login";
-    url.searchParams.set("returnTo", pathname);
-    return NextResponse.redirect(url);
-  }
-
-  return authRes;
 }
 
 export const config = {

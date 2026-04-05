@@ -2,31 +2,72 @@ import { Auth0Client } from "@auth0/nextjs-auth0/server";
 import { NextResponse } from "next/server";
 import type { SdkError } from "@auth0/nextjs-auth0/errors";
 
-function requiredEnv(name: string): string {
-  const v = process.env[name];
-  if (!v?.trim()) {
-    throw new Error(
-      `[Auth0] Falta ${name}. Creá frontend/.env.local (minúsculas) según frontend/.env.example y reiniciá el servidor.`,
-    );
-  }
-  return v.trim();
-}
-
 const audience = process.env.AUTH0_AUDIENCE?.trim();
 
 /**
  * URL canónica opcional. Si no está definida, el SDK infiere la base desde cada request
  * (Host / x-forwarded-host), así el redirect_uri coincide con la URL real del navegador.
- *
- * No usar VERCEL_URL como base fija: en producción el usuario entra por
- * `tu-proyecto.vercel.app` pero VERCEL_URL es otra (`…-m51gzy4kr-….vercel.app`), lo que
- * rompe OAuth (CORS en /authorize), cookies y /auth/profile 401.
  */
 function resolveAppBaseUrl(): string | undefined {
   const explicit = process.env.APP_BASE_URL?.trim();
   if (explicit) return explicit;
   return undefined;
 }
+
+function isAuth0Configured(): boolean {
+  return Boolean(
+    process.env.AUTH0_DOMAIN?.trim() &&
+      process.env.AUTH0_CLIENT_ID?.trim() &&
+      process.env.AUTH0_CLIENT_SECRET?.trim() &&
+      process.env.AUTH0_SECRET?.trim(),
+  );
+}
+
+function createAuth0Client(): Auth0Client | null {
+  if (!isAuth0Configured()) {
+    if (process.env.VERCEL) {
+      console.warn(
+        "[auth0] Faltan variables en Vercel: AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_SECRET.",
+      );
+    }
+    return null;
+  }
+  try {
+    return new Auth0Client({
+      domain: process.env.AUTH0_DOMAIN!.trim(),
+      clientId: process.env.AUTH0_CLIENT_ID!.trim(),
+      clientSecret: process.env.AUTH0_CLIENT_SECRET!.trim(),
+      secret: process.env.AUTH0_SECRET!.trim(),
+      appBaseUrl: resolveAppBaseUrl(),
+      authorizationParameters: {
+        scope: "openid profile email offline_access",
+        ...(audience ? { audience } : {}),
+      },
+      async onCallback(error, ctx, _session) {
+        if (error) {
+          const detail = oauthFailureDetail(error);
+          console.error("[Auth0] onCallback:", error.name, detail);
+          const base = ctx.appBaseUrl ?? resolveAppBaseUrl() ?? "http://localhost:3000";
+          const login = new URL("/login", base);
+          login.searchParams.set("error", "auth");
+          if (detail) {
+            login.searchParams.set("reason", detail.slice(0, 500));
+          }
+          return NextResponse.redirect(login);
+        }
+        return redirectAfterLogin(ctx);
+      },
+    });
+  } catch (e) {
+    console.error("[auth0] No se pudo crear Auth0Client:", e);
+    return null;
+  }
+}
+
+/**
+ * `null` si faltan env o el constructor falla — el middleware no debe tirar 500 por el import.
+ */
+export const auth0 = createAuth0Client();
 
 /**
  * Texto útil que Auth0 envía en error_description (el SDK a veces solo muestra el mensaje genérico).
@@ -54,32 +95,3 @@ function redirectAfterLogin(ctx: { returnTo?: string; appBaseUrl?: string }) {
   const safePath = path.startsWith("/") ? path : `/${path}`;
   return NextResponse.redirect(new URL(safePath, appBaseUrl));
 }
-
-/**
- * Cliente Auth0 (v4): middleware, sesión y tokens.
- */
-export const auth0 = new Auth0Client({
-  domain: requiredEnv("AUTH0_DOMAIN"),
-  clientId: requiredEnv("AUTH0_CLIENT_ID"),
-  clientSecret: requiredEnv("AUTH0_CLIENT_SECRET"),
-  secret: requiredEnv("AUTH0_SECRET"),
-  appBaseUrl: resolveAppBaseUrl(),
-  authorizationParameters: {
-    scope: "openid profile email offline_access",
-    ...(audience ? { audience } : {}),
-  },
-  async onCallback(error, ctx, _session) {
-    if (error) {
-      const detail = oauthFailureDetail(error);
-      console.error("[Auth0] onCallback:", error.name, detail);
-      const base = ctx.appBaseUrl ?? resolveAppBaseUrl() ?? "http://localhost:3000";
-      const login = new URL("/login", base);
-      login.searchParams.set("error", "auth");
-      if (detail) {
-        login.searchParams.set("reason", detail.slice(0, 500));
-      }
-      return NextResponse.redirect(login);
-    }
-    return redirectAfterLogin(ctx);
-  },
-});
