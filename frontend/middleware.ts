@@ -1,24 +1,35 @@
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { auth0 } from "@/lib/auth0";
 
 const PROTECTED_PREFIXES = ["/carrito", "/checkout", "/admin"];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  const authRes = await auth0.middleware(request);
   const { pathname } = request.nextUrl;
-  const needsAuth = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
-  if (!needsAuth) return NextResponse.next();
 
-  const token = request.cookies.get("bb_token")?.value;
-  if (!token) {
+  if (pathname.startsWith("/auth")) {
+    return authRes;
+  }
+
+  const needsAuth = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+  if (!needsAuth) {
+    return authRes;
+  }
+
+  const session = await auth0.getSession(request);
+  if (!session) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
+    url.pathname = "/auth/login";
+    url.searchParams.set("returnTo", pathname);
     return NextResponse.redirect(url);
   }
 
-  return NextResponse.next();
+  return authRes;
 }
 
 export const config = {
-  matcher: ["/carrito", "/checkout", "/admin", "/admin/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+  ],
 };

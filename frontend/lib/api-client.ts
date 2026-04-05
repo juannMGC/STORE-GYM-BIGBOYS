@@ -1,9 +1,9 @@
 /**
  * Cliente HTTP hacia rutas `/api/*` (rewrites → Nest).
- * MVP: Bearer desde sessionStorage (riesgo XSS; evolución: cookie httpOnly desde servidor).
+ * Authorization: access token de Auth0 (misma audience que el API Nest).
  */
 
-import { getStoredToken } from "./auth-storage";
+import { getAccessToken } from "@auth0/nextjs-auth0";
 
 function parseApiMessage(data: unknown, fallback: string): string {
   if (typeof data !== "object" || data === null || !("message" in data)) {
@@ -38,8 +38,13 @@ export async function apiFetch<T = unknown>(
     headers.set("Content-Type", "application/json");
   }
   if (!options.skipAuth) {
-    const token = getStoredToken();
-    if (token) headers.set("Authorization", `Bearer ${token}`);
+    try {
+      const audience = process.env.NEXT_PUBLIC_AUTH0_AUDIENCE;
+      const token = await getAccessToken(audience ? { audience } : undefined);
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+    } catch {
+      /* sin sesión o token no disponible */
+    }
   }
   const res = await fetch(url, { ...options, headers });
   const text = await res.text();

@@ -1,7 +1,9 @@
 # Monorepo raíz
 node_modules/
 .env
+.env.local
 **/.env
+**/.env.local
 dist/
 **/dist/
 prisma/dev.db

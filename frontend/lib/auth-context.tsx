@@ -1,105 +1,93 @@
 "use client";
 
+import { useUser } from "@auth0/nextjs-auth0";
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
-  startTransition,
   useState,
   type ReactNode,
 } from "react";
 import type { AuthUser } from "./types";
-import { clearSession, getStoredToken, getStoredUser, persistSession } from "./auth-storage";
 import { apiFetch } from "./api-client";
 
 type AuthContextValue = {
   user: AuthUser | null;
-  token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  /** Redirige a Auth0 Login (usar asignación de location, no Link de Next). */
+  login: (returnTo?: string) => void;
+  /** Registro vía Auth0 Universal Login. */
+  signup: (returnTo?: string) => void;
   logout: () => void;
   refreshUser: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function buildAuthLoginUrl(returnTo: string, screenHint?: "signup") {
+  const params = new URLSearchParams();
+  params.set("returnTo", returnTo);
+  if (screenHint) params.set("screen_hint", screenHint);
+  return `/auth/login?${params.toString()}`;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user: auth0User, isLoading: auth0Loading } = useUser();
+  const [meUser, setMeUser] = useState<AuthUser | null>(null);
+  const [meLoading, setMeLoading] = useState(true);
 
-  const refreshUser = useCallback(() => {
-    const t = getStoredToken();
-    const u = getStoredUser();
-    setToken(t);
-    setUser(u);
-  }, []);
-
-  useEffect(() => {
-    startTransition(() => {
-      refreshUser();
-      setLoading(false);
-    });
-  }, [refreshUser]);
-
-  /** Sincroniza cookie para middleware si solo hay sesión en sessionStorage. */
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const t = getStoredToken();
-    const u = getStoredUser();
-    if (t && u && !document.cookie.includes("bb_token=")) {
-      persistSession(t, u);
+  const loadMe = useCallback(async () => {
+    if (!auth0User) {
+      setMeUser(null);
+      setMeLoading(false);
+      return;
     }
+    setMeLoading(true);
+    try {
+      const res = await apiFetch<{ user: AuthUser }>("/auth/me");
+      setMeUser(res.user);
+    } catch {
+      setMeUser(null);
+    } finally {
+      setMeLoading(false);
+    }
+  }, [auth0User]);
+
+  useEffect(() => {
+    if (auth0Loading) return;
+    void loadMe();
+  }, [auth0User, auth0Loading, loadMe]);
+
+  const login = useCallback((returnTo = "/") => {
+    window.location.assign(buildAuthLoginUrl(returnTo));
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const res = await apiFetch<{ accessToken: string; user: AuthUser }>(
-      "/auth/login",
-      {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-        skipAuth: true,
-      },
-    );
-    persistSession(res.accessToken, res.user);
-    setToken(res.accessToken);
-    setUser(res.user);
-  }, []);
-
-  const register = useCallback(async (email: string, password: string) => {
-    const res = await apiFetch<{ accessToken: string; user: AuthUser }>(
-      "/auth/register",
-      {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-        skipAuth: true,
-      },
-    );
-    persistSession(res.accessToken, res.user);
-    setToken(res.accessToken);
-    setUser(res.user);
+  const signup = useCallback((returnTo = "/") => {
+    window.location.assign(buildAuthLoginUrl(returnTo, "signup"));
   }, []);
 
   const logout = useCallback(() => {
-    clearSession();
-    setToken(null);
-    setUser(null);
+    window.location.assign("/auth/logout");
   }, []);
+
+  const refreshUser = useCallback(() => {
+    void loadMe();
+  }, [loadMe]);
+
+  const loading = auth0Loading || (!!auth0User && meLoading);
 
   const value = useMemo(
     () => ({
-      user,
-      token,
+      user: meUser,
       loading,
       login,
-      register,
+      signup,
       logout,
       refreshUser,
     }),
-    [user, token, loading, login, register, logout, refreshUser],
+    [meUser, loading, login, signup, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
