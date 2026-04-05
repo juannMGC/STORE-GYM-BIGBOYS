@@ -15,19 +15,16 @@ function requiredEnv(name: string): string {
 const audience = process.env.AUTH0_AUDIENCE?.trim();
 
 /**
- * URL pública de la app para OAuth (redirect_uri, cookies).
- * - En Vercel no uses APP_BASE_URL=http://localhost; si falta, usamos VERCEL_URL (previews incluidas).
- * - En local sin APP_BASE_URL, el SDK infiere el host desde el request.
+ * URL canónica opcional. Si no está definida, el SDK infiere la base desde cada request
+ * (Host / x-forwarded-host), así el redirect_uri coincide con la URL real del navegador.
+ *
+ * No usar VERCEL_URL como base fija: en producción el usuario entra por
+ * `tu-proyecto.vercel.app` pero VERCEL_URL es otra (`…-m51gzy4kr-….vercel.app`), lo que
+ * rompe OAuth (CORS en /authorize), cookies y /auth/profile 401.
  */
 function resolveAppBaseUrl(): string | undefined {
   const explicit = process.env.APP_BASE_URL?.trim();
   if (explicit) return explicit;
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) {
-    const base =
-      vercel.startsWith("http://") || vercel.startsWith("https://") ? vercel : `https://${vercel}`;
-    return base.replace(/\/$/, "");
-  }
   return undefined;
 }
 
