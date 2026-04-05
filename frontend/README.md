@@ -29,8 +29,15 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deploy on Vercel (monorepo)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Este repo incluye `backend/` (NestJS en **Render**) y `frontend/` (esta app). En Vercel importá solo el **frontend**:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. **New Project** → repo `STORE-GYM-BIGBOYS` → branch `main`.
+2. **Root Directory:** `frontend` (obligatorio).
+3. No desplegues el Nest del `backend` en Vercel; el API público es `https://store-gym-bigboys-api.onrender.com`.
+4. Variables de entorno: ver [`.env.production.example`](.env.production.example) y [DOCS/vercel-new-project-checklist.md](../DOCS/vercel-new-project-checklist.md).
+
+Archivo [vercel.json](vercel.json) fija framework Next.js y comandos de build en esta carpeta.
+
+Más detalle: [Next.js deployment](https://nextjs.org/docs/app/building-your-application/deploying).

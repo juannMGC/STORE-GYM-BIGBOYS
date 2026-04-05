@@ -34,6 +34,8 @@ Documento vivo con las **decisiones de infraestructura** y el avance por fases. 
 ## Enlaces útiles
 
 - [Fase 4 — Vercel](./fase-4-vercel-frontend.md)
+- [Checklist New Project Vercel](./vercel-new-project-checklist.md)
+- [CORS en Render tras Vercel](./render-cors-tras-vercel.md)
 - [Fase 3 — API Render](./fase-3-render-api.md)
 - [Plan por fases](./plan-despliegue-fases.md)
 - [Render: PostgreSQL](https://render.com/docs/databases)
