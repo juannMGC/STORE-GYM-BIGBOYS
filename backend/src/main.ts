@@ -12,8 +12,11 @@ async function bootstrap() {
       transform: true,
     }),
   );
+  const corsRaw = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
+  const corsOrigin =
+    corsRaw.includes(',') ? corsRaw.split(',').map((s) => s.trim()) : corsRaw;
   app.enableCors({
-    origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+    origin: corsOrigin,
     credentials: true,
   });
   const port = Number(process.env.PORT ?? 3001);

@@ -1,0 +1,31 @@
+# Render Blueprint — API NestJS (monorepo: carpeta backend)
+# https://render.com/docs/blueprint-spec
+#
+# Uso: conectar el repo en Render → New Blueprint Instance, o añadir manualmente
+# un Web Service con los mismos valores.
+#
+# Tras el primer deploy: en Environment, vinculá la PostgreSQL de Render o pegá
+# DATABASE_URL, y definí CORS_ORIGIN (URL de Vercel, sin barra final).
+
+services:
+  - type: web
+    name: store-gym-bigboys-api
+    runtime: node
+    region: ohio
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: npx prisma migrate deploy && npm run start:prod
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_EXPIRES_DAYS
+        value: "7"
+      - key: JWT_SECRET
+        generateValue: true
+      # Definir en el dashboard (o generar) — ver DOCS/fase-3-render-api.md
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
