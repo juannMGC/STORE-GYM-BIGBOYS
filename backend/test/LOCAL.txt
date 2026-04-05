@@ -4,7 +4,7 @@ Pruebas e2e (npm run test:e2e)
 1. Copiá `.env.example` a `.env` en la raíz del backend (no subas `.env` al repositorio).
 
 2. Variables usadas por el flujo admin en admin-flow.e2e-spec.ts:
-   - DATABASE_URL (misma base que desarrollo, p. ej. file:./dev.db)
+   - DATABASE_URL (PostgreSQL; misma base que desarrollo, p. ej. local o Render)
    - JWT_SECRET
    - ADMIN_EMAIL y ADMIN_PASSWORD (misma semilla que `prisma db seed`)
 

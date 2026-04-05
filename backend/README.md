@@ -23,7 +23,16 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+API de la tienda BIG BOYS (NestJS + Prisma). La base de datos es **PostgreSQL** (local, Docker o Render).
+
+## Base de datos
+
+1. Copiá `.env.example` a `.env`.
+2. Definí `DATABASE_URL` con formato `postgresql://usuario:contraseña@host:5432/nombre_bd?sslmode=require` (Render muestra la URL en el dashboard).
+3. Aplicá migraciones: `npx prisma migrate deploy`.
+4. Opcional: `npm run prisma:seed` para admin + datos demo.
+
+Si tu `.env` anterior tenía `file:./dev.db` (SQLite), reemplazalo por la URL de PostgreSQL.
 
 ## Project setup
 

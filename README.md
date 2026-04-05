@@ -219,3 +219,8 @@ La solución se implementará bajo una arquitectura desacoplada por capas, separ
             |                      |
             v                      v
  [ Wompi - Pagos PSE ]   [ Cloudinary / S3 ]
+```
+
+## Despliegue (producción)
+
+Stack objetivo: **Vercel** (frontend), **Render** (API NestJS), **PostgreSQL en Render**. Estado y fases: ver [DOCS/despliegue-estado.md](DOCS/despliegue-estado.md) y [DOCS/plan-despliegue-fases.md](DOCS/plan-despliegue-fases.md).
