@@ -42,8 +42,16 @@ export async function apiFetch<T = unknown>(
       const audience = process.env.NEXT_PUBLIC_AUTH0_AUDIENCE;
       const token = await getAccessToken(audience ? { audience } : undefined);
       if (token) headers.set("Authorization", `Bearer ${token}`);
-    } catch {
-      /* sin sesión o token no disponible */
+      else if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "[apiFetch] Sin access token para esta API. Revisá Auth0 → Applications → tu app → APIs (autorizar el Identifier igual a NEXT_PUBLIC_AUTH0_AUDIENCE) y probá cerrar sesión y volver a entrar.",
+          path,
+        );
+      }
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[apiFetch] getAccessToken falló (mirá también GET /auth/access-token en Red):", e);
+      }
     }
   }
   const res = await fetch(url, { ...options, headers });
