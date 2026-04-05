@@ -9,18 +9,18 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { OrdersService } from './orders.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { PatchCartItemDto } from './dto/patch-cart-item.dto';
 import { PatchPaymentDto } from './dto/patch-payment.dto';
 import { CurrentUser, type RequestUser } from '../common/decorators/current-user.decorator';
 
 /**
- * Carrito = pedido en estado DRAFT. Requiere JWT (cliente o admin como comprador).
+ * Carrito = pedido en estado DRAFT. Requiere Bearer token de Auth0 (cliente o admin como comprador).
  */
 @Controller('orders')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(JwtAuthGuard)
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 

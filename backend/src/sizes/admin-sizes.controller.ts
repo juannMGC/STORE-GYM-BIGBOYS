@@ -8,8 +8,8 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { SizesService } from './sizes.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateSizeDto } from './dto/create-size.dto';
 import { UpdateSizeDto } from './dto/update-size.dto';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -17,7 +17,7 @@ import { Role } from '../common/constants/roles';
 import { RolesGuard } from '../common/guards/roles.guard';
 
 @Controller('admin/sizes')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class AdminSizesController {
   constructor(private readonly sizesService: SizesService) {}

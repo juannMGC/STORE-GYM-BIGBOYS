@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -11,7 +11,10 @@ datasource db {
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
-  passwordHash String
+  /// Solo usuarios con login local (seed); usuarios Auth0 sin contraseña local.
+  passwordHash String?
+  /// Subject del JWT de Auth0 (`sub`), para enlazar y sincronizar.
+  auth0Sub     String?  @unique
   role         String   @default("CLIENT")
   createdAt    DateTime @default(now())
   orders       Order[]
