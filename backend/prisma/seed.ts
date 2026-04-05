@@ -1,3 +1,8 @@
+/**
+ * Seed: admin + categoría/producto demo.
+ * Producción: ejecutar como tarea puntual (`npx prisma db seed`) con ADMIN_PASSWORD fuerte;
+ * no commitear contraseñas reales.
+ */
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
