@@ -21,18 +21,19 @@ Documento vivo con las **decisiones de infraestructura** y el avance por fases. 
 | 0 — Prerrequisitos | Cerrada |
 | 1 — PostgreSQL Render | Cerrada (host `*.ohio-postgres.render.com`, BD `bigbois`, usuario `admin`) |
 | 2 — Prisma PostgreSQL | Cerrada en repo: `provider = postgresql`, migración `20260408120000_init_postgresql`, `.env.example` actualizado |
-| 3 — API en Render | Guía y Blueprint en repo: [fase-3-render-api.md](./fase-3-render-api.md), [render.yaml](../render.yaml) |
+| 3 — API en Render | **Live:** `https://store-gym-bigboys-api.onrender.com` — [fase-3-render-api.md](./fase-3-render-api.md) |
+| 4 — Frontend Vercel | Guía: [fase-4-vercel-frontend.md](./fase-4-vercel-frontend.md) |
 
 **Credenciales:** la contraseña de Postgres **no** va en el repositorio; solo en `.env` local y en variables de entorno de Render.
 
 ## Próximo paso
 
-- **Fase 3 (acción en Render):** crear Web Service o Blueprint desde [render.yaml](../render.yaml); completar `DATABASE_URL` y `CORS_ORIGIN` en el dashboard; verificar `GET /api/health`.
-- **Fase 4:** conectar Vercel con `BACKEND_URL` apuntando a la URL `https://*.onrender.com` del API.
-- Seed en prod: `npx prisma db seed` **una vez** contra la BD (local con URL de prod) con `ADMIN_PASSWORD` fuerte, o admin manual.
+- **Fase 4:** importar repo en Vercel con root `frontend`; `BACKEND_URL` y `NEXT_PUBLIC_API_URL` = `https://store-gym-bigboys-api.onrender.com`; actualizar **`CORS_ORIGIN`** en Render con la URL `https://....vercel.app` del deploy.
+- Seed en prod (opcional): `npx prisma db seed` una vez con `ADMIN_PASSWORD` fuerte.
 
 ## Enlaces útiles
 
+- [Fase 4 — Vercel](./fase-4-vercel-frontend.md)
 - [Fase 3 — API Render](./fase-3-render-api.md)
 - [Plan por fases](./plan-despliegue-fases.md)
 - [Render: PostgreSQL](https://render.com/docs/databases)

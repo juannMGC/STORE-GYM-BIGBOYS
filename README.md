@@ -223,4 +223,4 @@ La solución se implementará bajo una arquitectura desacoplada por capas, separ
 
 ## Despliegue (producción)
 
-Stack objetivo: **Vercel** (frontend), **Render** (API NestJS), **PostgreSQL en Render**. Estado y fases: ver [DOCS/despliegue-estado.md](DOCS/despliegue-estado.md) y [DOCS/plan-despliegue-fases.md](DOCS/plan-despliegue-fases.md).
+Stack objetivo: **Vercel** (frontend), **Render** (API NestJS), **PostgreSQL en Render**. Estado: [DOCS/despliegue-estado.md](DOCS/despliegue-estado.md). Fases: [DOCS/plan-despliegue-fases.md](DOCS/plan-despliegue-fases.md). **Frontend (Vercel):** [DOCS/fase-4-vercel-frontend.md](DOCS/fase-4-vercel-frontend.md).

@@ -118,15 +118,19 @@ Opcional: `ADMIN_EMAIL` / `ADMIN_PASSWORD` solo si el seed en prod está control
 
 **Objetivo:** Next.js en producción con rewrites hacia el API.
 
-1. **Importar proyecto** en Vercel; **root directory:** `frontend`.
-2. **Variables de entorno en Vercel:**
-   - `BACKEND_URL` = URL HTTPS del API **sin** barra final (p. ej. `https://store-gym-api.onrender.com`).  
-     Se usa en servidor para [rewrites](frontend/next.config.ts) de `/api/:path*` → backend.
-   - `NEXT_PUBLIC_API_URL` = misma URL si el cliente necesita URL absoluta (cookies/fetch directo).
-3. **Build:** `npm run build` (comando por defecto de Vercel con Next).
-4. Primera URL: `https://<proyecto>.vercel.app` para pruebas.
+**Guía paso a paso:** [fase-4-vercel-frontend.md](fase-4-vercel-frontend.md).
 
-**Salida de Fase 4:** sitio público cargando; flujo que pasa por `/api` debe llegar al Nest (revisar Network en DevTools).
+**API de producción:** `https://store-gym-bigboys-api.onrender.com` (sin `/` final en variables).
+
+1. **Importar proyecto** en Vercel; **root directory:** `frontend`.
+2. **Variables de entorno (Production):**
+   - `BACKEND_URL` = `https://store-gym-bigboys-api.onrender.com`
+   - `NEXT_PUBLIC_API_URL` = la misma  
+     [next.config.ts](frontend/next.config.ts) usa esto para rewrites `/api/:path*` → Nest.
+3. Tras el primer deploy, **actualizar `CORS_ORIGIN` en Render** con la URL `https://<proyecto>.vercel.app` (ver guía Fase 4).
+4. **Build:** `npm run build` (por defecto en Vercel).
+
+**Salida de Fase 4:** sitio en `*.vercel.app`; `/api/*` llega al Nest; sin errores CORS tras alinear Render.
 
 ---
 
