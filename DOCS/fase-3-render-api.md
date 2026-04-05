@@ -29,7 +29,7 @@ Objetivo: NestJS público en **HTTPS** (p. ej. `https://store-gym-bigboys-api.on
 |--------|--------|
 | **Root Directory** | `backend` |
 | **Runtime** | Node |
-| **Build Command** | `npm ci && npm run build` |
+| **Build Command** | `NPM_CONFIG_PRODUCTION=false npm ci && npm run build` (evita que se salten devDependencies con `NODE_ENV=production`) |
 | **Start Command** | `npx prisma migrate deploy && npm run start:prod` |
 | **Region** | Ohio (o la misma región que tu Postgres) |
 
@@ -67,6 +67,10 @@ No hace falta `ADMIN_*` en el servicio salvo que ejecutes seed en el servidor (m
    Respuesta esperada: JSON con `status: "ok"`.
 2. Desde la consola del navegador en tu sitio Vercel (mismo origen configurado en `CORS_ORIGIN`), probá un `fetch` a la API o usá login en la app.
 3. Si falla CORS: revisá que `CORS_ORIGIN` sea exactamente el origen (esquema + host, sin path), o la lista separada por comas.
+
+## Si el deploy falla en “Build”
+
+Revisá el log en Render. Si aparece `nest: not found`, `Cannot find module 'typescript'` o similar, suele ser porque con `NODE_ENV=production` npm **no instala devDependencies**. El [render.yaml](../render.yaml) usa `NPM_CONFIG_PRODUCTION=false npm ci` en el build para evitarlo. Si configuraste el servicio a mano, usá ese mismo comando de build.
 
 ## Cold start (plan gratuito)
 

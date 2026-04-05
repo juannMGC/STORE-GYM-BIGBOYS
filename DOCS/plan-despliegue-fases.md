@@ -88,7 +88,7 @@ API → PostgreSQL (connection string solo en backend)
 ### 3.1 Configuración del servicio
 
 1. **Root directory:** `backend` (monorepo).
-2. **Build command:** `npm ci && npm run build` (`postinstall` ya ejecuta `prisma generate`).
+2. **Build command:** `NPM_CONFIG_PRODUCTION=false npm ci && npm run build` (ver [render.yaml](../render.yaml); evita fallos por falta de `@nestjs/cli` con `NODE_ENV=production`).
 3. **Start command:** `npx prisma migrate deploy && npm run start:prod` (equivale a `node dist/main`).
 4. **Puerto:** Render inyecta `PORT`; [main.ts](backend/src/main.ts) usa `process.env.PORT ?? 3001`.
 5. **Health:** `GET /api/health` → `{ "status": "ok", ... }` para health check de Render.
