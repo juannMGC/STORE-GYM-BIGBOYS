@@ -70,7 +70,7 @@ No hace falta `ADMIN_*` en el servicio salvo que ejecutes seed en el servidor (m
 
 ## Si el deploy falla en “Build”
 
-Revisá el log en Render. Si aparece `nest: not found`, `Cannot find module 'typescript'` o similar, suele ser porque con `NODE_ENV=production` npm **no instala devDependencies**. El [render.yaml](../render.yaml) usa `NPM_CONFIG_PRODUCTION=false npm ci` en el build para evitarlo. Si configuraste el servicio a mano, usá ese mismo comando de build.
+Revisá el log en Render. Si aparece `nest: not found`, suele ser porque el **Build Command del dashboard** sigue siendo `npm ci && npm run build` sin `NPM_CONFIG_PRODUCTION=false`, y eso **pisa** lo definido en [render.yaml](../render.yaml). Solución: en **Settings → Build Command** pegá `NPM_CONFIG_PRODUCTION=false npm ci && npm run build`, o hacé push del último `main`: el `package.json` incluye `@nestjs/cli`, `typescript` y `prisma` en **dependencies**, así `npm ci` en producción igual instala lo necesario para `nest build` y `prisma migrate deploy`.
 
 ## Cold start (plan gratuito)
 
