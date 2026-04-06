@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { loginPath, registroPath } from "@/lib/auth-routes";
 
 export function SiteHeader() {
-  const { user, loading, logout } = useAuth();
+  const { user, logout } = useAuth();
   const isAdmin = user?.role === "ADMIN";
 
   return (
@@ -46,7 +46,7 @@ export function SiteHeader() {
           >
             Tienda
           </Link>
-          {!loading && user && (
+          {user ? (
             <>
               <Link
                 href="/carrito"
@@ -62,34 +62,30 @@ export function SiteHeader() {
                   Admin
                 </Link>
               )}
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="rounded-sm px-2 py-1.5 text-xs uppercase text-zinc-500 hover:text-zinc-300"
+              >
+                Salir
+              </button>
             </>
-          )}
-          {!loading && !user && (
+          ) : (
             <>
-              <Link
+              {/* <a> navegación completa: evita que no se vea nada mientras loading y que Link no prefetch raro */}
+              <a
                 href={loginPath()}
-                prefetch={false}
                 className="rounded-sm px-2 py-1.5 font-medium text-zinc-400 hover:text-white"
               >
                 Entrar
-              </Link>
-              <Link
+              </a>
+              <a
                 href={registroPath()}
-                prefetch={false}
                 className="rounded-sm border-2 border-brand-red bg-brand-red px-3 py-1.5 font-display text-sm uppercase tracking-wide text-white hover:bg-brand-red-dark"
               >
                 Registro
-              </Link>
+              </a>
             </>
-          )}
-          {!loading && user && (
-            <button
-              type="button"
-              onClick={() => logout()}
-              className="rounded-sm px-2 py-1.5 text-xs uppercase text-zinc-500 hover:text-zinc-300"
-            >
-              Salir
-            </button>
           )}
         </nav>
       </div>

@@ -7,7 +7,7 @@ import { loginPath } from "@/lib/auth-routes";
 
 function RegistroInner({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
-  const returnTo = searchParams.get("returnTo") ?? "/tienda";
+  const returnTo = searchParams.get("returnTo") ?? "/";
   const href = `/auth/login?screen_hint=signup&returnTo=${encodeURIComponent(returnTo)}`;
 
   return (
