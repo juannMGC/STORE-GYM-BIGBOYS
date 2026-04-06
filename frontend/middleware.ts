@@ -1,11 +1,12 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { auth0 } from "@/lib/auth0";
+import { getAuth0Client } from "@/lib/auth0";
 
 const PROTECTED_PREFIXES = ["/carrito", "/checkout", "/admin"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const auth0 = getAuth0Client();
 
   if (!auth0) {
     const needsAuth = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));

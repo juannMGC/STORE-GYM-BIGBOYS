@@ -2,7 +2,12 @@ import { Auth0Client } from "@auth0/nextjs-auth0/server";
 import { NextResponse } from "next/server";
 import type { SdkError } from "@auth0/nextjs-auth0/errors";
 
-const audience = process.env.AUTH0_AUDIENCE?.trim();
+const AUTH0_ENV_KEYS = [
+  "AUTH0_DOMAIN",
+  "AUTH0_CLIENT_ID",
+  "AUTH0_CLIENT_SECRET",
+  "AUTH0_SECRET",
+] as const;
 
 /**
  * URL canónica opcional. Si no está definida, el SDK infiere la base desde cada request
@@ -15,23 +20,24 @@ function resolveAppBaseUrl(): string | undefined {
 }
 
 function isAuth0Configured(): boolean {
-  return Boolean(
-    process.env.AUTH0_DOMAIN?.trim() &&
-      process.env.AUTH0_CLIENT_ID?.trim() &&
-      process.env.AUTH0_CLIENT_SECRET?.trim() &&
-      process.env.AUTH0_SECRET?.trim(),
-  );
+  return AUTH0_ENV_KEYS.every((k) => Boolean(process.env[k]?.trim()));
+}
+
+/** Qué variables faltan (solo nombres) — útil para depurar Vercel Production vs Preview. */
+export function missingAuth0EnvKeys(): string[] {
+  return [...AUTH0_ENV_KEYS.filter((k) => !process.env[k]?.trim())];
 }
 
 function createAuth0Client(): Auth0Client | null {
   if (!isAuth0Configured()) {
     if (process.env.VERCEL) {
-      console.warn(
-        "[auth0] Faltan variables en Vercel: AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_SECRET.",
-      );
+      console.warn("[auth0] Faltan variables:", missingAuth0EnvKeys().join(", ") || "(desconocido)");
     }
     return null;
   }
+
+  const audience = process.env.AUTH0_AUDIENCE?.trim();
+
   try {
     return new Auth0Client({
       domain: process.env.AUTH0_DOMAIN!.trim(),
@@ -65,13 +71,21 @@ function createAuth0Client(): Auth0Client | null {
 }
 
 /**
- * `null` si faltan env o el constructor falla — el middleware no debe tirar 500 por el import.
+ * Lazy singleton solo si el cliente se creó bien — no cachear `null` (Edge vs Node ven env distinto).
  */
-export const auth0 = createAuth0Client();
+let cached: Auth0Client | undefined;
 
-/**
- * Texto útil que Auth0 envía en error_description (el SDK a veces solo muestra el mensaje genérico).
- */
+export function getAuth0Client(): Auth0Client | null {
+  if (cached) {
+    return cached;
+  }
+  const c = createAuth0Client();
+  if (c) {
+    cached = c;
+  }
+  return c;
+}
+
 function oauthFailureDetail(error: SdkError): string {
   const withCause = error as SdkError & {
     cause?: { message?: string; code?: string };
