@@ -41,12 +41,12 @@ function LoginContent() {
       </p>
       <p className="mt-4 text-sm text-zinc-400">
         ¿No tenés cuenta?{" "}
-        <Link
+        <a
           href={`/auth/login?screen_hint=signup&returnTo=${encodeURIComponent(returnTo)}`}
           className="font-medium text-brand-yellow hover:underline"
         >
           Crear cuenta
-        </Link>
+        </a>
       </p>
       <a href={href} className="btn-brand mt-8 flex w-full justify-center">
         Continuar con Auth0

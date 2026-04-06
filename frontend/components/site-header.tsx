@@ -67,12 +67,14 @@ export function SiteHeader() {
             <>
               <Link
                 href="/login"
+                prefetch={false}
                 className="rounded-sm px-2 py-1.5 font-medium text-zinc-400 hover:text-white"
               >
                 Entrar
               </Link>
               <Link
                 href="/registro"
+                prefetch={false}
                 className="rounded-sm border-2 border-brand-red bg-brand-red px-3 py-1.5 font-display text-sm uppercase tracking-wide text-white hover:bg-brand-red-dark"
               >
                 Registro
