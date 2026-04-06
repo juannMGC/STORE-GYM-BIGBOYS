@@ -34,6 +34,7 @@ describe('Admin flow (e2e)', () => {
         userId: e2eAdminUserId,
         email: adminEmail,
         role: 'ADMIN',
+        name: null,
       };
       return true;
     }

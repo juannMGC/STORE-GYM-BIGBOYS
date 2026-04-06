@@ -13,8 +13,9 @@ model User {
   email        String   @unique
   /// Solo usuarios con login local (seed); usuarios Auth0 sin contraseña local.
   passwordHash String?
-  /// Subject del JWT de Auth0 (`sub`), para enlazar y sincronizar.
-  auth0Sub     String?  @unique
+  /// Subject del JWT de Auth0 (`sub`).
+  auth0Id      String?  @unique
+  name         String?
   role         String   @default("CLIENT")
   createdAt    DateTime @default(now())
   orders       Order[]

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { UsersModule } from '../users/users.module';
 import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
 import { Auth0Strategy } from './strategies/auth0.strategy';
 
 @Module({
@@ -10,6 +11,6 @@ import { Auth0Strategy } from './strategies/auth0.strategy';
     PassportModule.register({ defaultStrategy: 'jwt' }),
   ],
   controllers: [AuthController],
-  providers: [Auth0Strategy],
+  providers: [AuthService, Auth0Strategy],
 })
 export class AuthModule {}
