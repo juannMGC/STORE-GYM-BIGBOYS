@@ -1,6 +1,7 @@
 import { Auth0Client } from "@auth0/nextjs-auth0/server";
 import { NextResponse } from "next/server";
 import type { SdkError } from "@auth0/nextjs-auth0/errors";
+import { loginPath } from "@/lib/auth-routes";
 
 const AUTH0_ENV_KEYS = [
   "AUTH0_DOMAIN",
@@ -54,7 +55,7 @@ function createAuth0Client(): Auth0Client | null {
           const detail = oauthFailureDetail(error);
           console.error("[Auth0] onCallback:", error.name, detail);
           const base = ctx.appBaseUrl ?? resolveAppBaseUrl() ?? "http://localhost:3000";
-          const login = new URL("/login", base);
+          const login = new URL(loginPath(), base);
           login.searchParams.set("error", "auth");
           if (detail) {
             login.searchParams.set("reason", detail.slice(0, 500));

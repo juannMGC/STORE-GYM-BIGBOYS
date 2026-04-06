@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { registroPath } from "@/lib/auth-routes";
 import { InstagramCarousel } from "@/components/instagram-carousel";
 import { InstagramHomeCta } from "@/components/instagram-home-cta";
 
@@ -47,7 +48,7 @@ export default function HomePage() {
               <Link href="/tienda" className="btn-brand">
                 Ir a la tienda
               </Link>
-              <Link href="/registro" className="btn-brand-outline">
+              <Link href={registroPath()} className="btn-brand-outline">
                 Crear cuenta
               </Link>
             </div>

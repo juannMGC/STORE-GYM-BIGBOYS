@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { loginPath, registroPath } from "@/lib/auth-routes";
 
 export function SiteHeader() {
   const { user, loading, logout } = useAuth();
@@ -66,14 +67,14 @@ export function SiteHeader() {
           {!loading && !user && (
             <>
               <Link
-                href="/login"
+                href={loginPath()}
                 prefetch={false}
                 className="rounded-sm px-2 py-1.5 font-medium text-zinc-400 hover:text-white"
               >
                 Entrar
               </Link>
               <Link
-                href="/registro"
+                href={registroPath()}
                 prefetch={false}
                 className="rounded-sm border-2 border-brand-red bg-brand-red px-3 py-1.5 font-display text-sm uppercase tracking-wide text-white hover:bg-brand-red-dark"
               >

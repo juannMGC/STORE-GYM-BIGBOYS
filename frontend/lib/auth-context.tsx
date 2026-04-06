@@ -12,6 +12,7 @@ import {
 } from "react";
 import type { AuthUser } from "./types";
 import { apiFetch } from "./api-client";
+import { loginPath, registroPath } from "./auth-routes";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -25,13 +26,6 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-function buildAuthLoginUrl(returnTo: string, screenHint?: "signup") {
-  const params = new URLSearchParams();
-  params.set("returnTo", returnTo);
-  if (screenHint) params.set("screen_hint", screenHint);
-  return `/auth/login?${params.toString()}`;
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { user: auth0User, isLoading: auth0Loading } = useUser();
@@ -61,11 +55,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [auth0User, auth0Loading, loadMe]);
 
   const login = useCallback((returnTo = "/") => {
-    window.location.assign(buildAuthLoginUrl(returnTo));
+    window.location.assign(
+      `${loginPath()}?returnTo=${encodeURIComponent(returnTo)}`,
+    );
   }, []);
 
   const signup = useCallback((returnTo = "/") => {
-    window.location.assign(buildAuthLoginUrl(returnTo, "signup"));
+    window.location.assign(
+      `${registroPath()}?returnTo=${encodeURIComponent(returnTo)}`,
+    );
   }, []);
 
   const logout = useCallback(() => {

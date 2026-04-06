@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getAuth0Client } from "@/lib/auth0";
+import { loginPath } from "@/lib/auth-routes";
 
 const PROTECTED_PREFIXES = ["/carrito", "/checkout", "/admin"];
 
@@ -12,7 +13,7 @@ export async function middleware(request: NextRequest) {
     const needsAuth = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
     if (needsAuth) {
       const url = request.nextUrl.clone();
-      url.pathname = "/login";
+      url.pathname = loginPath();
       url.searchParams.set("error", "config");
       url.searchParams.set(
         "reason",
@@ -50,7 +51,7 @@ export async function middleware(request: NextRequest) {
     const msg = err instanceof Error ? err.message.slice(0, 280) : "Error en middleware";
     if (needsAuth || pathname.startsWith("/auth")) {
       const url = request.nextUrl.clone();
-      url.pathname = "/login";
+      url.pathname = loginPath();
       url.searchParams.set("error", "config");
       url.searchParams.set("reason", msg);
       return NextResponse.redirect(url);

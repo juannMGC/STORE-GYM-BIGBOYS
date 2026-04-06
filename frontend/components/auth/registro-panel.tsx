@@ -1,0 +1,44 @@
+"use client";
+
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { loginPath } from "@/lib/auth-routes";
+
+function RegistroInner({ slug }: { slug: string }) {
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get("returnTo") ?? "/tienda";
+  const href = `/auth/login?screen_hint=signup&returnTo=${encodeURIComponent(returnTo)}`;
+
+  return (
+    <div className="panel-brand mx-auto max-w-md p-8">
+      <p className="text-xs uppercase tracking-widest text-zinc-500">
+        Registro · <span className="text-brand-yellow">{slug}</span>
+      </p>
+      <h1 className="font-display mt-2 text-4xl uppercase tracking-wide text-white">
+        Crear cuenta
+      </h1>
+      <p className="mt-2 text-sm text-zinc-400">
+        El registro se gestiona con Auth0. Vas a poder elegir email/contraseña o proveedores
+        sociales según la configuración del tenant.
+      </p>
+      <p className="mt-4 text-sm text-zinc-400">
+        ¿Ya tenés cuenta?{" "}
+        <Link href={`${loginPath()}?returnTo=${encodeURIComponent(returnTo)}`} prefetch={false} className="font-medium text-brand-yellow hover:underline">
+          Iniciá sesión
+        </Link>
+      </p>
+      <a href={href} className="btn-brand mt-8 flex w-full justify-center">
+        Registrarme con Auth0
+      </a>
+    </div>
+  );
+}
+
+export function RegistroPanel({ slug }: { slug: string }) {
+  return (
+    <Suspense fallback={<div className="text-center text-zinc-500">Cargando…</div>}>
+      <RegistroInner slug={slug} />
+    </Suspense>
+  );
+}
