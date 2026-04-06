@@ -1,16 +1,6 @@
-"use client";
+import { LOGIN_ENTRY_HREF } from "@/lib/auth-routes";
 
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
-import { LOGIN_ENTRY_HREF, auth0SignupHref } from "@/lib/auth-routes";
-
-function RegistroInner({ slug }: { slug: string }) {
-  const searchParams = useSearchParams();
-  const raw = searchParams.get("returnTo");
-  const returnTo = (raw && raw.trim()) || "/";
-  const href = auth0SignupHref(returnTo);
-  const loginWithReturn = `${LOGIN_ENTRY_HREF}?returnTo=${encodeURIComponent(returnTo)}`;
-
+export function RegistroPanel({ slug }: { slug: string }) {
   return (
     <div className="panel-brand mx-auto max-w-md p-8">
       <p className="text-xs uppercase tracking-widest text-zinc-500">
@@ -25,21 +15,13 @@ function RegistroInner({ slug }: { slug: string }) {
       </p>
       <p className="mt-4 text-sm text-zinc-400">
         ¿Ya tenés cuenta?{" "}
-        <a href={loginWithReturn} className="font-medium text-brand-yellow hover:underline">
+        <a href={LOGIN_ENTRY_HREF} className="font-medium text-brand-yellow hover:underline">
           Iniciá sesión
         </a>
       </p>
-      <a href={href} className="btn-brand mt-8 flex w-full justify-center">
+      <a href="/api/auth/login?screen_hint=signup" className="btn-brand mt-8 flex w-full justify-center">
         Registrarme con Auth0
       </a>
     </div>
-  );
-}
-
-export function RegistroPanel({ slug }: { slug: string }) {
-  return (
-    <Suspense fallback={<div className="text-center text-zinc-500">Cargando…</div>}>
-      <RegistroInner slug={slug} />
-    </Suspense>
   );
 }
