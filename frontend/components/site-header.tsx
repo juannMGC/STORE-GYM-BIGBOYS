@@ -3,8 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { loginPath, registroPath } from "@/lib/auth-routes";
+import { LOGIN_ENTRY_HREF, REGISTRO_ENTRY_HREF } from "@/lib/auth-routes";
 
+/**
+ * Auth en nav: siempre visible si no hay `user` (no depende de `loading`).
+ * Entrar / Registro = <a> navegación completa (Auth0).
+ */
 export function SiteHeader() {
   const { user, logout } = useAuth();
   const isAdmin = user?.role === "ADMIN";
@@ -72,15 +76,14 @@ export function SiteHeader() {
             </>
           ) : (
             <>
-              {/* <a> navegación completa: evita que no se vea nada mientras loading y que Link no prefetch raro */}
               <a
-                href={loginPath()}
+                href={LOGIN_ENTRY_HREF}
                 className="rounded-sm px-2 py-1.5 font-medium text-zinc-400 hover:text-white"
               >
                 Entrar
               </a>
               <a
-                href={registroPath()}
+                href={REGISTRO_ENTRY_HREF}
                 className="rounded-sm border-2 border-brand-red bg-brand-red px-3 py-1.5 font-display text-sm uppercase tracking-wide text-white hover:bg-brand-red-dark"
               >
                 Registro

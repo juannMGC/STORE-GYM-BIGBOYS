@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { registroPath } from "@/lib/auth-routes";
+import { registroUrlWithReturnTo } from "@/lib/auth-routes";
 
 function LoginInner({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
@@ -46,7 +46,7 @@ function LoginInner({ slug }: { slug: string }) {
       <p className="mt-4 text-sm text-zinc-400">
         ¿No tenés cuenta?{" "}
         <a
-          href={`${registroPath()}?returnTo=${encodeURIComponent(returnTo)}`}
+          href={registroUrlWithReturnTo(returnTo)}
           className="font-medium text-brand-yellow hover:underline"
         >
           Crear cuenta

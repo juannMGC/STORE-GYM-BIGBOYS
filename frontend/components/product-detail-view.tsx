@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
-import { loginPath, registroPath } from "@/lib/auth-routes";
+import { LOGIN_ENTRY_HREF, REGISTRO_ENTRY_HREF } from "@/lib/auth-routes";
 import type { ProductDetail } from "@/lib/types";
 
 type Props = {
@@ -181,13 +181,13 @@ export function ProductDetailView({ apiPath }: Props) {
             </button>
             {!user && (
               <p className="text-sm text-zinc-500">
-                <Link href={loginPath()} prefetch={false} className="font-medium text-brand-yellow hover:underline">
+                <a href={LOGIN_ENTRY_HREF} className="font-medium text-brand-yellow hover:underline">
                   Iniciá sesión
-                </Link>{" "}
+                </a>{" "}
                 o{" "}
-                <Link href={registroPath()} prefetch={false} className="font-medium text-brand-yellow hover:underline">
+                <a href={REGISTRO_ENTRY_HREF} className="font-medium text-brand-yellow hover:underline">
                   registrate
-                </Link>{" "}
+                </a>{" "}
                 para comprar. El botón está deshabilitado para visitantes.
               </p>
             )}

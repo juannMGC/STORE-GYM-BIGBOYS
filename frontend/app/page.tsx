@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { registroPath } from "@/lib/auth-routes";
+import { REGISTRO_ENTRY_HREF } from "@/lib/auth-routes";
 import { InstagramCarousel } from "@/components/instagram-carousel";
 import { InstagramHomeCta } from "@/components/instagram-home-cta";
 
@@ -48,9 +48,9 @@ export default function HomePage() {
               <Link href="/tienda" className="btn-brand">
                 Ir a la tienda
               </Link>
-              <Link href={registroPath()} className="btn-brand-outline">
+              <a href={REGISTRO_ENTRY_HREF} className="btn-brand-outline inline-block text-center">
                 Crear cuenta
-              </Link>
+              </a>
             </div>
           </div>
         </div>

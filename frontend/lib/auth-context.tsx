@@ -12,7 +12,7 @@ import {
 } from "react";
 import type { AuthUser } from "./types";
 import { apiFetch } from "./api-client";
-import { loginPath, registroPath } from "./auth-routes";
+import { LOGIN_ENTRY_HREF, registroUrlWithReturnTo } from "./auth-routes";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -55,15 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [auth0User, auth0Loading, loadMe]);
 
   const login = useCallback((returnTo = "/") => {
-    window.location.assign(
-      `${loginPath()}?returnTo=${encodeURIComponent(returnTo)}`,
-    );
+    const q = returnTo === "/" ? "" : `?returnTo=${encodeURIComponent(returnTo)}`;
+    window.location.assign(`${LOGIN_ENTRY_HREF}${q}`);
   }, []);
 
   const signup = useCallback((returnTo = "/") => {
-    window.location.assign(
-      `${registroPath()}?returnTo=${encodeURIComponent(returnTo)}`,
-    );
+    window.location.assign(registroUrlWithReturnTo(returnTo));
   }, []);
 
   const logout = useCallback(() => {

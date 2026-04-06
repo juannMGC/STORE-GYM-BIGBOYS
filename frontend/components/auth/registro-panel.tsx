@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { loginPath } from "@/lib/auth-routes";
+import { LOGIN_ENTRY_HREF } from "@/lib/auth-routes";
 
 function RegistroInner({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo") ?? "/";
   const href = `/auth/login?screen_hint=signup&returnTo=${encodeURIComponent(returnTo)}`;
+  const loginWithReturn = `${LOGIN_ENTRY_HREF}?returnTo=${encodeURIComponent(returnTo)}`;
 
   return (
     <div className="panel-brand mx-auto max-w-md p-8">
@@ -24,9 +25,9 @@ function RegistroInner({ slug }: { slug: string }) {
       </p>
       <p className="mt-4 text-sm text-zinc-400">
         ¿Ya tenés cuenta?{" "}
-        <Link href={`${loginPath()}?returnTo=${encodeURIComponent(returnTo)}`} prefetch={false} className="font-medium text-brand-yellow hover:underline">
+        <a href={loginWithReturn} className="font-medium text-brand-yellow hover:underline">
           Iniciá sesión
-        </Link>
+        </a>
       </p>
       <a href={href} className="btn-brand mt-8 flex w-full justify-center">
         Registrarme con Auth0

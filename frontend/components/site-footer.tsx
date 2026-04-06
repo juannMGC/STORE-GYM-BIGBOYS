@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { loginPath } from "@/lib/auth-routes";
+import { LOGIN_ENTRY_HREF } from "@/lib/auth-routes";
 import { INSTAGRAM_PROFILE_URL } from "@/data/instagram-gallery";
 import { InstagramIcon } from "@/components/instagram-icon";
 
@@ -20,9 +20,9 @@ export function SiteFooter() {
           <Link href="/tienda" className="text-brand-yellow/80 hover:text-brand-yellow">
             Tienda
           </Link>
-          <Link href={loginPath()} className="text-zinc-500 hover:text-zinc-300">
+          <a href={LOGIN_ENTRY_HREF} className="text-zinc-500 hover:text-zinc-300">
             Cuenta
-          </Link>
+          </a>
         </div>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
           <a
