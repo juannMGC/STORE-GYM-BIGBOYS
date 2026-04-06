@@ -1,15 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { LOGIN_ENTRY_HREF, auth0LoginHref } from "@/lib/auth-routes";
+import { LOGIN_ENTRY_HREF, auth0SignupHref } from "@/lib/auth-routes";
 
 function RegistroInner({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
   const raw = searchParams.get("returnTo");
   const returnTo = (raw && raw.trim()) || "/";
-  const href = auth0LoginHref(returnTo, "signup");
+  const href = auth0SignupHref(returnTo);
   const loginWithReturn = `${LOGIN_ENTRY_HREF}?returnTo=${encodeURIComponent(returnTo)}`;
 
   return (

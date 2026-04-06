@@ -4,9 +4,17 @@ export const DEFAULT_REGISTRO_SLUG = "cuenta";
 
 /**
  * Login OAuth de @auth0/nextjs-auth0 v4 (ruta interna del SDK).
- * No es /api/auth/login (eso era v3): el proxy /api/* va al backend Nest y rompe el flujo.
+ * El proxy `/api/*` → Nest captura `/api/auth/...` salvo que el middleware redirija antes
+ * (ver LEGACY_AUTH0_TO_V4): `/api/auth/login` → `/auth/login`.
  */
 export const AUTH0_LOGIN_HREF = "/auth/login";
+
+/**
+ * Ruta “pública” (nombre típico v3). El middleware la reescribe a {@link AUTH0_LOGIN_HREF}
+ * conservando query (`screen_hint`, `returnTo`, etc.).
+ * Registro: `?screen_hint=signup` para Universal Login (pestaña signup; requiere New Universal Login en Auth0).
+ */
+export const AUTH0_API_LOGIN_HREF = "/api/auth/login";
 
 /**
  * Rutas canónicas para <a href> (navegación completa del documento).
@@ -18,21 +26,34 @@ export const REGISTRO_ENTRY_HREF = `/registrar/${DEFAULT_REGISTRO_SLUG}`;
 export type Auth0LoginIntent = "login" | "signup";
 
 /**
- * URL al endpoint del SDK que redirige a Auth0 (/authorize).
- * - screen_hint: pestaña login vs registro en Universal Login
- * - prompt=login (solo intent "login"): evita saltarse la pantalla si hay sesión SSO en Auth0
+ * Signup en Auth0: siempre `screen_hint=signup` (no uses esta URL sin eso: abriría login).
+ * Query recomendada: `screen_hint=signup&returnTo=/ruta`
+ */
+export function auth0SignupHref(returnTo: string | null | undefined): string {
+  const rt = (typeof returnTo === "string" && returnTo.trim()) || "/";
+  const params = new URLSearchParams();
+  params.set("screen_hint", "signup");
+  params.set("returnTo", rt);
+  return `${AUTH0_API_LOGIN_HREF}?${params.toString()}`;
+}
+
+/**
+ * URL al endpoint que redirige a Auth0 (/authorize).
+ * - login: `/auth/login` + screen_hint=login + prompt=login
+ * - signup: delega en {@link auth0SignupHref} (`/api/auth/login?...` → middleware → `/auth/login?...`)
  */
 export function auth0LoginHref(
   returnTo: string | null | undefined,
   intent: Auth0LoginIntent,
 ): string {
+  if (intent === "signup") {
+    return auth0SignupHref(returnTo);
+  }
   const rt = (typeof returnTo === "string" && returnTo.trim()) || "/";
   const params = new URLSearchParams();
   params.set("returnTo", rt);
-  params.set("screen_hint", intent === "login" ? "login" : "signup");
-  if (intent === "login") {
-    params.set("prompt", "login");
-  }
+  params.set("screen_hint", "login");
+  params.set("prompt", "login");
   return `${AUTH0_LOGIN_HREF}?${params.toString()}`;
 }
 
