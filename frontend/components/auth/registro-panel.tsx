@@ -19,7 +19,10 @@ export function RegistroPanel({ slug }: { slug: string }) {
           Iniciá sesión
         </a>
       </p>
-      <a href="/api/auth/login?screen_hint=signup" className="btn-brand mt-8 flex w-full justify-center">
+      <a
+        href="/api/auth/login?screen_hint=signup&prompt=login&returnTo=/"
+        className="btn-brand mt-8 flex w-full justify-center"
+      >
         Registrarme con Auth0
       </a>
     </div>
