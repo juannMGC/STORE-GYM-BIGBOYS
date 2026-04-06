@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { registroUrlWithReturnTo } from "@/lib/auth-routes";
+import { auth0LoginHref, registroUrlWithReturnTo } from "@/lib/auth-routes";
 
 function LoginInner({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
-  const returnTo =
-    searchParams.get("returnTo") ?? searchParams.get("next") ?? "/";
-  const href = `/auth/login?returnTo=${encodeURIComponent(returnTo)}`;
+  const raw = searchParams.get("returnTo") ?? searchParams.get("next");
+  const returnTo = (raw && raw.trim()) || "/";
+  const href = auth0LoginHref(returnTo, "login");
   const authError = searchParams.get("error");
   const reason = searchParams.get("reason");
 
