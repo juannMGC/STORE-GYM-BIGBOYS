@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, formatShopApiError } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
+import { LOGIN_ENTRY_HREF } from "@/lib/auth-routes";
 import type { CartOrder } from "@/lib/types";
 
 const METHODS = [
@@ -14,6 +16,7 @@ const METHODS = [
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const { isLoggedIn, loading: authLoading, displayName } = useAuth();
   const [order, setOrder] = useState<CartOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [method, setMethod] = useState<string>("BANK_TRANSFER");
@@ -27,15 +30,22 @@ export default function CheckoutPage() {
       setOrder(data);
       if (data?.paymentMethod) setMethod(data.paymentMethod);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
+      setError(formatShopApiError(e));
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!isLoggedIn) {
+      setLoading(false);
+      setOrder(null);
+      setError(null);
+      return;
+    }
     void load();
-  }, [load]);
+  }, [authLoading, isLoggedIn, load]);
 
   async function savePayment() {
     setSaving(true);
@@ -47,7 +57,7 @@ export default function CheckoutPage() {
       });
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
+      setError(formatShopApiError(e));
     } finally {
       setSaving(false);
     }
@@ -64,15 +74,32 @@ export default function CheckoutPage() {
       await apiFetch("/orders/cart/confirm", { method: "POST" });
       router.push("/pedido/confirmado");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al confirmar");
+      setError(formatShopApiError(e));
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) {
+  if (authLoading || (isLoggedIn && loading)) {
     return (
       <div className="mx-auto max-w-lg px-4 py-12 text-zinc-500">Cargando…</div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <h1 className="font-display text-4xl uppercase text-white">Checkout</h1>
+        <p className="mt-4 text-zinc-400">
+          Tenés que iniciar sesión para finalizar la compra.
+        </p>
+        <a href={LOGIN_ENTRY_HREF} className="btn-brand mt-8 inline-flex">
+          Entrar
+        </a>
+        <Link href="/carrito" className="mt-6 block text-sm text-zinc-500 hover:text-brand-yellow">
+          Volver al carrito
+        </Link>
+      </div>
     );
   }
 
@@ -95,6 +122,9 @@ export default function CheckoutPage() {
   return (
     <div className="mx-auto max-w-lg px-4 py-10">
       <h1 className="font-display text-5xl uppercase tracking-wide text-white">Checkout</h1>
+      {displayName ? (
+        <p className="mt-1 text-sm text-zinc-500">Pedido de {displayName}</p>
+      ) : null}
       <p className="mt-2 text-zinc-400">
         Elegí la forma de pago y confirmá el pedido. El equipo de Big Boys lo
         revisará según el flujo del administrador.

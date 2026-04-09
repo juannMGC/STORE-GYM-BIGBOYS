@@ -26,6 +26,20 @@ export class ApiError extends Error {
   }
 }
 
+/** Mensajes claros para carrito/checkout cuando falla el API con Auth0. */
+export function formatShopApiError(e: unknown): string {
+  if (e instanceof ApiError) {
+    if (e.status === 401) {
+      return "Necesitás iniciar sesión o la sesión expiró. Usá Entrar y volvé a intentar.";
+    }
+    const m = e.message.toLowerCase();
+    if (m.includes("email") || m.includes("token")) {
+      return "Tu cuenta no pudo validarse con el servidor. Cerrá sesión (Salir), volvé a entrar, o revisá en Auth0 que el access token incluya el email (Actions → Post-login).";
+    }
+  }
+  return e instanceof Error ? e.message : "Error";
+}
+
 type FetchOptions = RequestInit & { skipAuth?: boolean };
 
 export async function apiFetch<T = unknown>(

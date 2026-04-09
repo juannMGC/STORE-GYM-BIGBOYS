@@ -56,7 +56,7 @@ export class AuthService {
     };
   }
 
-  validateAuth0UserFromPayload(
+  async validateAuth0UserFromPayload(
     payload: Record<string, unknown>,
     rolesClaimKey: string,
   ): Promise<RequestUser> {
@@ -64,10 +64,16 @@ export class AuthService {
     if (!sub) {
       throw new UnauthorizedException();
     }
-    const email = this.extractEmailFromPayload(payload);
+    let email = this.extractEmailFromPayload(payload);
+    if (!email) {
+      const existing = await this.usersService.findByAuth0Id(sub);
+      if (existing?.email) {
+        email = existing.email;
+      }
+    }
     if (!email) {
       throw new UnauthorizedException(
-        'El token no incluye email. En Auth0, añade el claim "email" o configura AUTH0_EMAIL_CLAIM.',
+        'El access token no incluye email y el usuario aún no está en la base. En Auth0: Actions → Login / Post-login → añadí el claim "email" al access token de tu API (ver comentarios en backend/.env.example). Opcional: AUTH0_EMAIL_CLAIM si usás un claim con namespace.',
       );
     }
     const name = this.extractNameFromPayload(payload);
@@ -116,6 +122,11 @@ export class AuthService {
     }
     if (typeof payload['https://myapp.com/email'] === 'string') {
       return payload['https://myapp.com/email'] as string;
+    }
+    for (const [key, val] of Object.entries(payload)) {
+      if (typeof val === 'string' && val.includes('@') && key.endsWith('/email')) {
+        return val.trim();
+      }
     }
     return undefined;
   }

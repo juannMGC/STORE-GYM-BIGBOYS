@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, formatShopApiError } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
+import { LOGIN_ENTRY_HREF } from "@/lib/auth-routes";
 import type { CartOrder } from "@/lib/types";
 
 export default function CarritoPage() {
+  const { isLoggedIn, loading: authLoading, displayName } = useAuth();
   const [order, setOrder] = useState<CartOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,15 +19,22 @@ export default function CarritoPage() {
       const data = await apiFetch<CartOrder | null>("/orders/cart");
       setOrder(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
+      setError(formatShopApiError(e));
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!isLoggedIn) {
+      setLoading(false);
+      setOrder(null);
+      setError(null);
+      return;
+    }
     void load();
-  }, [load]);
+  }, [authLoading, isLoggedIn, load]);
 
   async function setQty(itemId: string, quantity: number) {
     try {
@@ -34,7 +44,7 @@ export default function CarritoPage() {
       });
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
+      setError(formatShopApiError(e));
     }
   }
 
@@ -43,19 +53,45 @@ export default function CarritoPage() {
       await apiFetch(`/orders/cart/items/${itemId}`, { method: "DELETE" });
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
+      setError(formatShopApiError(e));
     }
   }
 
-  if (loading) {
+  if (authLoading || (isLoggedIn && loading)) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 text-zinc-500">Cargando carrito…</div>
     );
   }
 
+  if (!isLoggedIn) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <h1 className="font-display text-4xl uppercase text-white">Tu carrito</h1>
+        <p className="mt-4 text-zinc-400">
+          Iniciá sesión para agregar productos y ver tu carrito en cualquier dispositivo.
+        </p>
+        <a href={LOGIN_ENTRY_HREF} className="btn-brand mt-8 inline-flex">
+          Entrar con tu cuenta
+        </a>
+        <p className="mt-6 text-sm text-zinc-500">
+          ¿No tenés cuenta?{" "}
+          <Link href="/registrar/cuenta" className="text-brand-yellow hover:underline">
+            Registrate
+          </Link>
+        </p>
+      </div>
+    );
+  }
+
   if (error) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-12 text-brand-red">{error}</div>
+      <div className="mx-auto max-w-3xl px-4 py-12">
+        <h1 className="font-display text-3xl uppercase text-white">Carrito</h1>
+        <p className="mt-4 text-brand-red">{error}</p>
+        <a href={LOGIN_ENTRY_HREF} className="btn-brand-outline mt-6 inline-block">
+          Volver a entrar
+        </a>
+      </div>
     );
   }
 
@@ -63,6 +99,9 @@ export default function CarritoPage() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
         <h1 className="font-display text-4xl uppercase text-white">Tu carrito está vacío</h1>
+        {displayName ? (
+          <p className="mt-2 text-sm text-zinc-500">Hola, {displayName}</p>
+        ) : null}
         <Link href="/tienda" className="btn-brand mt-8 inline-flex">
           Ir a la tienda
         </Link>
@@ -78,6 +117,9 @@ export default function CarritoPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="font-display text-5xl uppercase tracking-wide text-white">Carrito</h1>
+      {displayName ? (
+        <p className="mt-1 text-sm text-zinc-500">Comprando como {displayName}</p>
+      ) : null}
       <ul className="panel-brand mt-8 divide-y divide-brand-border">
         {order.items.map((line) => (
           <li

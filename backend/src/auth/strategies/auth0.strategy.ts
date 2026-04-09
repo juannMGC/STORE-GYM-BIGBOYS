@@ -33,7 +33,7 @@ export class Auth0Strategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  validate(payload: Auth0JwtPayload) {
+  async validate(payload: Auth0JwtPayload) {
     const rolesClaim =
       this.configService.get<string>('AUTH0_ROLES_CLAIM') ?? DEFAULT_ROLES_CLAIM;
     return this.authService.validateAuth0UserFromPayload(payload, rolesClaim);
