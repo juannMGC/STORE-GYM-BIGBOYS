@@ -10,8 +10,12 @@ import { LOGIN_ENTRY_HREF, REGISTRO_ENTRY_HREF } from "@/lib/auth-routes";
  * Entrar / Registro = <a> navegación completa (Auth0).
  */
 export function SiteHeader() {
-  const { user, logout } = useAuth();
+  const { user, logout, displayName, isLoggedIn, loading } = useAuth();
   const isAdmin = user?.role === "ADMIN";
+  const showGuestNav = !isLoggedIn && !loading;
+  const greet =
+    displayName.trim() ||
+    (isLoggedIn ? "Sesión activa" : "");
 
   return (
     <header className="sticky top-0 z-[100] border-b-4 border-brand-red bg-brand-black/95 shadow-[0_4px_24px_rgba(0,0,0,0.6)] backdrop-blur-sm">
@@ -50,7 +54,18 @@ export function SiteHeader() {
           >
             Tienda
           </Link>
-          {user ? (
+          {isLoggedIn && greet && (
+            <span
+              className="inline max-w-[10rem] truncate text-xs font-medium text-brand-yellow/90 sm:max-w-[14rem]"
+              title={greet}
+            >
+              Hola, {greet}
+            </span>
+          )}
+          {loading && !isLoggedIn && (
+            <span className="text-xs text-zinc-500">Cargando…</span>
+          )}
+          {isLoggedIn ? (
             <>
               <Link
                 href="/carrito"
@@ -74,7 +89,7 @@ export function SiteHeader() {
                 Salir
               </button>
             </>
-          ) : (
+          ) : showGuestNav ? (
             <>
               <a
                 href={LOGIN_ENTRY_HREF}
@@ -89,7 +104,7 @@ export function SiteHeader() {
                 Registro
               </a>
             </>
-          )}
+          ) : null}
         </nav>
       </div>
     </header>
