@@ -30,7 +30,7 @@ export default function CheckoutPage() {
       setOrder(data);
       if (data?.paymentMethod) setMethod(data.paymentMethod);
     } catch (e) {
-      setError(formatShopApiError(e));
+      setError(formatShopApiError(e, { sessionActive: true }));
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ export default function CheckoutPage() {
       });
       await load();
     } catch (e) {
-      setError(formatShopApiError(e));
+      setError(formatShopApiError(e, { sessionActive: true }));
     } finally {
       setSaving(false);
     }
@@ -74,7 +74,7 @@ export default function CheckoutPage() {
       await apiFetch("/orders/cart/confirm", { method: "POST" });
       router.push("/pedido/confirmado");
     } catch (e) {
-      setError(formatShopApiError(e));
+      setError(formatShopApiError(e, { sessionActive: true }));
     } finally {
       setSaving(false);
     }

@@ -26,10 +26,33 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * En el navegador, si existe NEXT_PUBLIC_API_URL, el fetch va directo al Nest (CORS + Bearer).
+ * El rewrite /api de Next en Vercel a veces no reenvía Authorization y Nest responde 401 aunque haya sesión Auth0.
+ */
+function resolveApiUrl(path: string): string {
+  const apiPath = path.startsWith("/api")
+    ? path
+    : `/api${path.startsWith("/") ? path : `/${path}`}`;
+  if (typeof window !== "undefined") {
+    const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+    if (base) {
+      return `${base}${apiPath}`;
+    }
+  }
+  return apiPath;
+}
+
 /** Mensajes claros para carrito/checkout cuando falla el API con Auth0. */
-export function formatShopApiError(e: unknown): string {
+export function formatShopApiError(
+  e: unknown,
+  opts?: { sessionActive?: boolean },
+): string {
   if (e instanceof ApiError) {
     if (e.status === 401) {
+      if (opts?.sessionActive) {
+        return "Tenés sesión en la tienda pero el API rechazó el pedido (401). En Vercel definí NEXT_PUBLIC_API_URL=https://tu-api.onrender.com (URL directa del Nest) y NEXT_PUBLIC_AUTH0_AUDIENCE. Luego redeploy. Si ya está, cerrá sesión y volvé a entrar.";
+      }
       return "Necesitás iniciar sesión o la sesión expiró. Usá Entrar y volvé a intentar.";
     }
     const m = e.message.toLowerCase();
@@ -46,7 +69,7 @@ export async function apiFetch<T = unknown>(
   path: string,
   options: FetchOptions = {},
 ): Promise<T> {
-  const url = path.startsWith("/api") ? path : `/api${path.startsWith("/") ? path : `/${path}`}`;
+  const url = resolveApiUrl(path);
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
@@ -70,7 +93,11 @@ export async function apiFetch<T = unknown>(
       }
     }
   }
-  const res = await fetch(url, { ...options, headers });
+  const res = await fetch(url, {
+    ...options,
+    headers,
+    credentials: url.startsWith("http") ? "omit" : "same-origin",
+  });
   const text = await res.text();
   let data: unknown = undefined;
   if (text) {

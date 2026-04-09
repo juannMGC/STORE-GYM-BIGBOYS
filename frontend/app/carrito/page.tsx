@@ -13,13 +13,14 @@ export default function CarritoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  /** Solo se llama cuando `isLoggedIn`; en el catch asumimos sesión web activa. */
   const load = useCallback(async () => {
     setError(null);
     try {
       const data = await apiFetch<CartOrder | null>("/orders/cart");
       setOrder(data);
     } catch (e) {
-      setError(formatShopApiError(e));
+      setError(formatShopApiError(e, { sessionActive: true }));
     } finally {
       setLoading(false);
     }
@@ -44,7 +45,7 @@ export default function CarritoPage() {
       });
       await load();
     } catch (e) {
-      setError(formatShopApiError(e));
+      setError(formatShopApiError(e, { sessionActive: isLoggedIn }));
     }
   }
 
@@ -53,7 +54,7 @@ export default function CarritoPage() {
       await apiFetch(`/orders/cart/items/${itemId}`, { method: "DELETE" });
       await load();
     } catch (e) {
-      setError(formatShopApiError(e));
+      setError(formatShopApiError(e, { sessionActive: isLoggedIn }));
     }
   }
 
