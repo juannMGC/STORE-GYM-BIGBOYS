@@ -39,7 +39,9 @@ export async function apiFetch<T = unknown>(
   }
   if (!options.skipAuth) {
     try {
-      const audience = process.env.NEXT_PUBLIC_AUTH0_AUDIENCE;
+      const audience =
+        process.env.NEXT_PUBLIC_AUTH0_AUDIENCE?.trim() ||
+        process.env.AUTH0_AUDIENCE?.trim();
       const token = await getAccessToken(audience ? { audience } : undefined);
       if (token) headers.set("Authorization", `Bearer ${token}`);
       else if (process.env.NODE_ENV === "development") {

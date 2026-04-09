@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import type { AuthUser } from "./types";
-import { apiFetch } from "./api-client";
+import { ApiError, apiFetch } from "./api-client";
 import { LOGIN_ENTRY_HREF, registroUrlWithReturnTo } from "./auth-routes";
 
 type AuthContextValue = {
@@ -42,7 +42,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await apiFetch<{ user: AuthUser }>("/auth/me");
       setMeUser(res.user);
-    } catch {
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        const detail =
+          e instanceof ApiError ? `${e.status} ${e.message}` : String(e);
+        console.error(
+          "[AuthProvider] No se pudo sincronizar con el API (/auth/me). ¿Tenés NEXT_PUBLIC_AUTH0_AUDIENCE igual al API en Auth0 y el backend en marcha?",
+          detail,
+        );
+      }
       setMeUser(null);
     } finally {
       setMeLoading(false);
