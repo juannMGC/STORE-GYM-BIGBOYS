@@ -5,7 +5,6 @@ import { SWRConfig } from "swr";
 import { AuthProvider } from "@/lib/auth-context";
 import type { ReactNode } from "react";
 
-/** useUser() de @auth0/nextjs-auth0 usa SWR sobre /auth/profile; sin esto, 401 reintenta en bucle. */
 const auth0ProfileSwr = {
   shouldRetryOnError: false,
   revalidateOnFocus: false,
@@ -15,10 +14,10 @@ const auth0ProfileSwr = {
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <Auth0Provider>
-      <SWRConfig value={auth0ProfileSwr}>
+    <SWRConfig value={auth0ProfileSwr}>
+      <Auth0Provider>
         <AuthProvider>{children}</AuthProvider>
-      </SWRConfig>
-    </Auth0Provider>
+      </Auth0Provider>
+    </SWRConfig>
   );
 }
