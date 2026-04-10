@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
-import { Role } from '../common/constants/roles';
+import { Role, type RoleValue } from '../common/constants/roles';
 
 @Injectable()
 export class AuthService {
@@ -20,10 +20,7 @@ export class AuthService {
     name?: string | null;
     roleFromToken: string;
   }): Promise<RequestUser> {
-    let role = this.usersService.normalizeAppRole(data.roleFromToken);
-    if (this.isConfiguredAdminEmail(data.email)) {
-      role = Role.ADMIN;
-    }
+    const role = this.usersService.normalizeAppRole(data.roleFromToken);
 
     let user = await this.usersService.findByAuth0Id(data.sub);
     if (user) {
@@ -61,7 +58,6 @@ export class AuthService {
 
   async validateAuth0UserFromPayload(
     payload: Record<string, unknown>,
-    rolesClaimKey: string,
   ): Promise<RequestUser> {
     const sub = String(payload.sub ?? '');
     if (!sub) {
@@ -80,12 +76,15 @@ export class AuthService {
       );
     }
     const name = this.extractNameFromPayload(payload);
-    const roleFromToken = this.parseRolesClaim(payload, rolesClaimKey);
+    let role: RoleValue = this.getRoleFromPermissions(payload.permissions);
+    if (this.isConfiguredAdminEmail(email)) {
+      role = Role.ADMIN;
+    }
     return this.validateAuth0User({
       email,
       sub,
       name,
-      roleFromToken,
+      roleFromToken: role,
     });
   }
 
@@ -138,16 +137,17 @@ export class AuthService {
     return email.trim().toLowerCase() === admin;
   }
 
-  private parseRolesClaim(
-    payload: Record<string, unknown>,
-    claimKey: string,
-  ): string {
-    const raw = payload[claimKey];
-    if (Array.isArray(raw) && raw.length > 0) {
-      return String(raw[0]);
+  /**
+   * Rol desde RBAC de Auth0 en el access token (claim `permissions`).
+   * Requiere en la API: Enable RBAC + Add Permissions in the Access Token.
+   */
+  private getRoleFromPermissions(permissions: unknown): RoleValue {
+    if (!Array.isArray(permissions)) {
+      return Role.CLIENT;
     }
-    if (typeof raw === 'string') {
-      return raw;
+    const list = permissions.filter((p): p is string => typeof p === 'string');
+    if (list.includes('manage:users')) {
+      return Role.ADMIN;
     }
     return Role.CLIENT;
   }

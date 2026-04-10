@@ -5,8 +5,6 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import * as jwksRsa from 'jwks-rsa';
 import { AuthService } from '../auth.service';
 
-const DEFAULT_ROLES_CLAIM = 'https://myapp.com/roles';
-
 type Auth0JwtPayload = Record<string, unknown>;
 
 @Injectable()
@@ -35,8 +33,6 @@ export class Auth0Strategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: Auth0JwtPayload) {
-    const rolesClaim =
-      this.configService.get<string>('AUTH0_ROLES_CLAIM') ?? DEFAULT_ROLES_CLAIM;
-    return this.authService.validateAuth0UserFromPayload(payload, rolesClaim);
+    return this.authService.validateAuth0UserFromPayload(payload);
   }
 }
