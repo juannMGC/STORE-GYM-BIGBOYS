@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, apiFetch, formatShopApiError } from "@/lib/api-client";
+import { apiFetch, formatShopApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { auth0LoginHref } from "@/lib/auth-routes";
 import type { CartOrder } from "@/lib/types";
@@ -34,13 +34,7 @@ export default function CarritoPage() {
       const data = await apiFetch<CartOrder | null>("/orders/cart");
       setOrder(data);
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        setError(
-          "Tu sesión expiró o el servidor no la reconoció. Iniciá sesión de nuevo.",
-        );
-      } else {
-        setError(formatShopApiError(e, { sessionActive: true }));
-      }
+      setError(formatShopApiError(e, { sessionActive: true }));
     } finally {
       setCartLoading(false);
     }
@@ -63,13 +57,7 @@ export default function CarritoPage() {
       });
       await load();
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        setError(
-          "Tu sesión expiró o el servidor no la reconoció. Iniciá sesión de nuevo.",
-        );
-      } else {
-        setError(formatShopApiError(e, { sessionActive: isLoggedIn }));
-      }
+      setError(formatShopApiError(e, { sessionActive: isLoggedIn }));
     }
   }
 
@@ -78,13 +66,7 @@ export default function CarritoPage() {
       await apiFetch(`/orders/cart/items/${itemId}`, { method: "DELETE" });
       await load();
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        setError(
-          "Tu sesión expiró o el servidor no la reconoció. Iniciá sesión de nuevo.",
-        );
-      } else {
-        setError(formatShopApiError(e, { sessionActive: isLoggedIn }));
-      }
+      setError(formatShopApiError(e, { sessionActive: isLoggedIn }));
     }
   }
 

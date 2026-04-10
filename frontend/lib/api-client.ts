@@ -1,6 +1,6 @@
 /**
  * Cliente HTTP hacia rutas `/api/*` (rewrites → Nest).
- * Authorization: access token de Auth0 (misma audience que el API Nest).
+ * Authorization: access token JWT de Auth0 con la misma `audience` que el API Nest.
  */
 
 import { getAccessToken } from "@auth0/nextjs-auth0";
@@ -26,6 +26,50 @@ export class ApiError extends Error {
   }
 }
 
+/** Lanzado cuando no hay token JWT de API (audiencia) o getAccessToken falla antes del fetch. */
+export const SESSION_EXPIRED_MESSAGE = "SESSION_EXPIRED";
+
+export function isSessionExpiredError(e: unknown): boolean {
+  return e instanceof Error && e.message === SESSION_EXPIRED_MESSAGE;
+}
+
+function resolveApiAudience(): string | undefined {
+  return (
+    process.env.NEXT_PUBLIC_AUTH0_AUDIENCE?.trim() ||
+    process.env.AUTH0_AUDIENCE?.trim() ||
+    undefined
+  );
+}
+
+/**
+ * Headers para llamadas autenticadas. Exige `NEXT_PUBLIC_AUTH0_AUDIENCE` (mismo valor que `AUTH0_AUDIENCE` en Nest).
+ * Sin audiencia, Auth0 puede devolver un token opaco que el backend no valida con JWKS.
+ */
+export async function getAuthHeaders(): Promise<HeadersInit> {
+  const token = await getBearerTokenForApi();
+  return {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+}
+
+async function getBearerTokenForApi(): Promise<string> {
+  const audience = resolveApiAudience();
+  if (!audience) {
+    throw new Error(SESSION_EXPIRED_MESSAGE);
+  }
+  try {
+    const accessToken = await getAccessToken({ audience });
+    if (!accessToken || typeof accessToken !== "string") {
+      throw new Error(SESSION_EXPIRED_MESSAGE);
+    }
+    return accessToken;
+  } catch (e) {
+    if (isSessionExpiredError(e)) throw e;
+    throw new Error(SESSION_EXPIRED_MESSAGE);
+  }
+}
+
 /**
  * En el navegador, si existe NEXT_PUBLIC_API_URL, el fetch va directo al Nest (CORS + Bearer).
  * El rewrite /api de Next en Vercel a veces no reenvía Authorization y Nest responde 401 aunque haya sesión Auth0.
@@ -48,6 +92,9 @@ export function formatShopApiError(
   e: unknown,
   opts?: { sessionActive?: boolean },
 ): string {
+  if (isSessionExpiredError(e)) {
+    return "No se obtuvo un token de acceso válido para el API. Verificá que NEXT_PUBLIC_AUTH0_AUDIENCE coincida con AUTH0_AUDIENCE del servidor y volvé a iniciar sesión.";
+  }
   if (e instanceof ApiError) {
     if (e.status === 401) {
       if (opts?.sessionActive) {
@@ -76,21 +123,11 @@ export async function apiFetch<T = unknown>(
   }
   if (!options.skipAuth) {
     try {
-      const audience =
-        process.env.NEXT_PUBLIC_AUTH0_AUDIENCE?.trim() ||
-        process.env.AUTH0_AUDIENCE?.trim();
-      const token = await getAccessToken(audience ? { audience } : undefined);
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-      else if (process.env.NODE_ENV === "development") {
-        console.warn(
-          "[apiFetch] Sin access token para esta API. Revisá Auth0 → Applications → tu app → APIs (autorizar el Identifier igual a NEXT_PUBLIC_AUTH0_AUDIENCE) y probá cerrar sesión y volver a entrar.",
-          path,
-        );
-      }
+      const token = await getBearerTokenForApi();
+      headers.set("Authorization", `Bearer ${token}`);
     } catch (e) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn("[apiFetch] getAccessToken falló (mirá también GET /auth/access-token en Red):", e);
-      }
+      if (isSessionExpiredError(e)) throw e;
+      throw new Error(SESSION_EXPIRED_MESSAGE);
     }
   }
   const res = await fetch(url, {

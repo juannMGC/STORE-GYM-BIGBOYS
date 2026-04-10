@@ -22,6 +22,7 @@ export class Auth0Strategy extends PassportStrategy(Strategy, 'jwt') {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       audience,
+      /** Debe coincidir con el claim `iss` del JWT (Auth0 usa barra final). */
       issuer: `https://${domain}/`,
       algorithms: ['RS256'],
       secretOrKeyProvider: jwksRsa.passportJwtSecret({

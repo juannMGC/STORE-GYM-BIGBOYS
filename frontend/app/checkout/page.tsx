@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, apiFetch, formatShopApiError } from "@/lib/api-client";
+import { apiFetch, formatShopApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { auth0LoginHref } from "@/lib/auth-routes";
 import type { CartOrder } from "@/lib/types";
@@ -51,13 +51,7 @@ export default function CheckoutPage() {
       setOrder(data);
       if (data?.paymentMethod) setMethod(data.paymentMethod);
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        setError(
-          "Tu sesión expiró o el servidor no la reconoció. Iniciá sesión de nuevo.",
-        );
-      } else {
-        setError(formatShopApiError(e, { sessionActive: true }));
-      }
+      setError(formatShopApiError(e, { sessionActive: true }));
     } finally {
       setCartLoading(false);
     }
@@ -98,13 +92,7 @@ export default function CheckoutPage() {
       });
       await load();
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        setError(
-          "Tu sesión expiró o el servidor no la reconoció. Iniciá sesión de nuevo.",
-        );
-      } else {
-        setError(formatShopApiError(e, { sessionActive: true }));
-      }
+      setError(formatShopApiError(e, { sessionActive: true }));
     } finally {
       setSaving(false);
     }
@@ -151,13 +139,7 @@ export default function CheckoutPage() {
       });
       checkout.open(() => {});
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        setError(
-          "Tu sesión expiró o el servidor no la reconoció. Iniciá sesión de nuevo.",
-        );
-      } else {
-        setError(formatShopApiError(e, { sessionActive: true }));
-      }
+      setError(formatShopApiError(e, { sessionActive: true }));
     } finally {
       setSaving(false);
     }

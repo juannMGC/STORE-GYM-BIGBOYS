@@ -53,10 +53,11 @@ function audienceForApi(): string | undefined {
 
 async function fetchAccessTokenWithRetry(): Promise<string | null> {
   const audience = audienceForApi();
+  if (!audience) return null;
   for (let i = 0; i < TOKEN_RETRIES; i++) {
     try {
-      const token = await getAccessToken(audience ? { audience } : undefined);
-      if (token) return token;
+      const token = await getAccessToken({ audience });
+      if (token && typeof token === "string") return token;
     } catch {}
     await new Promise((r) => setTimeout(r, TOKEN_RETRY_MS));
   }

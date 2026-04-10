@@ -12,7 +12,10 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  const corsRaw = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
+  const corsRaw =
+    process.env.FRONTEND_URL?.trim() ||
+    process.env.CORS_ORIGIN?.trim() ||
+    'http://localhost:3000';
   const corsOrigin =
     corsRaw.includes(',') ? corsRaw.split(',').map((s) => s.trim()) : corsRaw;
   app.enableCors({

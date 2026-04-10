@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ApiError, apiFetch } from "@/lib/api-client";
+import { ApiError, apiFetch, formatShopApiError, isSessionExpiredError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { auth0LoginHref, auth0SignupHref } from "@/lib/auth-routes";
 import type { ProductDetail } from "@/lib/types";
@@ -21,6 +21,7 @@ export function ProductDetailView({ apiPath }: Props) {
   const [sizeId, setSizeId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [sessionTokenError, setSessionTokenError] = useState(false);
 
   const needsSize = (product?.sizes?.length ?? 0) > 0;
 
@@ -52,6 +53,7 @@ export function ProductDetailView({ apiPath }: Props) {
   async function addToCart() {
     if (!product || !isLoggedIn) return;
     setMsg(null);
+    setSessionTokenError(false);
     if (needsSize && !sizeId) {
       setMsg("Elegí una talla.");
       return;
@@ -68,7 +70,10 @@ export function ProductDetailView({ apiPath }: Props) {
       });
       router.push("/carrito");
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
+      if (isSessionExpiredError(e)) {
+        setSessionTokenError(true);
+        setMsg(formatShopApiError(e, { sessionActive: true }));
+      } else if (e instanceof ApiError && e.status === 401) {
         setMsg("Sesión expirada, volvé a iniciar sesión.");
       } else {
         setMsg(e instanceof Error ? e.message : "No se pudo añadir");
@@ -206,6 +211,11 @@ export function ProductDetailView({ apiPath }: Props) {
               </p>
             )}
             {msg && <p className="text-sm text-brand-red">{msg}</p>}
+            {sessionTokenError && (
+              <a href={loginHref} className="btn-brand-outline mt-2 inline-block text-center sm:text-left">
+                Volver a iniciar sesión
+              </a>
+            )}
           </div>
         </div>
       </div>
