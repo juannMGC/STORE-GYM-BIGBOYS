@@ -1,47 +1,49 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AdminTableSkeleton } from "@/components/admin/table-skeleton";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import type { Category } from "@/lib/types";
 
-type Toast = { type: "ok" | "err"; text: string } | null;
-
 type ModalMode = "create" | "edit" | null;
+
+type FormFeedback = { type: "ok" | "err"; text: string } | null;
+
+function slugify(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 export default function AdminCategoriasPage() {
   const [rows, setRows] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState<Toast>(null);
+  const [listError, setListError] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalMode>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [parentId, setParentId] = useState("");
-
-  const parentOptions = useMemo(() => {
-    return rows.filter((c) => c.id !== editingId);
-  }, [rows, editingId]);
-
-  const showToast = useCallback((t: Toast) => {
-    setToast(t);
-    if (t) setTimeout(() => setToast(null), 4200);
-  }, []);
+  const [description, setDescription] = useState("");
+  const [slugManual, setSlugManual] = useState(false);
+  const [formFeedback, setFormFeedback] = useState<FormFeedback>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setListError(null);
     try {
       const data = await apiFetch<Category[]>("/categories");
       setRows(data);
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : "No se pudieron cargar las categorías";
-      showToast({ type: "err", text: msg });
+      setListError(e instanceof ApiError ? e.message : "No se pudieron cargar las categorías");
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -51,7 +53,9 @@ export default function AdminCategoriasPage() {
     setEditingId(null);
     setName("");
     setSlug("");
-    setParentId("");
+    setDescription("");
+    setSlugManual(false);
+    setFormFeedback(null);
     setModal("create");
   }
 
@@ -59,23 +63,40 @@ export default function AdminCategoriasPage() {
     setEditingId(c.id);
     setName(c.name);
     setSlug(c.slug ?? "");
-    setParentId(c.parentId ?? "");
+    setDescription(c.description ?? "");
+    setSlugManual(true);
+    setFormFeedback(null);
     setModal("edit");
   }
 
   function closeModal() {
     setModal(null);
     setEditingId(null);
+    setFormFeedback(null);
+  }
+
+  function onNameChange(v: string) {
+    setName(v);
+    if (!slugManual) {
+      setSlug(slugify(v));
+    }
+  }
+
+  function onSlugChange(v: string) {
+    setSlugManual(true);
+    setSlug(v);
   }
 
   async function submitModal() {
+    setFormFeedback(null);
     const trimmedName = name.trim();
     if (!trimmedName) {
-      showToast({ type: "err", text: "El nombre es obligatorio." });
+      setFormFeedback({ type: "err", text: "El nombre es obligatorio." });
       return;
     }
-    const slugVal = slug.trim();
-    const parentVal = parentId.trim();
+    const slugTrim = slug.trim();
+    const resolvedSlug = slugTrim || slugify(trimmedName) || undefined;
+    const descTrim = description.trim();
     setSaving(true);
     try {
       if (modal === "create") {
@@ -83,47 +104,49 @@ export default function AdminCategoriasPage() {
           method: "POST",
           body: JSON.stringify({
             name: trimmedName,
-            ...(slugVal ? { slug: slugVal } : {}),
-            ...(parentVal ? { parentId: parentVal } : {}),
+            ...(resolvedSlug ? { slug: resolvedSlug } : {}),
+            ...(descTrim ? { description: descTrim } : {}),
           }),
         });
-        showToast({ type: "ok", text: "Categoría creada." });
       } else if (modal === "edit" && editingId) {
         await apiFetch<Category>(`/admin/categories/${editingId}`, {
           method: "PATCH",
           body: JSON.stringify({
             name: trimmedName,
-            slug: slugVal || null,
-            parentId: parentVal || null,
+            slug: resolvedSlug ?? null,
+            description: descTrim || null,
           }),
         });
-        showToast({ type: "ok", text: "Categoría actualizada." });
       }
-      setModal(null);
-      setEditingId(null);
       await load();
+      setFormFeedback({
+        type: "ok",
+        text: modal === "create" ? "Categoría creada." : "Categoría actualizada.",
+      });
+      await new Promise((r) => setTimeout(r, 650));
+      closeModal();
+      return;
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : "Error al guardar";
-      showToast({ type: "err", text: msg });
+      setFormFeedback({
+        type: "err",
+        text: e instanceof ApiError ? e.message : "Error al guardar",
+      });
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(c: Category) {
-    const ok = window.confirm(
-      `¿Eliminar “${c.name}”? Solo se puede si no tiene subcategorías ni productos.`,
-    );
-    if (!ok) return;
+    if (!window.confirm(`¿Eliminar “${c.name}”?`)) return;
     try {
       await apiFetch(`/admin/categories/${c.id}`, { method: "DELETE" });
-      showToast({ type: "ok", text: "Categoría eliminada." });
       await load();
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : "No se pudo eliminar";
-      showToast({ type: "err", text: msg });
+      setListError(e instanceof ApiError ? e.message : "No se pudo eliminar");
     }
   }
+
+  const rowBorder = "border-b border-[#2a2a2a]";
 
   return (
     <div>
@@ -136,8 +159,6 @@ export default function AdminCategoriasPage() {
             <Link href="/admin" className="text-brand-yellow hover:underline">
               Admin
             </Link>
-            {" · "}
-            Listado plano; slug y padre opcionales (API actual).
           </p>
         </div>
         <button type="button" onClick={openCreate} className="btn-brand shrink-0">
@@ -145,18 +166,24 @@ export default function AdminCategoriasPage() {
         </button>
       </div>
 
+      {listError && (
+        <p className="mt-6 text-sm text-brand-red" role="alert">
+          {listError}
+        </p>
+      )}
+
       {loading ? (
         <div className="mt-8">
           <AdminTableSkeleton />
         </div>
       ) : (
         <div className="panel-brand mt-8 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
-              <tr className="border-b-2 border-brand-border text-xs uppercase tracking-wide text-zinc-500">
+              <tr className="border-b-2 border-[#2a2a2a] text-xs uppercase tracking-wide text-zinc-500">
                 <th className="p-4 font-medium">Nombre</th>
                 <th className="p-4 font-medium">Slug</th>
-                <th className="p-4 font-medium">Padre</th>
+                <th className="p-4 font-medium">Descripción</th>
                 <th className="p-4 font-medium text-right">Acciones</th>
               </tr>
             </thead>
@@ -168,34 +195,31 @@ export default function AdminCategoriasPage() {
                   </td>
                 </tr>
               ) : (
-                rows.map((c) => {
-                  const parentName = c.parentId
-                    ? rows.find((x) => x.id === c.parentId)?.name ?? c.parentId
-                    : "—";
-                  return (
-                    <tr key={c.id} className="border-b border-brand-border">
-                      <td className="p-4 font-medium text-zinc-100">{c.name}</td>
-                      <td className="p-4 text-zinc-400">{c.slug ?? "—"}</td>
-                      <td className="p-4 text-zinc-400">{parentName}</td>
-                      <td className="p-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(c)}
-                          className="mr-2 text-brand-yellow hover:underline"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleDelete(c)}
-                          className="text-brand-red hover:underline"
-                        >
-                          Eliminar
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
+                rows.map((c) => (
+                  <tr key={c.id} className={rowBorder}>
+                    <td className="p-4 font-medium text-zinc-100">{c.name}</td>
+                    <td className="p-4 font-mono text-sm text-zinc-400">{c.slug ?? "—"}</td>
+                    <td className="max-w-xs p-4 text-zinc-400">
+                      <span className="line-clamp-2">{c.description?.trim() || "—"}</span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(c)}
+                        className="mr-2 text-brand-yellow hover:underline"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(c)}
+                        className="text-brand-red hover:underline"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
@@ -204,54 +228,62 @@ export default function AdminCategoriasPage() {
 
       {modal && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 p-4"
           role="dialog"
           aria-modal="true"
+          aria-labelledby="cat-modal-title"
         >
-          <div className="panel-brand w-full max-w-md p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.5)]">
-            <h2 className="font-display text-2xl uppercase text-white">
+          <div className="panel-brand w-full max-w-md border-[#2a2a2a] p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.5)]">
+            <h2
+              id="cat-modal-title"
+              className="font-display text-2xl uppercase text-white"
+            >
               {modal === "create" ? "Nueva categoría" : "Editar categoría"}
             </h2>
             <div className="mt-6 space-y-4">
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Nombre
+                  Nombre <span className="text-brand-red">*</span>
                 </label>
                 <input
-                  className="input-brand mt-1"
+                  className="input-brand mt-1 w-full"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => onNameChange(e.target.value)}
                   autoFocus
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Slug (opcional)
+                  Slug
                 </label>
                 <input
-                  className="input-brand mt-1"
+                  className="input-brand mt-1 w-full font-mono text-sm"
                   value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                  placeholder="ej. suplementacion"
+                  onChange={(e) => onSlugChange(e.target.value)}
+                  placeholder="se genera desde el nombre"
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Categoría padre (opcional)
+                  Descripción
                 </label>
-                <select
-                  className="select-brand mt-1"
-                  value={parentId}
-                  onChange={(e) => setParentId(e.target.value)}
-                >
-                  <option value="">— Ninguna —</option>
-                  {parentOptions.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+                <textarea
+                  className="input-brand mt-1 min-h-[88px] w-full resize-y"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                />
               </div>
+              {formFeedback && (
+                <p
+                  className={
+                    formFeedback.type === "ok" ? "text-sm text-brand-yellow" : "text-sm text-brand-red"
+                  }
+                  role="status"
+                >
+                  {formFeedback.text}
+                </p>
+              )}
             </div>
             <div className="mt-8 flex flex-wrap justify-end gap-2">
               <button
@@ -272,19 +304,6 @@ export default function AdminCategoriasPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {toast && (
-        <div
-          className={`fixed bottom-6 left-1/2 z-[250] max-w-md -translate-x-1/2 px-4 ${
-            toast.type === "ok"
-              ? "border-2 border-brand-yellow/60 bg-brand-steel text-brand-yellow"
-              : "border-2 border-brand-red/60 bg-brand-steel text-brand-red"
-          } py-3 text-center text-sm shadow-lg`}
-          role="status"
-        >
-          {toast.text}
         </div>
       )}
     </div>

@@ -12,6 +12,7 @@ export type CategoryTreeNode = {
   id: string;
   name: string;
   slug: string | null;
+  description: string | null;
   parentId: string | null;
   createdAt: Date;
   children: CategoryTreeNode[];
@@ -37,6 +38,7 @@ export class CategoriesService {
         id: c.id,
         name: c.name,
         slug: c.slug,
+        description: c.description,
         parentId: c.parentId,
         createdAt: c.createdAt,
         children: [],
@@ -72,6 +74,7 @@ export class CategoriesService {
       data: {
         name: dto.name,
         slug: dto.slug,
+        description: dto.description,
         parentId: dto.parentId,
       },
     });
@@ -104,6 +107,7 @@ export class CategoriesService {
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.slug !== undefined && { slug: dto.slug }),
+        ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.parentId !== undefined && { parentId: dto.parentId }),
       },
     });

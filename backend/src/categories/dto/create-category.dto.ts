@@ -11,6 +11,11 @@ export class CreateCategoryDto {
   @MaxLength(200)
   slug?: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  description?: string;
+
   /** Si se omite, categoría raíz. */
   @IsOptional()
   @IsUUID()

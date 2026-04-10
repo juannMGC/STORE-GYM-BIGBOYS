@@ -13,6 +13,11 @@ export class UpdateCategoryDto {
   slug?: string | null;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  description?: string | null;
+
+  @IsOptional()
   @IsUUID()
   parentId?: string | null;
 }
