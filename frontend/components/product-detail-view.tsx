@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api-client";
+import { ApiError, apiFetch } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
-import { LOGIN_ENTRY_HREF, REGISTRO_ENTRY_HREF } from "@/lib/auth-routes";
+import { auth0LoginHref, auth0SignupHref } from "@/lib/auth-routes";
 import type { ProductDetail } from "@/lib/types";
 
 type Props = {
@@ -14,7 +14,7 @@ type Props = {
 
 export function ProductDetailView({ apiPath }: Props) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export function ProductDetailView({ apiPath }: Props) {
   }, [apiPath]);
 
   async function addToCart() {
-    if (!product || !user) return;
+    if (!product || !isLoggedIn) return;
     setMsg(null);
     if (needsSize && !sizeId) {
       setMsg("Elegí una talla.");
@@ -68,7 +68,11 @@ export function ProductDetailView({ apiPath }: Props) {
       });
       router.push("/carrito");
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "No se pudo añadir");
+      if (e instanceof ApiError && e.status === 401) {
+        setMsg("Sesión expirada, volvé a iniciar sesión.");
+      } else {
+        setMsg(e instanceof Error ? e.message : "No se pudo añadir");
+      }
     } finally {
       setAdding(false);
     }
@@ -90,11 +94,15 @@ export function ProductDetailView({ apiPath }: Props) {
     );
   }
 
-  const canAdd = Boolean(user) && (!needsSize || Boolean(sizeId));
+  const canBuy = !authLoading && isLoggedIn;
+  const sizeOk = !needsSize || Boolean(sizeId);
+  const canClickAdd = canBuy && sizeOk && !adding;
   const productUrl =
     product.slug != null && product.slug !== ""
       ? `/tienda/productos/${product.slug}`
       : `/producto/${product.id}`;
+  const loginHref = auth0LoginHref(productUrl, "login");
+  const signupHref = auth0SignupHref(productUrl);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -173,22 +181,28 @@ export function ProductDetailView({ apiPath }: Props) {
           <div className="mt-8 flex flex-col gap-4">
             <button
               type="button"
-              disabled={!canAdd || adding}
+              disabled={!canClickAdd}
               onClick={() => void addToCart()}
               className="btn-brand w-full disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
             >
-              {user ? (adding ? "Añadiendo…" : "Añadir al carrito") : "Añadir al carrito"}
+              {authLoading
+                ? "Cargando…"
+                : !isLoggedIn
+                  ? "Iniciá sesión para comprar"
+                  : adding
+                    ? "Añadiendo…"
+                    : "Añadir al carrito"}
             </button>
-            {!user && (
+            {!authLoading && !isLoggedIn && (
               <p className="text-sm text-zinc-500">
-                <a href={LOGIN_ENTRY_HREF} className="font-medium text-brand-yellow hover:underline">
+                <a href={loginHref} className="font-medium text-brand-yellow hover:underline">
                   Iniciá sesión
                 </a>{" "}
                 o{" "}
-                <a href={REGISTRO_ENTRY_HREF} className="font-medium text-brand-yellow hover:underline">
+                <a href={signupHref} className="font-medium text-brand-yellow hover:underline">
                   registrate
                 </a>{" "}
-                para comprar. El botón está deshabilitado para visitantes.
+                para comprar. Volvés a esta página al terminar.
               </p>
             )}
             {msg && <p className="text-sm text-brand-red">{msg}</p>}
