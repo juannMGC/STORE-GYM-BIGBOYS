@@ -29,7 +29,6 @@ export default function HomePage() {
               fill
               className="object-cover"
               sizes="200px"
-              priority
             />
           </div>
           <div className="min-w-0 flex-1 text-center sm:text-left">

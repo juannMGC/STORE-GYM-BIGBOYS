@@ -72,7 +72,6 @@ export function InstagramCarousel() {
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 512px"
-                  priority={i === 0}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-brand-black/90 via-transparent to-brand-black/40" />
                 <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6">

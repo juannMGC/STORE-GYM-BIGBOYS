@@ -36,7 +36,6 @@ export function SiteHeader() {
               fill
               className="object-cover"
               sizes="56px"
-              priority
             />
           </span>
           <span className="font-display text-2xl leading-none tracking-wide text-brand-yellow sm:text-3xl">
