@@ -15,7 +15,7 @@ export function SiteHeader() {
   const returnTo = pathname || "/";
   const entrarHref = auth0LoginHref(returnTo, "login");
   const registroHref = auth0SignupHref(returnTo);
-  const { user, logout, displayName, isLoggedIn, isLoading } = useAuth();
+  const { user, displayName, isLoggedIn, isLoading } = useAuth();
   const isAdmin = user?.role === "ADMIN";
   const showGuestNav = !isLoggedIn && !isLoading;
   const greet =
@@ -86,13 +86,12 @@ export function SiteHeader() {
                   Admin
                 </Link>
               )}
-              <button
-                type="button"
-                onClick={() => logout()}
+              <a
+                href="/auth/logout"
                 className="rounded-sm px-2 py-1.5 text-xs uppercase text-zinc-500 hover:text-zinc-300"
               >
                 Salir
-              </button>
+              </a>
             </>
           ) : showGuestNav ? (
             <>

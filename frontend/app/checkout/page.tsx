@@ -1,12 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { apiFetch, formatShopApiError } from "@/lib/api-client";
+import { ApiError, apiFetch, formatShopApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { auth0LoginHref } from "@/lib/auth-routes";
 import type { CartOrder } from "@/lib/types";
+
+function CheckoutSkeleton() {
+  return (
+    <div className="mx-auto max-w-lg px-4 py-12">
+      <div className="panel-brand animate-pulse space-y-6 p-8">
+        <div className="h-10 w-48 rounded bg-brand-steel/40" />
+        <div className="h-32 rounded bg-brand-steel/25" />
+      </div>
+    </div>
+  );
+}
 
 const METHODS = [
   { value: "CASH", label: "Efectivo" },
@@ -25,10 +35,9 @@ type WompiSigResponse = {
 const WOMPI_SCRIPT_ID = "wompi-widget-js";
 
 export default function CheckoutPage() {
-  const pathname = usePathname() ?? "/checkout";
-  const { isLoggedIn, loading: sessionLoading, displayName } = useAuth();
+  const { isLoggedIn, isLoading, displayName } = useAuth();
   const [order, setOrder] = useState<CartOrder | null>(null);
-  const [cartLoading, setCartLoading] = useState(true);
+  const [cartLoading, setCartLoading] = useState(false);
   const [method, setMethod] = useState<string>("BANK_TRANSFER");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,21 +51,26 @@ export default function CheckoutPage() {
       setOrder(data);
       if (data?.paymentMethod) setMethod(data.paymentMethod);
     } catch (e) {
-      setError(formatShopApiError(e, { sessionActive: true }));
+      if (e instanceof ApiError && e.status === 401) {
+        setError(
+          "Tu sesión expiró o el servidor no la reconoció. Iniciá sesión de nuevo.",
+        );
+      } else {
+        setError(formatShopApiError(e, { sessionActive: true }));
+      }
     } finally {
       setCartLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (sessionLoading) return;
+    if (isLoading) return;
     if (!isLoggedIn) {
-      setCartLoading(false);
-      window.location.replace(auth0LoginHref(pathname, "login"));
+      setOrder(null);
       return;
     }
     void load();
-  }, [sessionLoading, isLoggedIn, load, pathname]);
+  }, [isLoading, isLoggedIn, load]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -84,7 +98,13 @@ export default function CheckoutPage() {
       });
       await load();
     } catch (e) {
-      setError(formatShopApiError(e, { sessionActive: true }));
+      if (e instanceof ApiError && e.status === 401) {
+        setError(
+          "Tu sesión expiró o el servidor no la reconoció. Iniciá sesión de nuevo.",
+        );
+      } else {
+        setError(formatShopApiError(e, { sessionActive: true }));
+      }
     } finally {
       setSaving(false);
     }
@@ -131,23 +151,40 @@ export default function CheckoutPage() {
       });
       checkout.open(() => {});
     } catch (e) {
-      setError(formatShopApiError(e, { sessionActive: true }));
+      if (e instanceof ApiError && e.status === 401) {
+        setError(
+          "Tu sesión expiró o el servidor no la reconoció. Iniciá sesión de nuevo.",
+        );
+      } else {
+        setError(formatShopApiError(e, { sessionActive: true }));
+      }
     } finally {
       setSaving(false);
     }
   }
 
-  if (sessionLoading || (isLoggedIn && cartLoading)) {
-    return (
-      <div className="mx-auto max-w-lg px-4 py-12 text-zinc-500">Cargando…</div>
-    );
+  if (isLoading) {
+    return <CheckoutSkeleton />;
   }
 
   if (!isLoggedIn) {
+    const loginHref = auth0LoginHref("/checkout", "login");
     return (
-      <div className="mx-auto max-w-lg px-4 py-16 text-center text-zinc-500">
-        Redirigiendo al inicio de sesión…
+      <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <h1 className="font-display text-3xl uppercase text-white">Checkout</h1>
+        <p className="mt-4 text-zinc-400">
+          Iniciá sesión para completar el pago.
+        </p>
+        <a href={loginHref} className="btn-brand mt-8 inline-flex">
+          Iniciar sesión
+        </a>
       </div>
+    );
+  }
+
+  if (cartLoading) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-12 text-zinc-500">Cargando…</div>
     );
   }
 

@@ -15,7 +15,8 @@ const AUTH0_ENV_KEYS = [
  * (Host / x-forwarded-host), así el redirect_uri coincide con la URL real del navegador.
  */
 function resolveAppBaseUrl(): string | undefined {
-  const explicit = process.env.APP_BASE_URL?.trim();
+  const explicit =
+    process.env.APP_BASE_URL?.trim() || process.env.AUTH0_BASE_URL?.trim();
   if (explicit) return explicit;
   return undefined;
 }
