@@ -99,6 +99,15 @@ function oauthFailureDetail(error: SdkError): string {
   return error.message;
 }
 
+function safeReturnPath(returnTo: string | undefined): string {
+  const raw = (returnTo ?? "").trim();
+  if (!raw || raw === "/auth/callback") return "/";
+  const path = raw.startsWith("/") ? raw : `/${raw}`;
+  if (path.startsWith("/auth/callback")) return "/";
+  if (path.includes("//") || path.includes("://")) return "/";
+  return path;
+}
+
 function redirectAfterLogin(ctx: { returnTo?: string; appBaseUrl?: string }) {
   const appBaseUrl = ctx.appBaseUrl;
   if (!appBaseUrl) {
@@ -106,7 +115,6 @@ function redirectAfterLogin(ctx: { returnTo?: string; appBaseUrl?: string }) {
       status: 500,
     });
   }
-  const path = ctx.returnTo || "/";
-  const safePath = path.startsWith("/") ? path : `/${path}`;
+  const safePath = safeReturnPath(ctx.returnTo);
   return NextResponse.redirect(new URL(safePath, appBaseUrl));
 }

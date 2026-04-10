@@ -1,39 +1,38 @@
 "use client";
 
-import { useUser } from "@auth0/nextjs-auth0";
-
-/** Perfil mínimo de la sesión Auth0 (useUser) para saludo en header. */
-export type Auth0SessionUser = {
-  email?: string;
-  name?: string;
-  sub?: string;
-};
+import { useUser, getAccessToken } from "@auth0/nextjs-auth0";
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import type { AuthUser } from "./types";
 import { ApiError, apiFetch } from "./api-client";
-import { LOGIN_ENTRY_HREF, registroUrlWithReturnTo } from "./auth-routes";
+import { auth0LoginHref, auth0SignupHref } from "./auth-routes";
+
+export type Auth0SessionUser = {
+  email?: string;
+  name?: string;
+  sub?: string;
+};
+
+type MeResponse = { user: AuthUser };
 
 type AuthContextValue = {
-  /** Usuario en la API (DB); null si /auth/me falla o aún no cargó. */
   user: AuthUser | null;
-  /** Sesión Auth0 (Universal Login); si existe, el usuario ya inició sesión aunque la API falle. */
   auth0User: Auth0SessionUser | null | undefined;
-  /** Texto para saludo en UI: prioriza nombre/email de la DB y si no, de Auth0. */
   displayName: string;
-  /** Hay sesión Auth0 activa (sirve para mostrar Entrar vs menú de cuenta). */
   isLoggedIn: boolean;
+  /** Sesión Auth0 o sync con API en curso */
   loading: boolean;
-  /** Redirige a Auth0 Login (usar asignación de location, no Link de Next). */
+  /** Alias de `loading` (misma señal) */
+  isLoading: boolean;
   login: (returnTo?: string) => void;
-  /** Registro vía Auth0 Universal Login. */
   signup: (returnTo?: string) => void;
   logout: () => void;
   refreshUser: () => void;
@@ -41,58 +40,109 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const TOKEN_RETRIES = 12;
+const TOKEN_RETRY_MS = 150;
+
+function audienceForApi(): string | undefined {
+  return (
+    process.env.NEXT_PUBLIC_AUTH0_AUDIENCE?.trim() ||
+    process.env.AUTH0_AUDIENCE?.trim() ||
+    undefined
+  );
+}
+
+async function fetchAccessTokenWithRetry(): Promise<string | null> {
+  const audience = audienceForApi();
+  for (let i = 0; i < TOKEN_RETRIES; i++) {
+    try {
+      const token = await getAccessToken(audience ? { audience } : undefined);
+      if (token) return token;
+    } catch {}
+    await new Promise((r) => setTimeout(r, TOKEN_RETRY_MS));
+  }
+  return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { user: auth0User, isLoading: auth0Loading } = useUser();
+  const auth0Sub = auth0User?.sub ?? null;
+
   const [meUser, setMeUser] = useState<AuthUser | null>(null);
   const [meLoading, setMeLoading] = useState(true);
+  const [syncNonce, setSyncNonce] = useState(0);
 
-  const loadMe = useCallback(async () => {
-    if (!auth0User) {
+  const runIdRef = useRef(0);
+
+  useEffect(() => {
+    if (auth0Loading) return;
+
+    if (!auth0Sub) {
       setMeUser(null);
       setMeLoading(false);
       return;
     }
-    setMeLoading(true);
-    try {
-      const res = await apiFetch<{ user: AuthUser }>("/auth/me");
-      setMeUser(res.user);
-    } catch (e) {
-      const detail =
-        e instanceof ApiError ? `${e.status} ${e.message}` : String(e);
-      console.error(
-        "[AuthProvider] /auth/me falló — la tienda no verá rol/datos de DB hasta que el API acepte el token (NEXT_PUBLIC_AUTH0_AUDIENCE, backend encendido, CORS).",
-        detail,
-      );
-      setMeUser(null);
-    } finally {
-      setMeLoading(false);
-    }
-  }, [auth0User]);
 
-  useEffect(() => {
-    if (auth0Loading) return;
-    void loadMe();
-  }, [auth0User, auth0Loading, loadMe]);
+    const runId = ++runIdRef.current;
+    let cancelled = false;
+
+    async function sync() {
+      setMeLoading(true);
+      try {
+        const token = await fetchAccessTokenWithRetry();
+        if (cancelled || runId !== runIdRef.current) return;
+        if (!token) {
+          console.error(
+            "[AuthProvider] No hay access token tras login; revisá NEXT_PUBLIC_AUTH0_AUDIENCE y APIs en Auth0.",
+          );
+          setMeUser(null);
+          return;
+        }
+
+        await apiFetch<MeResponse>("/auth/auth0", { method: "POST" });
+        if (cancelled || runId !== runIdRef.current) return;
+
+        const me = await apiFetch<MeResponse>("/auth/me");
+        if (cancelled || runId !== runIdRef.current) return;
+
+        setMeUser(me.user);
+      } catch (e) {
+        if (cancelled || runId !== runIdRef.current) return;
+        const detail = e instanceof ApiError ? `${e.status} ${e.message}` : String(e);
+        console.error("[AuthProvider] Sincronización con API falló.", detail);
+        setMeUser(null);
+      } finally {
+        if (!cancelled && runId === runIdRef.current) {
+          setMeLoading(false);
+        }
+      }
+    }
+
+    void sync();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [auth0Loading, auth0Sub, syncNonce]);
 
   const login = useCallback((returnTo = "/") => {
-    const q = returnTo === "/" ? "" : `?returnTo=${encodeURIComponent(returnTo)}`;
-    window.location.assign(`${LOGIN_ENTRY_HREF}${q}`);
+    window.location.assign(auth0LoginHref(returnTo, "login"));
   }, []);
 
   const signup = useCallback((returnTo = "/") => {
-    window.location.assign(registroUrlWithReturnTo(returnTo));
+    window.location.assign(auth0SignupHref(returnTo));
   }, []);
 
   const logout = useCallback(() => {
+    setMeUser(null);
     window.location.assign("/auth/logout");
   }, []);
 
   const refreshUser = useCallback(() => {
-    void loadMe();
-  }, [loadMe]);
+    setSyncNonce((n) => n + 1);
+  }, []);
 
-  const loading = auth0Loading || (!!auth0User && meLoading);
-  const isLoggedIn = Boolean(auth0User);
+  const loading = auth0Loading || (!!auth0Sub && meLoading);
+  const isLoggedIn = Boolean(auth0Sub);
 
   const displayName = useMemo(() => {
     const fromDb = meUser?.name?.trim() || meUser?.email;
@@ -108,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       displayName,
       isLoggedIn,
       loading,
+      isLoading: loading,
       login,
       signup,
       logout,

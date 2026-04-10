@@ -16,6 +16,8 @@ model User {
   /// Subject del JWT de Auth0 (`sub`).
   auth0Id      String?  @unique
   name         String?
+  phone        String?
+  address      String?
   role         String   @default("CLIENT")
   createdAt    DateTime @default(now())
   orders       Order[]
@@ -47,6 +49,7 @@ model Product {
   slug        String?        @unique
   description String?
   price       Float
+  stock       Int            @default(0)
   categoryId  String
   category    Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   images      ProductImage[]
@@ -72,7 +75,7 @@ model ProductSize {
   @@id([productId, sizeId])
 }
 
-// status: DRAFT | PENDING | PAID | SHIPPED | CANCELLED
+// status: DRAFT | PENDING | PAID | SHIPPED | DELIVERED | CANCELLED
 // paymentMethod: CASH | BANK_TRANSFER | CARD (opcional hasta checkout)
 model Order {
   id            String      @id @default(uuid())

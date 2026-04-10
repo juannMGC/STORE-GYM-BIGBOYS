@@ -103,6 +103,7 @@ export class ProductsService {
           slug: uniqueSlug,
           description: dto.description,
           price: dto.price,
+          stock: dto.stock ?? 0,
           categoryId: dto.categoryId,
         },
       });
@@ -155,6 +156,7 @@ export class ProductsService {
           ...(dto.title !== undefined && { title: dto.title }),
           ...(dto.description !== undefined && { description: dto.description }),
           ...(dto.price !== undefined && { price: dto.price }),
+          ...(dto.stock !== undefined && { stock: dto.stock }),
           ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
           ...(nextSlug !== undefined && { slug: nextSlug }),
         },

@@ -48,6 +48,24 @@ export function AdminShell({ children }: { children: ReactNode }) {
           >
             Pedidos
           </Link>
+          <Link
+            href="/admin/categorias"
+            className="px-2 py-1.5 text-zinc-300 hover:bg-brand-black hover:text-brand-yellow"
+          >
+            Categorías
+          </Link>
+          <Link
+            href="/admin/tallas"
+            className="px-2 py-1.5 text-zinc-300 hover:bg-brand-black hover:text-brand-yellow"
+          >
+            Tallas
+          </Link>
+          <Link
+            href="/admin/productos"
+            className="px-2 py-1.5 text-zinc-300 hover:bg-brand-black hover:text-brand-yellow"
+          >
+            Productos
+          </Link>
         </nav>
       </aside>
       <div className="min-w-0 flex-1">{children}</div>

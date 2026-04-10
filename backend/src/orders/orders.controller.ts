@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -14,6 +15,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { PatchCartItemDto } from './dto/patch-cart-item.dto';
 import { PatchPaymentDto } from './dto/patch-payment.dto';
+import { WompiSignatureDto } from './dto/wompi-signature.dto';
 import { CurrentUser, type RequestUser } from '../common/decorators/current-user.decorator';
 
 /**
@@ -62,5 +64,24 @@ export class OrdersController {
   @Post('cart/confirm')
   confirm(@CurrentUser() user: RequestUser) {
     return this.ordersService.confirmCart(user.userId);
+  }
+
+  @Post(':orderId/wompi-signature')
+  @HttpCode(200)
+  wompiSignature(
+    @CurrentUser() user: RequestUser,
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Body() dto: WompiSignatureDto,
+  ) {
+    return this.ordersService.buildWompiSignature(user.userId, orderId, dto);
+  }
+
+  /** Detalle de un pedido del usuario autenticado (p. ej. tras pago Wompi). */
+  @Get(':orderId')
+  getOne(
+    @CurrentUser() user: RequestUser,
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+  ) {
+    return this.ordersService.findOneForUser(user.userId, orderId);
   }
 }

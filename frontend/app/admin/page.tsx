@@ -7,8 +7,7 @@ export default function AdminHomePage() {
         Panel administrador
       </h1>
       <p className="mt-2 text-zinc-400">
-        Gestioná pedidos desde aquí. El alta de categorías, tallas y productos puede
-        hacerse vía API (Postman, etc.) hasta que se añadan formularios en esta UI.
+        Gestioná pedidos, categorías, tallas y productos desde este panel.
       </p>
       <ul className="mt-8 grid gap-4 sm:grid-cols-2">
         <li>
@@ -22,13 +21,38 @@ export default function AdminHomePage() {
             </span>
           </Link>
         </li>
-        <li className="panel-brand border-dashed p-6 text-zinc-500">
-          <span className="font-medium text-zinc-300">Catálogo</span>
-          <span className="mt-1 block text-sm">
-            Endpoints: <code className="text-xs text-brand-yellow">/api/admin/categories</code>,{" "}
-            <code className="text-xs text-brand-yellow">/api/admin/sizes</code>,{" "}
-            <code className="text-xs text-brand-yellow">/api/admin/products</code>
-          </span>
+        <li>
+          <Link
+            href="/admin/categorias"
+            className="panel-brand block p-6 transition hover:border-brand-red"
+          >
+            <span className="font-display text-xl uppercase text-white">Categorías</span>
+            <span className="mt-1 block text-sm text-zinc-500">
+              Alta, edición y baja (árbol con padre opcional)
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/admin/tallas"
+            className="panel-brand block p-6 transition hover:border-brand-red"
+          >
+            <span className="font-display text-xl uppercase text-white">Tallas</span>
+            <span className="mt-1 block text-sm text-zinc-500">
+              Nombre y código único (S, XL, 250g…)
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/admin/productos"
+            className="panel-brand block p-6 transition hover:border-brand-red"
+          >
+            <span className="font-display text-xl uppercase text-white">Productos</span>
+            <span className="mt-1 block text-sm text-zinc-500">
+              Catálogo, imágenes, tallas y stock
+            </span>
+          </Link>
         </li>
       </ul>
     </div>

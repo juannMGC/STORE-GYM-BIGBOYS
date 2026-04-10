@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -35,6 +36,12 @@ export class CreateProductDto {
   @Min(0)
   @Type(() => Number)
   price: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  stock?: number;
 
   @IsUUID()
   categoryId: string;

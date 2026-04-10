@@ -28,6 +28,11 @@ const NEXT_STATES: Record<string, { value: string; label: string }[]> = {
   ],
   PAID: [
     { value: "SHIPPED", label: "Marcar enviado" },
+    { value: "DELIVERED", label: "Marcar entregado (sin envío previo)" },
+    { value: "CANCELLED", label: "Cancelar / anular" },
+  ],
+  SHIPPED: [
+    { value: "DELIVERED", label: "Marcar entregado" },
     { value: "CANCELLED", label: "Cancelar / anular" },
   ],
 };
@@ -173,8 +178,8 @@ export default function AdminPedidoDetailPage() {
 
       {options.length === 0 && (
         <p className="mt-8 text-sm text-zinc-500">
-          Este pedido está en estado final (enviado o cancelado). No hay transiciones
-          admin disponibles.
+          Este pedido está en estado final (entregado, cancelado o cerrado). No hay
+          transiciones admin disponibles.
         </p>
       )}
 

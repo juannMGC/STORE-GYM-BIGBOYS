@@ -4,6 +4,7 @@ export const OrderStatus = {
   PENDING: 'PENDING',
   PAID: 'PAID',
   SHIPPED: 'SHIPPED',
+  DELIVERED: 'DELIVERED',
   CANCELLED: 'CANCELLED',
 } as const;
 
@@ -14,5 +15,6 @@ export const ORDER_STATUS_VALUES: OrderStatusValue[] = [
   OrderStatus.PENDING,
   OrderStatus.PAID,
   OrderStatus.SHIPPED,
+  OrderStatus.DELIVERED,
   OrderStatus.CANCELLED,
 ];

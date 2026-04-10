@@ -1,41 +1,42 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch, formatShopApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
-import { LOGIN_ENTRY_HREF } from "@/lib/auth-routes";
+import { auth0LoginHref } from "@/lib/auth-routes";
 import type { CartOrder } from "@/lib/types";
 
 export default function CarritoPage() {
-  const { isLoggedIn, loading: authLoading, displayName } = useAuth();
+  const pathname = usePathname() ?? "/carrito";
+  const { isLoggedIn, loading: sessionLoading, displayName } = useAuth();
   const [order, setOrder] = useState<CartOrder | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [cartLoading, setCartLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  /** Solo se llama cuando `isLoggedIn`; en el catch asumimos sesión web activa. */
   const load = useCallback(async () => {
     setError(null);
+    setCartLoading(true);
     try {
       const data = await apiFetch<CartOrder | null>("/orders/cart");
       setOrder(data);
     } catch (e) {
       setError(formatShopApiError(e, { sessionActive: true }));
     } finally {
-      setLoading(false);
+      setCartLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (sessionLoading) return;
     if (!isLoggedIn) {
-      setLoading(false);
-      setOrder(null);
-      setError(null);
+      setCartLoading(false);
+      window.location.replace(auth0LoginHref(pathname, "login"));
       return;
     }
     void load();
-  }, [authLoading, isLoggedIn, load]);
+  }, [sessionLoading, isLoggedIn, load, pathname]);
 
   async function setQty(itemId: string, quantity: number) {
     try {
@@ -58,7 +59,7 @@ export default function CarritoPage() {
     }
   }
 
-  if (authLoading || (isLoggedIn && loading)) {
+  if (sessionLoading || (isLoggedIn && cartLoading)) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 text-zinc-500">Cargando carrito…</div>
     );
@@ -66,20 +67,8 @@ export default function CarritoPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <h1 className="font-display text-4xl uppercase text-white">Tu carrito</h1>
-        <p className="mt-4 text-zinc-400">
-          Iniciá sesión para agregar productos y ver tu carrito en cualquier dispositivo.
-        </p>
-        <a href={LOGIN_ENTRY_HREF} className="btn-brand mt-8 inline-flex">
-          Entrar con tu cuenta
-        </a>
-        <p className="mt-6 text-sm text-zinc-500">
-          ¿No tenés cuenta?{" "}
-          <Link href="/registrar/cuenta" className="text-brand-yellow hover:underline">
-            Registrate
-          </Link>
-        </p>
+      <div className="mx-auto max-w-3xl px-4 py-16 text-center text-zinc-500">
+        Redirigiendo al inicio de sesión…
       </div>
     );
   }
@@ -89,7 +78,7 @@ export default function CarritoPage() {
       <div className="mx-auto max-w-3xl px-4 py-12">
         <h1 className="font-display text-3xl uppercase text-white">Carrito</h1>
         <p className="mt-4 text-brand-red">{error}</p>
-        <a href={LOGIN_ENTRY_HREF} className="btn-brand-outline mt-6 inline-block">
+        <a href={auth0LoginHref(pathname, "login")} className="btn-brand-outline mt-6 inline-block">
           Volver a entrar
         </a>
       </div>

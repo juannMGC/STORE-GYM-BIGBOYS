@@ -2,8 +2,10 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   OrderStatus,
@@ -14,6 +16,15 @@ import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { PatchCartItemDto } from './dto/patch-cart-item.dto';
 import { PatchPaymentDto } from './dto/patch-payment.dto';
 import { AdminUpdateOrderStatusDto } from './dto/admin-update-order-status.dto';
+import { WompiSignatureDto } from './dto/wompi-signature.dto';
+import { MailService, type OrderMailPayload } from '../mail/mail.service';
+
+export function orderTotalAmountInCents(order: {
+  items: { priceSnapshot: number; quantity: number }[];
+}): number {
+  const total = order.items.reduce((s, i) => s + i.priceSnapshot * i.quantity, 0);
+  return Math.round(total * 100);
+}
 
 const orderInclude = {
   items: {
@@ -28,9 +39,32 @@ const orderInclude = {
   },
 } as const;
 
+const orderIncludeMail = {
+  user: { select: { email: true, name: true } },
+  items: {
+    include: {
+      product: { select: { title: true } },
+      size: true,
+    },
+  },
+} as const;
+
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(OrdersService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
+
+  private async loadOrderForMail(orderId: string): Promise<OrderMailPayload | null> {
+    const o = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: orderIncludeMail,
+    });
+    return o as OrderMailPayload | null;
+  }
 
   async getCart(userId: string) {
     const order = await this.prisma.order.findFirst({
@@ -164,6 +198,119 @@ export class OrdersService {
     });
   }
 
+  async findOneForUser(userId: string, orderId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      include: orderInclude,
+    });
+    if (!order) {
+      throw new NotFoundException('Pedido no encontrado');
+    }
+    return order;
+  }
+
+  async buildWompiSignature(
+    userId: string,
+    orderId: string,
+    dto: WompiSignatureDto,
+  ): Promise<{
+    signature: string;
+    publicKey: string;
+    reference: string;
+    amountInCents: number;
+    currency: 'COP';
+  }> {
+    if (dto.reference !== orderId) {
+      throw new BadRequestException('reference debe coincidir con el pedido');
+    }
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
+    if (!order) {
+      throw new NotFoundException('Pedido no encontrado');
+    }
+    if (order.userId !== userId) {
+      throw new ForbiddenException();
+    }
+    if (order.status !== OrderStatus.DRAFT) {
+      throw new BadRequestException('Solo se puede pagar un pedido en borrador');
+    }
+    if (order.items.length === 0) {
+      throw new BadRequestException('El pedido no tiene ítems');
+    }
+    const expected = orderTotalAmountInCents(order);
+    if (dto.amountInCents !== expected) {
+      throw new BadRequestException('El monto no coincide con el total del pedido');
+    }
+    const integrityKey = process.env.WOMPI_INTEGRITY_KEY?.trim();
+    const publicKey = process.env.WOMPI_PUBLIC_KEY?.trim();
+    if (!integrityKey || !publicKey) {
+      throw new BadRequestException('Wompi no está configurado (WOMPI_INTEGRITY_KEY / WOMPI_PUBLIC_KEY)');
+    }
+    const raw = `${dto.reference}${dto.amountInCents}${dto.currency}${integrityKey}`;
+    const signature = createHash('sha256').update(raw, 'utf8').digest('hex');
+    return {
+      signature,
+      publicKey,
+      reference: dto.reference,
+      amountInCents: dto.amountInCents,
+      currency: 'COP',
+    };
+  }
+
+  /**
+   * Webhook Wompi: actualiza estado según resultado de la transacción (referencia = order.id).
+   */
+  async applyWompiTransaction(
+    reference: string,
+    transactionStatus: string,
+    amountInCents: number,
+  ): Promise<{ ok: boolean; detail?: string }> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: reference },
+      include: { items: true },
+    });
+    if (!order) {
+      return { ok: false, detail: 'order_not_found' };
+    }
+    const expected = orderTotalAmountInCents(order);
+    if (amountInCents !== expected) {
+      return { ok: false, detail: 'amount_mismatch' };
+    }
+    if (transactionStatus === 'APPROVED') {
+      if (order.status !== OrderStatus.DRAFT) {
+        return { ok: true, detail: 'already_final' };
+      }
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: { status: OrderStatus.PAID },
+      });
+      const forMail = await this.loadOrderForMail(order.id);
+      if (forMail) {
+        void this.mailService.sendPedidoConfirmado(forMail).catch((err: unknown) => {
+          this.logger.error(`Email pedido confirmado (Wompi): ${String(err)}`);
+        });
+      }
+      return { ok: true };
+    }
+    if (
+      transactionStatus === 'DECLINED' ||
+      transactionStatus === 'VOIDED' ||
+      transactionStatus === 'ERROR'
+    ) {
+      if (order.status !== OrderStatus.DRAFT) {
+        return { ok: true, detail: 'already_final' };
+      }
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: { status: OrderStatus.CANCELLED },
+      });
+      return { ok: true };
+    }
+    return { ok: true, detail: 'ignored_status' };
+  }
+
   async confirmCart(userId: string) {
     const order = await this.prisma.order.findFirst({
       where: { userId, status: OrderStatus.DRAFT },
@@ -182,11 +329,18 @@ export class OrdersService {
       );
     }
     assertClientConfirm(order.status as OrderStatusValue);
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: order.id },
       data: { status: OrderStatus.PENDING },
       include: orderInclude,
     });
+    const forMail = await this.loadOrderForMail(order.id);
+    if (forMail) {
+      void this.mailService.sendPedidoConfirmado(forMail).catch((err: unknown) => {
+        this.logger.error(`Email pedido confirmado (carrito): ${String(err)}`);
+      });
+    }
+    return updated;
   }
 
   findAllAdmin(status?: string) {
@@ -227,11 +381,11 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Pedido no encontrado');
     const from = order.status as Parameters<typeof assertAdminStatusTransition>[0];
     assertAdminStatusTransition(from, dto.status);
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id },
       data: { status: dto.status },
       include: {
-        user: { select: { id: true, email: true } },
+        user: { select: { id: true, email: true, name: true } },
         items: {
           include: {
             product: { select: { id: true, title: true } },
@@ -240,5 +394,13 @@ export class OrdersService {
         },
       },
     });
+    if (dto.status === OrderStatus.SHIPPED || dto.status === OrderStatus.DELIVERED) {
+      void this.mailService
+        .sendEstadoActualizadoCliente(updated as OrderMailPayload, dto.status)
+        .catch((err: unknown) => {
+          this.logger.error(`Email estado pedido: ${String(err)}`);
+        });
+    }
+    return updated;
   }
 }

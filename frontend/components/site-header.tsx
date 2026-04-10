@@ -2,17 +2,22 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { LOGIN_ENTRY_HREF, REGISTRO_ENTRY_HREF } from "@/lib/auth-routes";
+import { auth0LoginHref, auth0SignupHref } from "@/lib/auth-routes";
 
 /**
- * Auth en nav: siempre visible si no hay `user` (no depende de `loading`).
+ * Auth en nav: usa `useAuth` (no `useUser` de Auth0).
  * Entrar / Registro = <a> navegación completa (Auth0).
  */
 export function SiteHeader() {
-  const { user, logout, displayName, isLoggedIn, loading } = useAuth();
+  const pathname = usePathname() ?? "/";
+  const returnTo = pathname || "/";
+  const entrarHref = auth0LoginHref(returnTo, "login");
+  const registroHref = auth0SignupHref(returnTo);
+  const { user, logout, displayName, isLoggedIn, isLoading } = useAuth();
   const isAdmin = user?.role === "ADMIN";
-  const showGuestNav = !isLoggedIn && !loading;
+  const showGuestNav = !isLoggedIn && !isLoading;
   const greet =
     displayName.trim() ||
     (isLoggedIn ? "Sesión activa" : "");
@@ -62,7 +67,7 @@ export function SiteHeader() {
               Hola, {greet}
             </span>
           )}
-          {loading && !isLoggedIn && (
+          {isLoading && !isLoggedIn && (
             <span className="text-xs text-zinc-500">Cargando…</span>
           )}
           {isLoggedIn ? (
@@ -92,13 +97,13 @@ export function SiteHeader() {
           ) : showGuestNav ? (
             <>
               <a
-                href={LOGIN_ENTRY_HREF}
+                href={entrarHref}
                 className="rounded-sm px-2 py-1.5 font-medium text-zinc-400 hover:text-white"
               >
                 Entrar
               </a>
               <a
-                href={REGISTRO_ENTRY_HREF}
+                href={registroHref}
                 className="rounded-sm border-2 border-brand-red bg-brand-red px-3 py-1.5 font-display text-sm uppercase tracking-wide text-white hover:bg-brand-red-dark"
               >
                 Registro

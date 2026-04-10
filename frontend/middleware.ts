@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getAuth0Client } from "@/lib/auth0";
 import { LOGIN_ENTRY_HREF, auth0LoginHref } from "@/lib/auth-routes";
 
-const PROTECTED_PREFIXES = ["/carrito", "/checkout", "/admin"];
+const PROTECTED_PREFIXES = ["/carrito", "/checkout", "/admin", "/perfil"];
 
 /** v3 y docs antiguas usaban /api/auth/*; el rewrite /api/* → Nest captura eso y el login no llega al SDK. */
 const LEGACY_AUTH0_TO_V4: Record<string, string> = {
@@ -53,7 +53,9 @@ export async function middleware(request: NextRequest) {
 
     const session = await auth0.getSession(request);
     if (!session) {
-      return NextResponse.redirect(new URL(auth0LoginHref(pathname, "login"), request.url));
+      const returnPath = pathname + request.nextUrl.search;
+      const loginTarget = auth0LoginHref(returnPath, "login");
+      return NextResponse.redirect(new URL(loginTarget, request.url));
     }
 
     return authRes;

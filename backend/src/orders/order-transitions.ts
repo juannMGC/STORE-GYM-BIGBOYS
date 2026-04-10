@@ -21,7 +21,10 @@ export function assertClientConfirm(from: OrderStatusValue): void {
  * - PENDING → PAID | CANCELLED (recibir/cancelar antes de pagar)
  * - PAID → SHIPPED | CANCELLED (enviar o anular tras pago; “canceló” del PDF)
  *
- * Estados terminales: SHIPPED y CANCELLED (no salen hacia otros en esta API).
+ * - PAID → SHIPPED | DELIVERED | CANCELLED
+ * - SHIPPED → DELIVERED | CANCELLED
+ *
+ * Estados terminales: DELIVERED, SHIPPED (si no se usa entrega) y CANCELLED.
  */
 export function assertAdminStatusTransition(
   from: OrderStatusValue,
@@ -32,7 +35,8 @@ export function assertAdminStatusTransition(
   }
   const allowed: Partial<Record<OrderStatusValue, OrderStatusValue[]>> = {
     [OrderStatus.PENDING]: [OrderStatus.PAID, OrderStatus.CANCELLED],
-    [OrderStatus.PAID]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
+    [OrderStatus.PAID]: [OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+    [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
   };
   const nexts = allowed[from];
   if (!nexts?.includes(to)) {

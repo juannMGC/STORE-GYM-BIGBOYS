@@ -39,7 +39,7 @@ export class AuthService {
           role,
         });
       } else {
-        user = await this.usersService.createFromAuth0({
+        user = await this.usersService.upsertByAuth0Id({
           email: data.email,
           auth0Id: data.sub,
           name: data.name,
@@ -86,28 +86,14 @@ export class AuthService {
     });
   }
 
-  async getMeResponse(userId: string): Promise<{
-    user: {
-      id: string;
-      email: string;
-      role: string;
-      name: string | null;
-      createdAt: string;
-    };
-  }> {
+  async getMeResponse(userId: string): Promise<ReturnType<
+    UsersService['toMeResponse']
+  >> {
     const user = await this.usersService.findById(userId);
     if (!user) {
       throw new NotFoundException();
     }
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        name: user.name,
-        createdAt: user.createdAt.toISOString(),
-      },
-    };
+    return this.usersService.toMeResponse(user);
   }
 
   private extractEmailFromPayload(

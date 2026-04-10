@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch, formatShopApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
-import { LOGIN_ENTRY_HREF } from "@/lib/auth-routes";
+import { auth0LoginHref } from "@/lib/auth-routes";
 import type { CartOrder } from "@/lib/types";
 
 const METHODS = [
@@ -14,17 +14,29 @@ const METHODS = [
   { value: "CARD", label: "Tarjeta" },
 ] as const;
 
+type WompiSigResponse = {
+  signature: string;
+  publicKey: string;
+  reference: string;
+  amountInCents: number;
+  currency: "COP";
+};
+
+const WOMPI_SCRIPT_ID = "wompi-widget-js";
+
 export default function CheckoutPage() {
-  const router = useRouter();
-  const { isLoggedIn, loading: authLoading, displayName } = useAuth();
+  const pathname = usePathname() ?? "/checkout";
+  const { isLoggedIn, loading: sessionLoading, displayName } = useAuth();
   const [order, setOrder] = useState<CartOrder | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [cartLoading, setCartLoading] = useState(true);
   const [method, setMethod] = useState<string>("BANK_TRANSFER");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [wompiReady, setWompiReady] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
+    setCartLoading(true);
     try {
       const data = await apiFetch<CartOrder | null>("/orders/cart");
       setOrder(data);
@@ -32,20 +44,35 @@ export default function CheckoutPage() {
     } catch (e) {
       setError(formatShopApiError(e, { sessionActive: true }));
     } finally {
-      setLoading(false);
+      setCartLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (sessionLoading) return;
     if (!isLoggedIn) {
-      setLoading(false);
-      setOrder(null);
-      setError(null);
+      setCartLoading(false);
+      window.location.replace(auth0LoginHref(pathname, "login"));
       return;
     }
     void load();
-  }, [authLoading, isLoggedIn, load]);
+  }, [sessionLoading, isLoggedIn, load, pathname]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const existing = document.getElementById(WOMPI_SCRIPT_ID);
+    if (existing) {
+      setWompiReady(!!window.WidgetCheckout);
+      return;
+    }
+    const s = document.createElement("script");
+    s.id = WOMPI_SCRIPT_ID;
+    s.src = "https://checkout.wompi.co/widget.js";
+    s.async = true;
+    s.onload = () => setWompiReady(true);
+    s.onerror = () => setError("No se pudo cargar Wompi. Revisá tu conexión.");
+    document.body.appendChild(s);
+  }, []);
 
   async function savePayment() {
     setSaving(true);
@@ -63,7 +90,8 @@ export default function CheckoutPage() {
     }
   }
 
-  async function confirmOrder() {
+  async function payWithWompi() {
+    if (!order?.items.length) return;
     setSaving(true);
     setError(null);
     try {
@@ -71,8 +99,37 @@ export default function CheckoutPage() {
         method: "PATCH",
         body: JSON.stringify({ paymentMethod: method }),
       });
-      await apiFetch("/orders/cart/confirm", { method: "POST" });
-      router.push("/pedido/confirmado");
+      const subtotal = order.items.reduce(
+        (s, i) => s + i.priceSnapshot * i.quantity,
+        0,
+      );
+      const amountInCents = Math.round(subtotal * 100);
+      if (amountInCents < 1) {
+        setError("El total debe ser mayor a 0.");
+        return;
+      }
+      const res = await apiFetch<WompiSigResponse>(`/orders/${order.id}/wompi-signature`, {
+        method: "POST",
+        body: JSON.stringify({
+          currency: "COP",
+          amountInCents,
+          reference: order.id,
+        }),
+      });
+      await load();
+      if (!window.WidgetCheckout) {
+        setError("El script de Wompi aún no cargó. Esperá unos segundos e intentá de nuevo.");
+        return;
+      }
+      const checkout = new window.WidgetCheckout({
+        currency: res.currency,
+        amountInCents: res.amountInCents,
+        reference: res.reference,
+        publicKey: res.publicKey,
+        signature: { integrity: res.signature },
+        redirectUrl: `${window.location.origin}/pedido/confirmado?ref=${encodeURIComponent(res.reference)}`,
+      });
+      checkout.open(() => {});
     } catch (e) {
       setError(formatShopApiError(e, { sessionActive: true }));
     } finally {
@@ -80,7 +137,7 @@ export default function CheckoutPage() {
     }
   }
 
-  if (authLoading || (isLoggedIn && loading)) {
+  if (sessionLoading || (isLoggedIn && cartLoading)) {
     return (
       <div className="mx-auto max-w-lg px-4 py-12 text-zinc-500">Cargando…</div>
     );
@@ -88,17 +145,8 @@ export default function CheckoutPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <h1 className="font-display text-4xl uppercase text-white">Checkout</h1>
-        <p className="mt-4 text-zinc-400">
-          Tenés que iniciar sesión para finalizar la compra.
-        </p>
-        <a href={LOGIN_ENTRY_HREF} className="btn-brand mt-8 inline-flex">
-          Entrar
-        </a>
-        <Link href="/carrito" className="mt-6 block text-sm text-zinc-500 hover:text-brand-yellow">
-          Volver al carrito
-        </Link>
+      <div className="mx-auto max-w-lg px-4 py-16 text-center text-zinc-500">
+        Redirigiendo al inicio de sesión…
       </div>
     );
   }
@@ -126,20 +174,20 @@ export default function CheckoutPage() {
         <p className="mt-1 text-sm text-zinc-500">Pedido de {displayName}</p>
       ) : null}
       <p className="mt-2 text-zinc-400">
-        Elegí la forma de pago y confirmá el pedido. El equipo de Big Boys lo
-        revisará según el flujo del administrador.
+        Elegí la forma de pago y pagá con Wompi (sandbox). El pedido queda en borrador hasta
+        que el pago sea aprobado.
       </p>
 
       <div className="panel-brand mt-8 p-6">
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Total estimado
+          Total estimado (COP)
         </p>
         <p className="font-display text-4xl text-brand-yellow">${subtotal.toFixed(2)}</p>
       </div>
 
       <div className="mt-8">
         <label className="block text-sm font-medium text-zinc-300">
-          Forma de pago
+          Forma de pago (referencia interna)
         </label>
         <select
           value={method}
@@ -166,11 +214,11 @@ export default function CheckoutPage() {
 
       <button
         type="button"
-        disabled={saving}
-        onClick={() => void confirmOrder()}
+        disabled={saving || !wompiReady}
+        onClick={() => void payWithWompi()}
         className="btn-brand mt-8 w-full disabled:opacity-50"
       >
-        {saving ? "Procesando…" : "Confirmar pedido"}
+        {saving ? "Procesando…" : !wompiReady ? "Cargando Wompi…" : "Pagar con Wompi"}
       </button>
 
       <Link

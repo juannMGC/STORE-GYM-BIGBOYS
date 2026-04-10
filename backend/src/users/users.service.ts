@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '../common/constants/roles';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 export type SafeUser = Omit<User, 'passwordHash'>;
 
@@ -12,6 +13,30 @@ export class UsersService {
   toSafe(user: User): SafeUser {
     const { passwordHash: _p, ...rest } = user;
     return rest;
+  }
+
+  toMeResponse(user: User): {
+    user: {
+      id: string;
+      email: string;
+      role: string;
+      name: string | null;
+      phone: string | null;
+      address: string | null;
+      createdAt: string;
+    };
+  } {
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        phone: user.phone,
+        address: user.address,
+        createdAt: user.createdAt.toISOString(),
+      },
+    };
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -39,6 +64,29 @@ export class UsersService {
         name: data.name ?? null,
         role: data.role,
         passwordHash: null,
+      },
+    });
+  }
+
+  async upsertByAuth0Id(data: {
+    email: string;
+    auth0Id: string;
+    name?: string | null;
+    role: string;
+  }): Promise<User> {
+    return this.prisma.user.upsert({
+      where: { auth0Id: data.auth0Id },
+      create: {
+        email: data.email,
+        auth0Id: data.auth0Id,
+        name: data.name ?? null,
+        role: data.role,
+        passwordHash: null,
+      },
+      update: {
+        email: data.email,
+        name: data.name ?? undefined,
+        role: data.role,
       },
     });
   }
@@ -74,6 +122,34 @@ export class UsersService {
         name: data.name ?? undefined,
         role: data.role,
       },
+    });
+  }
+
+  async updateMe(userId: string, dto: UpdateUserDto): Promise<User> {
+    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!existing) {
+      throw new NotFoundException();
+    }
+    const data: {
+      name?: string | null;
+      phone?: string | null;
+      address?: string | null;
+    } = {};
+    if (dto.name !== undefined) {
+      data.name = dto.name.trim() || null;
+    }
+    if (dto.phone !== undefined) {
+      data.phone = dto.phone.trim() || null;
+    }
+    if (dto.address !== undefined) {
+      data.address = dto.address.trim() || null;
+    }
+    if (Object.keys(data).length === 0) {
+      return existing;
+    }
+    return this.prisma.user.update({
+      where: { id: userId },
+      data,
     });
   }
 

@@ -5,6 +5,8 @@ export type AuthUser = {
   email: string;
   role: UserRole;
   name?: string | null;
+  phone?: string | null;
+  address?: string | null;
   createdAt?: string;
 };
 
@@ -33,6 +35,8 @@ export type ProductListItem = {
   slug: string | null;
   description: string | null;
   price: number;
+  /** Presente desde migración `product_stock`; fallback en UI si falta. */
+  stock?: number;
   categoryId: string;
   createdAt: string;
   category: { id: string; name: string; slug: string | null };
