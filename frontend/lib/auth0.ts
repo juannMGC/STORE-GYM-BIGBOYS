@@ -38,7 +38,13 @@ function createAuth0Client(): Auth0Client | null {
     return null;
   }
 
+  /** Solo en servidor (middleware + /auth/*). Obligatorio para que el access token sea JWT del API Nest. */
   const audience = process.env.AUTH0_AUDIENCE?.trim();
+  if (!audience && process.env.NODE_ENV === "development") {
+    console.warn(
+      "[auth0] AUTH0_AUDIENCE no está definido: el login no pedirá token para tu API. Definilo en .env.local (mismo Identifier que en Auth0 → APIs).",
+    );
+  }
 
   try {
     return new Auth0Client({

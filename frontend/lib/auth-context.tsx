@@ -12,7 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import type { AuthUser } from "./types";
-import { ApiError, apiFetch, getAuth0ApiAudience } from "./api-client";
+import { ApiError, apiFetch } from "./api-client";
 import { auth0LoginHref, auth0SignupHref } from "./auth-routes";
 
 export type Auth0SessionUser = {
@@ -44,11 +44,9 @@ const TOKEN_RETRIES = 12;
 const TOKEN_RETRY_MS = 150;
 
 async function fetchAccessTokenWithRetry(): Promise<string | null> {
-  const audience = getAuth0ApiAudience();
-  if (!audience) return null;
   for (let i = 0; i < TOKEN_RETRIES; i++) {
     try {
-      const token = await getAccessToken({ audience });
+      const token = await getAccessToken();
       if (token && typeof token === "string") return token;
     } catch {}
     await new Promise((r) => setTimeout(r, TOKEN_RETRY_MS));
@@ -85,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cancelled || runId !== runIdRef.current) return;
         if (!token) {
           console.error(
-            "[AuthProvider] No hay access token tras login; revisá NEXT_PUBLIC_AUTH0_AUDIENCE y APIs en Auth0.",
+            "[AuthProvider] No hay access token en sesión. Revisá AUTH0_AUDIENCE y authorizationParameters en lib/auth0.ts (servidor), APIs autorizadas en Auth0, y volvé a iniciar sesión.",
           );
           setMeUser(null);
           return;

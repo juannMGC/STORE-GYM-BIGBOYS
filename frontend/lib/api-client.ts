@@ -34,8 +34,8 @@ export function isSessionExpiredError(e: unknown): boolean {
 }
 
 /**
- * Identificador del API (Auth0 API → Identifier). Debe ser idéntico a `AUTH0_AUDIENCE` en Nest.
- * En cliente solo está garantizado `NEXT_PUBLIC_AUTH0_AUDIENCE` (inyectado en build).
+ * Identificador del API en Auth0 (mismo valor que `AUTH0_AUDIENCE` en Nest).
+ * Opcional en cliente: el access token ya se pidió en el login vía `Auth0Client.authorizationParameters`.
  */
 export function getAuth0ApiAudience(): string | undefined {
   return (
@@ -46,8 +46,7 @@ export function getAuth0ApiAudience(): string | undefined {
 }
 
 /**
- * Headers para llamadas autenticadas. Exige `NEXT_PUBLIC_AUTH0_AUDIENCE` (mismo valor que `AUTH0_AUDIENCE` en Nest).
- * Sin audiencia, Auth0 puede devolver un token opaco que el backend no valida con JWKS.
+ * Headers para llamadas autenticadas (Bearer = access token de la sesión actual).
  */
 export async function getAuthHeaders(): Promise<HeadersInit> {
   const token = await getBearerTokenForApi();
@@ -58,17 +57,13 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
 }
 
 /**
- * Cliente `@auth0/nextjs-auth0`: la única forma soportada es `getAccessToken({ audience })`
- * (añade `?audience=` a `/auth/access-token`). No existe `authorizationParams` en el tipo del cliente.
- * El valor devuelto es el JWT string; no hay `{ accessToken }`.
+ * Usa el access token de la sesión establecida en el login (audiencia en `lib/auth0.ts` → `authorizationParameters`).
+ * `getAccessToken()` sin argumentos llama a `GET /auth/access-token` sin query; el handler devuelve `token` (string).
+ * No pasar `audience` aquí salvo que necesites MRRT explícito.
  */
 async function getBearerTokenForApi(): Promise<string> {
-  const audience = getAuth0ApiAudience();
-  if (!audience) {
-    throw new Error(SESSION_EXPIRED_MESSAGE);
-  }
   try {
-    const accessToken = await getAccessToken({ audience });
+    const accessToken = await getAccessToken();
     if (!accessToken || typeof accessToken !== "string") {
       throw new Error(SESSION_EXPIRED_MESSAGE);
     }
@@ -102,7 +97,7 @@ export function formatShopApiError(
   opts?: { sessionActive?: boolean },
 ): string {
   if (isSessionExpiredError(e)) {
-    return "No se obtuvo un token de acceso válido para el API. Verificá que NEXT_PUBLIC_AUTH0_AUDIENCE coincida con AUTH0_AUDIENCE del servidor y volvé a iniciar sesión.";
+    return "No se obtuvo un token de acceso válido. Verificá que en el servidor exista AUTH0_AUDIENCE y que Auth0Client use authorizationParameters.audience (mismo valor que el API en Nest). Cerrá sesión y volvé a entrar.";
   }
   if (e instanceof ApiError) {
     if (e.status === 401) {

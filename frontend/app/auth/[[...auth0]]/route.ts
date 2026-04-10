@@ -2,8 +2,11 @@ import type { NextRequest } from "next/server";
 import { getAuth0Client, missingAuth0EnvKeys } from "@/lib/auth0";
 
 /**
- * Rutas /auth/* (login, callback, profile, access-token, …) cuando el middleware
- * no intercepta o devuelve next() — evita 404 en /auth/profile en producción (Vercel / Next 16).
+ * v4: no hay `export const { GET, POST } = handlers` en este paquete; se usa `Auth0Client`
+ * creado en `lib/auth0.ts` con `authorizationParameters` (AUTH0_AUDIENCE en el servidor).
+ * Aquí se delega a `middleware(request)` para /auth/login, /auth/callback, /auth/access-token, etc.
+ *
+ * Rutas /auth/* cuando el middleware no cubre el path — evita 404 en producción (Vercel / Next 16).
  */
 export const dynamic = "force-dynamic";
 
