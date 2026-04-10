@@ -20,7 +20,10 @@ export class AuthService {
     name?: string | null;
     roleFromToken: string;
   }): Promise<RequestUser> {
-    const role = this.usersService.normalizeAppRole(data.roleFromToken);
+    let role = this.usersService.normalizeAppRole(data.roleFromToken);
+    if (this.isConfiguredAdminEmail(data.email)) {
+      role = Role.ADMIN;
+    }
 
     let user = await this.usersService.findByAuth0Id(data.sub);
     if (user) {
@@ -127,6 +130,12 @@ export class AuthService {
       return payload.nickname;
     }
     return undefined;
+  }
+
+  private isConfiguredAdminEmail(email: string): boolean {
+    const admin = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    if (!admin) return false;
+    return email.trim().toLowerCase() === admin;
   }
 
   private parseRolesClaim(
