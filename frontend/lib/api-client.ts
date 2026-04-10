@@ -33,7 +33,11 @@ export function isSessionExpiredError(e: unknown): boolean {
   return e instanceof Error && e.message === SESSION_EXPIRED_MESSAGE;
 }
 
-function resolveApiAudience(): string | undefined {
+/**
+ * Identificador del API (Auth0 API → Identifier). Debe ser idéntico a `AUTH0_AUDIENCE` en Nest.
+ * En cliente solo está garantizado `NEXT_PUBLIC_AUTH0_AUDIENCE` (inyectado en build).
+ */
+export function getAuth0ApiAudience(): string | undefined {
   return (
     process.env.NEXT_PUBLIC_AUTH0_AUDIENCE?.trim() ||
     process.env.AUTH0_AUDIENCE?.trim() ||
@@ -53,8 +57,13 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
   };
 }
 
+/**
+ * Cliente `@auth0/nextjs-auth0`: la única forma soportada es `getAccessToken({ audience })`
+ * (añade `?audience=` a `/auth/access-token`). No existe `authorizationParams` en el tipo del cliente.
+ * El valor devuelto es el JWT string; no hay `{ accessToken }`.
+ */
 async function getBearerTokenForApi(): Promise<string> {
-  const audience = resolveApiAudience();
+  const audience = getAuth0ApiAudience();
   if (!audience) {
     throw new Error(SESSION_EXPIRED_MESSAGE);
   }

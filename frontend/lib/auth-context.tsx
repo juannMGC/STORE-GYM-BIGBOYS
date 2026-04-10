@@ -12,7 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import type { AuthUser } from "./types";
-import { ApiError, apiFetch } from "./api-client";
+import { ApiError, apiFetch, getAuth0ApiAudience } from "./api-client";
 import { auth0LoginHref, auth0SignupHref } from "./auth-routes";
 
 export type Auth0SessionUser = {
@@ -43,16 +43,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const TOKEN_RETRIES = 12;
 const TOKEN_RETRY_MS = 150;
 
-function audienceForApi(): string | undefined {
-  return (
-    process.env.NEXT_PUBLIC_AUTH0_AUDIENCE?.trim() ||
-    process.env.AUTH0_AUDIENCE?.trim() ||
-    undefined
-  );
-}
-
 async function fetchAccessTokenWithRetry(): Promise<string | null> {
-  const audience = audienceForApi();
+  const audience = getAuth0ApiAudience();
   if (!audience) return null;
   for (let i = 0; i < TOKEN_RETRIES; i++) {
     try {
