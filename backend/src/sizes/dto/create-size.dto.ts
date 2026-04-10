@@ -1,4 +1,9 @@
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateSizeDto {
   @IsString()
@@ -10,4 +15,9 @@ export class CreateSizeDto {
   @IsNotEmpty({ message: 'campo necesario' })
   @MaxLength(64)
   code: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  description?: string;
 }

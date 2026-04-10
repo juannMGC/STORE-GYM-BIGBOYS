@@ -27,6 +27,7 @@ export type Size = {
   id: string;
   name: string;
   code: string;
+  description?: string | null;
 };
 
 export type ProductListItem = {

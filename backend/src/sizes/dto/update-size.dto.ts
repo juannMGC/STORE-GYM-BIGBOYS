@@ -12,4 +12,9 @@ export class UpdateSizeDto {
   @IsNotEmpty({ message: 'campo necesario' })
   @MaxLength(64)
   code?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  description?: string | null;
 }

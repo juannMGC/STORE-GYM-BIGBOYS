@@ -21,7 +21,11 @@ export class SizesService {
     });
     if (clash) throw new ConflictException('code ya en uso');
     return this.prisma.size.create({
-      data: { name: dto.name, code: dto.code },
+      data: {
+        name: dto.name,
+        code: dto.code,
+        description: dto.description,
+      },
     });
   }
 
@@ -39,6 +43,7 @@ export class SizesService {
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.code !== undefined && { code: dto.code }),
+        ...(dto.description !== undefined && { description: dto.description }),
       },
     });
   }

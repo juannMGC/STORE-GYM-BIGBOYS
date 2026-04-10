@@ -6,37 +6,44 @@ import { AdminTableSkeleton } from "@/components/admin/table-skeleton";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import type { Size } from "@/lib/types";
 
-type Toast = { type: "ok" | "err"; text: string } | null;
-
 type ModalMode = "create" | "edit" | null;
+
+type FormFeedback = { type: "ok" | "err"; text: string } | null;
+
+/** Código único derivado del nombre (sin guiones; ej. "250 g" → "250g"). */
+function codeFromName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
 
 export default function AdminTallasPage() {
   const [rows, setRows] = useState<Size[]>([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState<Toast>(null);
+  const [listError, setListError] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalMode>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
-
-  const showToast = useCallback((t: Toast) => {
-    setToast(t);
-    if (t) setTimeout(() => setToast(null), 4200);
-  }, []);
+  const [description, setDescription] = useState("");
+  const [codeManual, setCodeManual] = useState(false);
+  const [formFeedback, setFormFeedback] = useState<FormFeedback>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setListError(null);
     try {
       const data = await apiFetch<Size[]>("/sizes");
       setRows(data);
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : "No se pudieron cargar las tallas";
-      showToast({ type: "err", text: msg });
+      setListError(e instanceof ApiError ? e.message : "No se pudieron cargar las tallas");
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -46,6 +53,9 @@ export default function AdminTallasPage() {
     setEditingId(null);
     setName("");
     setCode("");
+    setDescription("");
+    setCodeManual(false);
+    setFormFeedback(null);
     setModal("create");
   }
 
@@ -53,65 +63,97 @@ export default function AdminTallasPage() {
     setEditingId(s.id);
     setName(s.name);
     setCode(s.code);
+    setDescription(s.description ?? "");
+    setCodeManual(true);
+    setFormFeedback(null);
     setModal("edit");
   }
 
   function closeModal() {
     setModal(null);
     setEditingId(null);
+    setFormFeedback(null);
+  }
+
+  function onNameChange(v: string) {
+    setName(v);
+    if (!codeManual) {
+      setCode(codeFromName(v));
+    }
+  }
+
+  function onCodeChange(v: string) {
+    setCodeManual(true);
+    setCode(v);
   }
 
   async function submitModal() {
+    setFormFeedback(null);
     const trimmedName = name.trim();
-    const trimmedCode = code.trim();
     if (!trimmedName) {
-      showToast({ type: "err", text: "El nombre es obligatorio." });
+      setFormFeedback({ type: "err", text: "El nombre es obligatorio." });
       return;
     }
-    if (!trimmedCode) {
-      showToast({ type: "err", text: "El código es obligatorio (único, ej. s, xl, 250g)." });
+    const codeTrim = code.trim();
+    const resolvedCode = codeTrim || codeFromName(trimmedName);
+    if (!resolvedCode) {
+      setFormFeedback({
+        type: "err",
+        text: "El código no puede quedar vacío (se genera desde el nombre).",
+      });
       return;
     }
+    const descTrim = description.trim();
     setSaving(true);
     try {
       if (modal === "create") {
         await apiFetch<Size>("/admin/sizes", {
           method: "POST",
-          body: JSON.stringify({ name: trimmedName, code: trimmedCode }),
+          body: JSON.stringify({
+            name: trimmedName,
+            code: resolvedCode,
+            ...(descTrim ? { description: descTrim } : {}),
+          }),
         });
-        showToast({ type: "ok", text: "Talla creada." });
       } else if (modal === "edit" && editingId) {
         await apiFetch<Size>(`/admin/sizes/${editingId}`, {
           method: "PATCH",
-          body: JSON.stringify({ name: trimmedName, code: trimmedCode }),
+          body: JSON.stringify({
+            name: trimmedName,
+            code: resolvedCode,
+            description: descTrim || null,
+          }),
         });
-        showToast({ type: "ok", text: "Talla actualizada." });
       }
-      setModal(null);
-      setEditingId(null);
       await load();
+      setFormFeedback({
+        type: "ok",
+        text: modal === "create" ? "Talla creada." : "Talla actualizada.",
+      });
+      await new Promise((r) => setTimeout(r, 650));
+      closeModal();
+      return;
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : "Error al guardar";
-      showToast({ type: "err", text: msg });
+      setFormFeedback({
+        type: "err",
+        text: e instanceof ApiError ? e.message : "Error al guardar",
+      });
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(s: Size) {
-    const ok = window.confirm(
-      `¿Eliminar “${s.name}” (${s.code})? Solo si no está en productos ni pedidos.`,
-    );
-    if (!ok) return;
+    if (!window.confirm(`¿Eliminar “${s.name}” (${s.code})?`)) return;
     try {
       await apiFetch(`/admin/sizes/${s.id}`, { method: "DELETE" });
-      showToast({ type: "ok", text: "Talla eliminada." });
       await load();
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : "No se pudo eliminar";
-      showToast({ type: "err", text: msg });
+      setListError(e instanceof ApiError ? e.message : "No se pudo eliminar");
     }
   }
+
+  const rowBorder = "border-b border-[#2a2a2a]";
 
   return (
     <div>
@@ -122,8 +164,6 @@ export default function AdminTallasPage() {
             <Link href="/admin" className="text-brand-yellow hover:underline">
               Admin
             </Link>
-            {" · "}
-            Nombre visible y código único. La API actual no incluye descripción.
           </p>
         </div>
         <button type="button" onClick={openCreate} className="btn-brand shrink-0">
@@ -131,32 +171,42 @@ export default function AdminTallasPage() {
         </button>
       </div>
 
+      {listError && (
+        <p className="mt-6 text-sm text-brand-red" role="alert">
+          {listError}
+        </p>
+      )}
+
       {loading ? (
         <div className="mt-8">
           <AdminTableSkeleton />
         </div>
       ) : (
         <div className="panel-brand mt-8 overflow-x-auto">
-          <table className="w-full min-w-[520px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
-              <tr className="border-b-2 border-brand-border text-xs uppercase tracking-wide text-zinc-500">
+              <tr className="border-b-2 border-[#2a2a2a] text-xs uppercase tracking-wide text-zinc-500">
                 <th className="p-4 font-medium">Nombre</th>
                 <th className="p-4 font-medium">Código</th>
+                <th className="p-4 font-medium">Descripción</th>
                 <th className="p-4 font-medium text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="p-8 text-center text-zinc-500">
+                  <td colSpan={4} className="p-8 text-center text-zinc-500">
                     No hay tallas. Creá la primera.
                   </td>
                 </tr>
               ) : (
                 rows.map((s) => (
-                  <tr key={s.id} className="border-b border-brand-border">
+                  <tr key={s.id} className={rowBorder}>
                     <td className="p-4 font-medium text-zinc-100">{s.name}</td>
                     <td className="p-4 font-mono text-sm text-zinc-400">{s.code}</td>
+                    <td className="max-w-xs p-4 text-zinc-400">
+                      <span className="line-clamp-2">{s.description?.trim() || "—"}</span>
+                    </td>
                     <td className="p-4 text-right">
                       <button
                         type="button"
@@ -183,23 +233,27 @@ export default function AdminTallasPage() {
 
       {modal && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 p-4"
           role="dialog"
           aria-modal="true"
+          aria-labelledby="size-modal-title"
         >
-          <div className="panel-brand w-full max-w-md p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.5)]">
-            <h2 className="font-display text-2xl uppercase text-white">
+          <div className="panel-brand w-full max-w-md border-[#2a2a2a] p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.5)]">
+            <h2
+              id="size-modal-title"
+              className="font-display text-2xl uppercase text-white"
+            >
               {modal === "create" ? "Nueva talla" : "Editar talla"}
             </h2>
             <div className="mt-6 space-y-4">
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Nombre
+                  Nombre <span className="text-brand-red">*</span>
                 </label>
                 <input
-                  className="input-brand mt-1"
+                  className="input-brand mt-1 w-full"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => onNameChange(e.target.value)}
                   placeholder='ej. "M", "XL", "250 g"'
                   autoFocus
                 />
@@ -209,12 +263,33 @@ export default function AdminTallasPage() {
                   Código (único)
                 </label>
                 <input
-                  className="input-brand mt-1 font-mono"
+                  className="input-brand mt-1 w-full font-mono text-sm"
                   value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="ej. m, xl, 250g"
+                  onChange={(e) => onCodeChange(e.target.value)}
+                  placeholder="se genera desde el nombre"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Descripción
+                </label>
+                <textarea
+                  className="input-brand mt-1 min-h-[88px] w-full resize-y"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                />
+              </div>
+              {formFeedback && (
+                <p
+                  className={
+                    formFeedback.type === "ok" ? "text-sm text-brand-yellow" : "text-sm text-brand-red"
+                  }
+                  role="status"
+                >
+                  {formFeedback.text}
+                </p>
+              )}
             </div>
             <div className="mt-8 flex flex-wrap justify-end gap-2">
               <button
@@ -235,19 +310,6 @@ export default function AdminTallasPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {toast && (
-        <div
-          className={`fixed bottom-6 left-1/2 z-[250] max-w-md -translate-x-1/2 px-4 ${
-            toast.type === "ok"
-              ? "border-2 border-brand-yellow/60 bg-brand-steel text-brand-yellow"
-              : "border-2 border-brand-red/60 bg-brand-steel text-brand-red"
-          } py-3 text-center text-sm shadow-lg`}
-          role="status"
-        >
-          {toast.text}
         </div>
       )}
     </div>
