@@ -40,8 +40,9 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const TOKEN_RETRIES = 3;
-const TOKEN_RETRY_MS = 120;
+/** Tras signup DB, el access token puede demorar un instante respecto al perfil. */
+const TOKEN_RETRIES = 8;
+const TOKEN_RETRY_MS = 150;
 
 async function fetchAccessTokenOnceOrBriefRetry(): Promise<string | null> {
   for (let i = 0; i < TOKEN_RETRIES; i++) {
@@ -55,7 +56,13 @@ async function fetchAccessTokenOnceOrBriefRetry(): Promise<string | null> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { user: auth0User, isLoading: auth0Loading } = useUser();
+  const {
+    user: auth0User,
+    isLoading: auth0Loading,
+    error: auth0ProfileError,
+    invalidate: invalidateAuth0Profile,
+  } = useUser();
+
   const auth0Sub = auth0User?.sub ?? null;
 
   const [meUser, setMeUser] = useState<AuthUser | null>(null);
@@ -63,6 +70,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [syncNonce, setSyncNonce] = useState(0);
 
   const runIdRef = useRef(0);
+  const profile401RetriedRef = useRef(false);
+
+  useEffect(() => {
+    if (auth0ProfileError) {
+      if (!profile401RetriedRef.current) {
+        profile401RetriedRef.current = true;
+        void invalidateAuth0Profile();
+      }
+    } else {
+      profile401RetriedRef.current = false;
+    }
+  }, [auth0ProfileError, invalidateAuth0Profile]);
 
   useEffect(() => {
     if (auth0Loading) return;

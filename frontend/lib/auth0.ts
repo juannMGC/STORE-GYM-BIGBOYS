@@ -53,6 +53,7 @@ function createAuth0Client(): Auth0Client | null {
       clientSecret: process.env.AUTH0_CLIENT_SECRET!.trim(),
       secret: process.env.AUTH0_SECRET!.trim(),
       appBaseUrl: resolveAppBaseUrl(),
+      /** Aplica a login, signup (email/contraseña) y conexiones sociales: mismo audience + API JWT. */
       authorizationParameters: {
         scope: "openid profile email offline_access",
         ...(audience ? { audience } : {}),
