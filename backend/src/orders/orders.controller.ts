@@ -68,14 +68,14 @@ export class OrdersController {
     return this.ordersService.patchPayment(user.userId, dto);
   }
 
-  /** Datos de envío del carrito; solo el dueño del pedido. */
+  /** Datos de envío: dueño (solo DRAFT) o ADMIN (cualquier estado). */
   @Patch(':id/shipping')
   updateShipping(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateShippingDto,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.ordersService.updateShipping(id, user.userId, dto);
+    return this.ordersService.updateShipping(id, user.userId, user.role, dto);
   }
 
   /** DRAFT → PENDING (requiere ítems + paymentMethod). */
@@ -169,12 +169,12 @@ export class OrdersController {
     return this.ordersService.sendInvoiceEmail(id, user.userId, user.role);
   }
 
-  /** Detalle de un pedido del usuario autenticado (p. ej. tras pago Wompi). */
+  /** Detalle: dueño del pedido o ADMIN (misma forma JSON). */
   @Get(':orderId')
   getOne(
     @CurrentUser() user: RequestUser,
     @Param('orderId', ParseUUIDPipe) orderId: string,
   ) {
-    return this.ordersService.findOneForUser(user.userId, orderId);
+    return this.ordersService.getOrderByIdForViewer(orderId, user.userId, user.role);
   }
 }

@@ -75,6 +75,28 @@ const orderAdminDetailInclude = {
   },
 } as const;
 
+/** Detalle unificado GET /orders/:id (dueño o ADMIN): ítems con precio catálogo + snapshot. */
+const orderDetailViewerInclude = {
+  user: { select: { id: true, name: true, email: true } },
+  items: {
+    include: {
+      product: {
+        select: {
+          id: true,
+          title: true,
+          price: true,
+          images: {
+            orderBy: { sortOrder: 'asc' as const },
+            take: 1,
+            select: { url: true },
+          },
+        },
+      },
+      size: { select: { id: true, name: true } },
+    },
+  },
+} as const;
+
 const invoiceOrderInclude = {
   user: { select: { id: true, email: true, name: true } },
   items: {
@@ -103,6 +125,88 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
   ) {}
+
+  private mapToOrderDetailDto(order: {
+    id: string;
+    status: string;
+    paymentMethod: string | null;
+    createdAt: Date;
+    shippingEmail: string | null;
+    shippingDepartment: string | null;
+    shippingCity: string | null;
+    shippingNeighborhood: string | null;
+    shippingAddress: string | null;
+    shippingComplement: string | null;
+    user: { id: string; name: string | null; email: string };
+    items: Array<{
+      id: string;
+      quantity: number;
+      priceSnapshot: number;
+      product: {
+        id: string;
+        title: string;
+        price: number;
+        images: { url: string }[];
+      };
+      size: { id: string; name: string } | null;
+    }>;
+  }) {
+    return {
+      id: order.id,
+      status: order.status,
+      paymentMethod: order.paymentMethod,
+      createdAt: order.createdAt.toISOString(),
+      shippingEmail: order.shippingEmail,
+      shippingDepartment: order.shippingDepartment,
+      shippingCity: order.shippingCity,
+      shippingNeighborhood: order.shippingNeighborhood,
+      shippingAddress: order.shippingAddress,
+      shippingComplement: order.shippingComplement,
+      user: {
+        id: order.user.id,
+        name: order.user.name,
+        email: order.user.email,
+      },
+      items: order.items.map((i) => ({
+        id: i.id,
+        quantity: i.quantity,
+        unitPrice: i.priceSnapshot,
+        product: {
+          id: i.product.id,
+          name: i.product.title,
+          imageUrl: i.product.images[0]?.url?.trim() ?? null,
+          price: i.product.price,
+        },
+        size: i.size ? { id: i.size.id, name: i.size.name } : null,
+      })),
+    };
+  }
+
+  async getOrderDetailDtoById(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: orderDetailViewerInclude,
+    });
+    if (!order) {
+      throw new NotFoundException('Pedido no encontrado');
+    }
+    return this.mapToOrderDetailDto(order);
+  }
+
+  /** Dueño del pedido o ADMIN. */
+  async getOrderByIdForViewer(orderId: string, requesterUserId: string, requesterRole: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: orderDetailViewerInclude,
+    });
+    if (!order) {
+      throw new NotFoundException('Pedido no encontrado');
+    }
+    if (requesterRole !== Role.ADMIN && order.userId !== requesterUserId) {
+      throw new ForbiddenException();
+    }
+    return this.mapToOrderDetailDto(order);
+  }
 
   private async loadOrderForMail(orderId: string): Promise<OrderMailPayload | null> {
     const o = await this.prisma.order.findUnique({
@@ -245,11 +349,17 @@ export class OrdersService {
   }
 
   /** Datos de envío del carrito (DRAFT); solo el dueño del pedido. */
-  async updateShipping(orderId: string, userId: string, dto: UpdateShippingDto) {
+  async updateShipping(
+    orderId: string,
+    userId: string,
+    role: string,
+    dto: UpdateShippingDto,
+  ) {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Pedido no encontrado');
-    if (order.userId !== userId) throw new ForbiddenException();
-    if (order.status !== OrderStatus.DRAFT) {
+    const isAdmin = role === Role.ADMIN;
+    if (!isAdmin && order.userId !== userId) throw new ForbiddenException();
+    if (!isAdmin && order.status !== OrderStatus.DRAFT) {
       throw new BadRequestException('Solo podés actualizar envío del carrito abierto');
     }
 
@@ -313,17 +423,6 @@ export class OrdersService {
       },
       orderBy: { createdAt: 'desc' },
     });
-  }
-
-  async findOneForUser(userId: string, orderId: string) {
-    const order = await this.prisma.order.findFirst({
-      where: { id: orderId, userId },
-      include: orderInclude,
-    });
-    if (!order) {
-      throw new NotFoundException('Pedido no encontrado');
-    }
-    return order;
   }
 
   async buildWompiSignature(
@@ -469,13 +568,14 @@ export class OrdersService {
     });
   }
 
-  async findOneAdmin(id: string) {
-    const order = await this.prisma.order.findUnique({
-      where: { id },
-      include: orderAdminDetailInclude,
-    });
+  async adminUpdatePayment(orderId: string, dto: PatchPaymentDto) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Pedido no encontrado');
-    return order;
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { paymentMethod: dto.paymentMethod },
+    });
+    return this.getOrderDetailDtoById(orderId);
   }
 
   async adminUpdateOrderItem(
@@ -494,7 +594,7 @@ export class OrdersService {
       where: { id: itemId },
       data: { quantity: dto.quantity },
     });
-    return this.findOneAdmin(orderId);
+    return this.getOrderDetailDtoById(orderId);
   }
 
   async adminRemoveOrderItem(orderId: string, itemId: string) {
@@ -506,7 +606,7 @@ export class OrdersService {
       throw new BadRequestException('El ítem no pertenece a este pedido');
     }
     await this.prisma.orderItem.delete({ where: { id: itemId } });
-    return this.findOneAdmin(orderId);
+    return this.getOrderDetailDtoById(orderId);
   }
 
   async adminAddOrderItem(orderId: string, dto: AddOrderItemDto) {
@@ -555,7 +655,7 @@ export class OrdersService {
         },
       });
     }
-    return this.findOneAdmin(orderId);
+    return this.getOrderDetailDtoById(orderId);
   }
 
   /**
@@ -592,7 +692,7 @@ export class OrdersService {
           this.logger.error(`Email estado pedido: ${String(err)}`);
         });
     }
-    return updated;
+    return this.getOrderDetailDtoById(id);
   }
 
   private assertOrderInvoiceAccess(

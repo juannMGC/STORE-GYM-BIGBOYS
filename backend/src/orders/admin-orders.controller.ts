@@ -28,7 +28,7 @@ export class AdminOrdersController {
 
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.ordersService.findOneAdmin(id);
+    return this.ordersService.getOrderDetailDtoById(id);
   }
 
   /** Misma lógica que `PATCH /api/orders/:id/status`. */

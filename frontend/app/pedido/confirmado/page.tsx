@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { apiFetch, formatShopApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
-import type { CartOrder } from "@/lib/types";
+type OrderFetchShape = { id: string; status: string };
 
 const STATUS_LABEL: Record<string, string> = {
   DRAFT: "Borrador",
@@ -20,7 +20,7 @@ function PedidoConfirmadoInner() {
   const searchParams = useSearchParams();
   const ref = searchParams.get("ref");
   const { isLoggedIn, loading: sessionLoading } = useAuth();
-  const [order, setOrder] = useState<CartOrder | null>(null);
+  const [order, setOrder] = useState<OrderFetchShape | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +39,7 @@ function PedidoConfirmadoInner() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    apiFetch<CartOrder>(`/orders/${ref}`)
+    apiFetch<OrderFetchShape>(`/orders/${ref}`)
       .then((data) => {
         if (!cancelled) setOrder(data);
       })
