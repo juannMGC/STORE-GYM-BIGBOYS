@@ -3,7 +3,7 @@ import { Bebas_Neue, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
+import { ConditionalSiteFooter } from "@/components/conditional-site-footer";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -40,7 +40,7 @@ export default function RootLayout({
         <Providers>
           <SiteHeader />
           <div className="relative z-10 flex flex-1 flex-col">{children}</div>
-          <SiteFooter />
+          <ConditionalSiteFooter />
         </Providers>
       </body>
     </html>

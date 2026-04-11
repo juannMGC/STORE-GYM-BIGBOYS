@@ -345,21 +345,29 @@ export default function AdminProductosPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="admin-product-modal-title"
-          className="fixed inset-0 z-50 overflow-y-auto p-2 sm:p-4"
+          className="p-2 sm:p-5"
           style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
             backgroundColor: "rgba(0,0,0,0.85)",
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             justifyContent: "center",
+            overflowY: "auto",
           }}
         >
           <div
-            className="my-4 flex w-full max-w-[640px] flex-col overflow-hidden max-h-[95vh] sm:my-8 sm:max-h-[85vh]"
             style={{
+              width: "100%",
+              maxWidth: "640px",
+              marginTop: "auto",
+              marginBottom: "auto",
               backgroundColor: "#1a1a1a",
               border: "1px solid #2a2a2a",
               borderRadius: "4px",
-              margin: "auto",
+              display: "flex",
+              flexDirection: "column",
             }}
           >
             <div
@@ -385,15 +393,7 @@ export default function AdminProductosPage() {
                 ×
               </button>
             </div>
-            <div
-              className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain"
-              style={{
-                flex: 1,
-                minHeight: 0,
-                overflowY: "auto",
-                padding: "24px",
-              }}
-            >
+            <div className="space-y-4" style={{ padding: "24px" }}>
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
                   Nombre
@@ -567,7 +567,7 @@ export default function AdminProductosPage() {
 
       {toast && (
         <div
-          className={`fixed bottom-6 left-1/2 z-[400] max-w-md -translate-x-1/2 px-4 ${
+          className={`fixed bottom-6 left-1/2 z-[10050] max-w-md -translate-x-1/2 px-4 ${
             toast.type === "ok"
               ? "border-2 border-brand-yellow/60 bg-brand-steel text-brand-yellow"
               : "border-2 border-brand-red/60 bg-brand-steel text-brand-red"

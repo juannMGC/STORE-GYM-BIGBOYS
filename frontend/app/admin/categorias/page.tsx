@@ -235,19 +235,58 @@ export default function AdminCategoriasPage() {
 
       {modal && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="cat-modal-title"
+          className="p-2 sm:p-5"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: "rgba(0,0,0,0.85)",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "center",
+            overflowY: "auto",
+          }}
         >
-          <div className="panel-brand w-full max-w-md border-[#2a2a2a] p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.5)]">
-            <h2
-              id="cat-modal-title"
-              className="font-display text-2xl uppercase text-white"
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "448px",
+              marginTop: "auto",
+              marginBottom: "auto",
+              backgroundColor: "#1a1a1a",
+              border: "1px solid #2a2a2a",
+              borderRadius: "4px",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div
+              className="flex shrink-0 items-center justify-between gap-3"
+              style={{
+                padding: "16px 24px",
+                borderBottom: "1px solid #2a2a2a",
+              }}
             >
-              {modal === "create" ? "Nueva categoría" : "Editar categoría"}
-            </h2>
-            <div className="mt-6 space-y-4">
+              <h2
+                id="cat-modal-title"
+                className="font-display text-xl uppercase text-white sm:text-2xl"
+              >
+                {modal === "create" ? "Nueva categoría" : "Editar categoría"}
+              </h2>
+              <button
+                type="button"
+                onClick={closeModal}
+                disabled={saving}
+                className="shrink-0 rounded border-2 border-[#2a2a2a] px-2.5 py-1 font-display text-lg leading-none text-brand-yellow transition hover:border-brand-yellow hover:bg-brand-yellow/10 disabled:opacity-50"
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-4" style={{ padding: "24px" }}>
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
                   Nombre <span className="text-brand-red">*</span>
@@ -319,12 +358,18 @@ export default function AdminCategoriasPage() {
                 </p>
               )}
             </div>
-            <div className="mt-8 flex flex-wrap justify-end gap-2">
+            <div
+              className="flex w-full shrink-0 flex-col gap-3 sm:flex-row sm:justify-end"
+              style={{
+                padding: "16px 24px",
+                borderTop: "1px solid #2a2a2a",
+              }}
+            >
               <button
                 type="button"
                 onClick={closeModal}
                 disabled={saving}
-                className="btn-brand-outline px-4 py-2 text-sm"
+                className="btn-brand-outline w-full px-4 py-2 text-sm sm:w-auto"
               >
                 Cancelar
               </button>
@@ -332,7 +377,7 @@ export default function AdminCategoriasPage() {
                 type="button"
                 onClick={() => void submitModal()}
                 disabled={saving}
-                className="btn-brand px-4 py-2 text-sm disabled:opacity-50"
+                className="btn-brand w-full px-4 py-2 text-sm disabled:opacity-50 sm:w-auto"
               >
                 {saving ? "Guardando…" : "Guardar"}
               </button>
