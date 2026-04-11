@@ -12,8 +12,12 @@ import {
   type ReactNode,
 } from "react";
 import type { AuthUser } from "./types";
-import { apiFetch } from "./api-client";
-import { auth0LoginHref, auth0SignupHref } from "./auth-routes";
+import { ApiError, apiFetch } from "./api-client";
+import {
+  AUTH0_LOGIN_HREF,
+  auth0LoginHref,
+  auth0SignupHref,
+} from "./auth-routes";
 
 export type Auth0SessionUser = {
   email?: string;
@@ -44,6 +48,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const TOKEN_RETRIES = 8;
 const TOKEN_RETRY_MS = 150;
 
+const DUPLICATE_EMAIL_CLIENT_MESSAGE =
+  "Ya tenés una cuenta con este correo. Iniciá sesión en lugar de registrarte.";
+
 async function fetchAccessTokenOnceOrBriefRetry(): Promise<string | null> {
   for (let i = 0; i < TOKEN_RETRIES; i++) {
     try {
@@ -71,6 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const runIdRef = useRef(0);
   const profile401RetriedRef = useRef(false);
+  const auth0EmailConflictRef = useRef(false);
+
+  const [duplicateEmailNotice, setDuplicateEmailNotice] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (auth0ProfileError) {
@@ -84,10 +96,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [auth0ProfileError, invalidateAuth0Profile]);
 
   useEffect(() => {
+    if (!duplicateEmailNotice) return;
+    const t = window.setTimeout(() => {
+      const returnTo = `${window.location.origin}${AUTH0_LOGIN_HREF}`;
+      window.location.assign(
+        `/auth/logout?returnTo=${encodeURIComponent(returnTo)}`,
+      );
+    }, 3000);
+    return () => window.clearTimeout(t);
+  }, [duplicateEmailNotice]);
+
+  useEffect(() => {
     if (auth0Loading) return;
 
     if (!auth0Sub) {
+      auth0EmailConflictRef.current = false;
       setMeUser(null);
+      setMeLoading(false);
+      return;
+    }
+
+    if (auth0EmailConflictRef.current) {
       setMeLoading(false);
       return;
     }
@@ -112,8 +141,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cancelled || runId !== runIdRef.current) return;
 
         setMeUser(me.user);
-      } catch {
+      } catch (e) {
         if (cancelled || runId !== runIdRef.current) return;
+        if (e instanceof ApiError && e.status === 409) {
+          auth0EmailConflictRef.current = true;
+          setDuplicateEmailNotice(DUPLICATE_EMAIL_CLIENT_MESSAGE);
+          setMeUser(null);
+          return;
+        }
         setMeUser(null);
       } finally {
         if (!cancelled && runId === runIdRef.current) {
@@ -182,7 +217,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {duplicateEmailNotice ? (
+        <div
+          role="alert"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 9999,
+            padding: "12px 16px",
+            background: "#7f1d1d",
+            color: "#fef2f2",
+            fontSize: "0.95rem",
+            textAlign: "center",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          }}
+        >
+          {duplicateEmailNotice}{" "}
+          <span style={{ opacity: 0.9 }}>
+            Cerrando sesión y llevándote al inicio de sesión…
+          </span>
+        </div>
+      ) : null}
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

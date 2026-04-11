@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -32,6 +33,11 @@ export class AuthService {
     } else {
       const byEmail = await this.usersService.findByEmail(data.email);
       if (byEmail) {
+        if (byEmail.auth0Id && byEmail.auth0Id !== data.sub) {
+          throw new ConflictException(
+            'Este correo ya está registrado. Iniciá sesión.',
+          );
+        }
         user = await this.usersService.linkAuth0Account(byEmail.id, {
           auth0Id: data.sub,
           email: data.email,

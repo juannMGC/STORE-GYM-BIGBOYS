@@ -12,7 +12,11 @@ import {
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../common/constants/roles';
+import { RolesGuard } from '../common/guards/roles.guard';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
+import { AdminUpdateOrderStatusDto } from './dto/admin-update-order-status.dto';
 import { PatchCartItemDto } from './dto/patch-cart-item.dto';
 import { PatchPaymentDto } from './dto/patch-payment.dto';
 import { WompiSignatureDto } from './dto/wompi-signature.dto';
@@ -64,6 +68,17 @@ export class OrdersController {
   @Post('cart/confirm')
   confirm(@CurrentUser() user: RequestUser) {
     return this.ordersService.confirmCart(user.userId);
+  }
+
+  /** Admin: mismo cuerpo que `PATCH /api/admin/orders/:id/status`. */
+  @Patch(':orderId/status')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  adminPatchStatus(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Body() dto: AdminUpdateOrderStatusDto,
+  ) {
+    return this.ordersService.adminUpdateStatus(orderId, dto);
   }
 
   @Post(':orderId/wompi-signature')

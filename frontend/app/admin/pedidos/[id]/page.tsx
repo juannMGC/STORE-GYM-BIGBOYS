@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api-client";
+import { ApiError, apiFetch } from "@/lib/api-client";
 
 type OrderDetail = {
   id: string;
@@ -21,21 +21,19 @@ type OrderDetail = {
   }[];
 };
 
-const NEXT_STATES: Record<string, { value: string; label: string }[]> = {
-  PENDING: [
-    { value: "PAID", label: "Marcar pagado" },
-    { value: "CANCELLED", label: "Cancelar pedido" },
-  ],
-  PAID: [
-    { value: "SHIPPED", label: "Marcar enviado" },
-    { value: "DELIVERED", label: "Marcar entregado (sin envío previo)" },
-    { value: "CANCELLED", label: "Cancelar / anular" },
-  ],
-  SHIPPED: [
-    { value: "DELIVERED", label: "Marcar entregado" },
-    { value: "CANCELLED", label: "Cancelar / anular" },
-  ],
-};
+/** Valores en inglés para la API; PAID = “confirmado / pagado” (no existe CONFIRMED en el backend). */
+const ORDER_STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: "PENDING", label: "Pendiente" },
+  { value: "PAID", label: "Confirmado" },
+  { value: "SHIPPED", label: "Enviado" },
+  { value: "DELIVERED", label: "Entregado" },
+  { value: "CANCELLED", label: "Cancelado" },
+];
+
+function statusLabel(status: string): string {
+  const found = ORDER_STATUS_OPTIONS.find((o) => o.value === status);
+  return found?.label ?? status;
+}
 
 export default function AdminPedidoDetailPage() {
   const params = useParams();
@@ -43,16 +41,17 @@ export default function AdminPedidoDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [nextStatus, setNextStatus] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
   const [saving, setSaving] = useState(false);
+  const [statusSuccess, setStatusSuccess] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
     try {
       const data = await apiFetch<OrderDetail>(`/admin/orders/${id}`);
       setOrder(data);
-      const options = NEXT_STATES[data.status] ?? [];
-      setNextStatus(options[0]?.value ?? "");
+      setSelectedStatus(data.status);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
     } finally {
@@ -65,17 +64,25 @@ export default function AdminPedidoDetailPage() {
   }, [load]);
 
   async function submitStatus() {
-    if (!nextStatus) return;
+    if (!order || !selectedStatus || selectedStatus === order.status) return;
     setSaving(true);
-    setError(null);
+    setStatusSuccess(null);
+    setStatusError(null);
     try {
-      await apiFetch(`/admin/orders/${id}/status`, {
+      await apiFetch(`/orders/${id}/status`, {
         method: "PATCH",
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify({ status: selectedStatus }),
       });
       await load();
+      setStatusSuccess("Estado actualizado");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo actualizar");
+      const msg =
+        e instanceof ApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : "No se pudo actualizar";
+      setStatusError(msg);
     } finally {
       setSaving(false);
     }
@@ -93,11 +100,20 @@ export default function AdminPedidoDetailPage() {
     return null;
   }
 
-  const options = NEXT_STATES[order.status] ?? [];
   const total = order.items.reduce(
     (s, i) => s + i.priceSnapshot * i.quantity,
     0,
   );
+
+  const selectOptions = ORDER_STATUS_OPTIONS.some((o) => o.value === order.status)
+    ? ORDER_STATUS_OPTIONS
+    : [
+        { value: order.status, label: statusLabel(order.status) },
+        ...ORDER_STATUS_OPTIONS,
+      ];
+
+  const canSubmit =
+    selectedStatus !== order.status && Boolean(selectedStatus) && !saving;
 
   return (
     <div>
@@ -117,7 +133,9 @@ export default function AdminPedidoDetailPage() {
         </div>
         <div>
           <p className="text-xs font-semibold uppercase text-zinc-500">Estado</p>
-          <p className="font-display text-2xl text-brand-yellow">{order.status}</p>
+          <p className="font-display text-2xl text-brand-yellow">
+            {statusLabel(order.status)}
+          </p>
         </div>
         <div>
           <p className="text-xs font-semibold uppercase text-zinc-500">Pago</p>
@@ -144,46 +162,52 @@ export default function AdminPedidoDetailPage() {
         ))}
       </ul>
 
-      {options.length > 0 && (
-        <div className="panel-brand mt-8 border-brand-yellow/40 p-6">
-          <p className="text-sm font-medium text-zinc-300">
-            Cambiar estado (solo transiciones permitidas por la API)
-          </p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1">
-              <label className="text-xs text-zinc-500">Nuevo estado</label>
-              <select
-                value={nextStatus}
-                onChange={(e) => setNextStatus(e.target.value)}
-                className="select-brand mt-1"
-              >
-                {options.map((o) => (
-                  <option key={o.value} value={o.value} className="bg-brand-steel">
-                    {o.label} ({o.value})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="button"
-              disabled={saving || !nextStatus}
-              onClick={() => void submitStatus()}
-              className="btn-brand disabled:opacity-50"
-            >
-              {saving ? "Guardando…" : "Aplicar"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {options.length === 0 && (
-        <p className="mt-8 text-sm text-zinc-500">
-          Este pedido está en estado final (entregado, cancelado o cerrado). No hay
-          transiciones admin disponibles.
+      <div className="panel-brand mt-8 border-brand-yellow/40 p-6">
+        <p className="text-sm font-medium text-zinc-300">Cambiar estado del pedido</p>
+        <p className="mt-1 text-xs text-zinc-500">
+          Solo se permiten las transiciones definidas por la API (p. ej. Pendiente → Confirmado o
+          Cancelado).
         </p>
-      )}
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label htmlFor="order-status" className="text-xs text-zinc-500">
+              Estado
+            </label>
+            <select
+              id="order-status"
+              value={selectedStatus}
+              onChange={(e) => {
+                setSelectedStatus(e.target.value);
+                setStatusSuccess(null);
+                setStatusError(null);
+              }}
+              className="select-brand mt-1 w-full max-w-md"
+            >
+              {selectOptions.map((o) => (
+                <option key={o.value} value={o.value} className="bg-brand-steel">
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            disabled={!canSubmit}
+            onClick={() => void submitStatus()}
+            className="btn-brand disabled:opacity-50"
+          >
+            {saving ? "Guardando…" : "Actualizar estado"}
+          </button>
+        </div>
+        {statusSuccess ? (
+          <p className="mt-3 text-sm text-green-400">{statusSuccess}</p>
+        ) : null}
+        {statusError ? (
+          <p className="mt-3 text-sm text-brand-red">{statusError}</p>
+        ) : null}
+      </div>
 
-      {error && <p className="mt-4 text-sm text-brand-red">{error}</p>}
+      {error ? <p className="mt-4 text-sm text-brand-red">{error}</p> : null}
     </div>
   );
 }

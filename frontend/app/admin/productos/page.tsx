@@ -342,15 +342,32 @@ export default function AdminProductosPage() {
 
       {modal && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-black/70 p-4 py-10"
+          className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-3 md:p-4"
           role="dialog"
           aria-modal="true"
+          aria-labelledby="admin-product-modal-title"
         >
-          <div className="panel-brand my-auto w-full max-w-lg p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.5)]">
-            <h2 className="font-display text-2xl uppercase text-white">
-              {modal === "create" ? "Nuevo producto" : "Editar producto"}
-            </h2>
-            <div className="mt-6 max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+          <div
+            className="panel-brand flex max-h-[95vh] w-[95vw] max-w-[95vw] flex-col overflow-hidden shadow-[8px_8px_0_0_rgba(0,0,0,0.5)] md:max-h-[90vh] md:w-full md:max-w-lg"
+          >
+            <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-3 border-b border-brand-border bg-brand-steel px-4 py-4 md:px-6">
+              <h2
+                id="admin-product-modal-title"
+                className="font-display text-2xl uppercase text-white"
+              >
+                {modal === "create" ? "Nuevo producto" : "Editar producto"}
+              </h2>
+              <button
+                type="button"
+                onClick={closeModal}
+                disabled={saving}
+                className="shrink-0 rounded border-2 border-brand-border px-2.5 py-1 font-display text-lg leading-none text-brand-yellow transition hover:border-brand-yellow hover:bg-brand-yellow/10 disabled:opacity-50"
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 md:px-6 md:py-4">
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
                   Nombre
@@ -494,7 +511,7 @@ export default function AdminProductosPage() {
                 ) : null}
               </div>
             </div>
-            <div className="mt-8 flex flex-wrap justify-end gap-2 border-t border-brand-border pt-4">
+            <div className="sticky bottom-0 z-10 flex shrink-0 flex-wrap justify-end gap-2 border-t border-brand-border bg-brand-steel px-4 py-4 md:px-6">
               <button
                 type="button"
                 onClick={closeModal}
@@ -518,7 +535,7 @@ export default function AdminProductosPage() {
 
       {toast && (
         <div
-          className={`fixed bottom-6 left-1/2 z-[250] max-w-md -translate-x-1/2 px-4 ${
+          className={`fixed bottom-6 left-1/2 z-[400] max-w-md -translate-x-1/2 px-4 ${
             toast.type === "ok"
               ? "border-2 border-brand-yellow/60 bg-brand-steel text-brand-yellow"
               : "border-2 border-brand-red/60 bg-brand-steel text-brand-red"

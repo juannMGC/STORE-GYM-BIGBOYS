@@ -10,6 +10,7 @@ export class AdminUpdateOrderStatusDto {
    * `order-transitions.assertAdminStatusTransition`).
    */
   @IsIn([
+    OrderStatus.PENDING,
     OrderStatus.PAID,
     OrderStatus.SHIPPED,
     OrderStatus.DELIVERED,
