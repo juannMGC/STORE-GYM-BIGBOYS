@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
@@ -16,6 +17,8 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/constants/roles';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
+import { AddOrderItemDto } from './dto/add-order-item.dto';
+import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { PatchCartItemDto } from './dto/patch-cart-item.dto';
 import { PatchPaymentDto } from './dto/patch-payment.dto';
@@ -74,6 +77,45 @@ export class OrdersController {
   @Get('my-orders')
   getMyOrders(@CurrentUser() user: RequestUser) {
     return this.ordersService.getOrdersByUser(user.userId);
+  }
+
+  /** Solo ADMIN. Todos los pedidos; filtro opcional ?status= */
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  findAllAdmin(@Query('status') status?: string) {
+    return this.ordersService.findAllAdmin(status);
+  }
+
+  @Post(':id/items/admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  adminAddItem(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AddOrderItemDto,
+  ) {
+    return this.ordersService.adminAddOrderItem(id, dto);
+  }
+
+  @Patch(':id/items/:itemId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  adminUpdateItem(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('itemId', ParseUUIDPipe) itemId: string,
+    @Body() dto: UpdateOrderItemDto,
+  ) {
+    return this.ordersService.adminUpdateOrderItem(id, itemId, dto);
+  }
+
+  @Delete(':id/items/:itemId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  adminRemoveItem(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('itemId', ParseUUIDPipe) itemId: string,
+  ) {
+    return this.ordersService.adminRemoveOrderItem(id, itemId);
   }
 
   /** Solo ADMIN. Un CLIENT recibe 403 Forbidden. */

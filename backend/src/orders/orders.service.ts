@@ -14,8 +14,10 @@ import {
 } from '../common/constants/order-status';
 import { assertClientConfirm, assertPatchOrderStatusTransition } from './order-transitions';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
+import { AddOrderItemDto } from './dto/add-order-item.dto';
 import { PatchCartItemDto } from './dto/patch-cart-item.dto';
 import { PatchPaymentDto } from './dto/patch-payment.dto';
+import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { WompiSignatureDto } from './dto/wompi-signature.dto';
 import { MailService, type OrderMailPayload } from '../mail/mail.service';
@@ -45,6 +47,27 @@ const orderIncludeMail = {
   items: {
     include: {
       product: { select: { title: true } },
+      size: true,
+    },
+  },
+} as const;
+
+/** Detalle admin / listado enriquecido (cliente + ítems con imagen). */
+const orderAdminDetailInclude = {
+  user: { select: { id: true, email: true, name: true } },
+  items: {
+    include: {
+      product: {
+        select: {
+          id: true,
+          title: true,
+          images: {
+            orderBy: { sortOrder: 'asc' as const },
+            take: 1,
+            select: { url: true },
+          },
+        },
+      },
       size: true,
     },
   },
@@ -375,36 +398,101 @@ export class OrdersService {
   }
 
   findAllAdmin(status?: string) {
+    const s = status?.trim();
     return this.prisma.order.findMany({
-      where: status ? { status } : {},
+      where: s ? { status: s } : {},
       orderBy: { createdAt: 'desc' },
-      include: {
-        user: { select: { id: true, email: true } },
-        items: {
-          include: {
-            product: { select: { id: true, title: true } },
-            size: true,
-          },
-        },
-      },
+      include: orderAdminDetailInclude,
     });
   }
 
   async findOneAdmin(id: string) {
     const order = await this.prisma.order.findUnique({
       where: { id },
-      include: {
-        user: { select: { id: true, email: true, role: true } },
-        items: {
-          include: {
-            product: true,
-            size: true,
-          },
-        },
-      },
+      include: orderAdminDetailInclude,
     });
     if (!order) throw new NotFoundException('Pedido no encontrado');
     return order;
+  }
+
+  async adminUpdateOrderItem(
+    orderId: string,
+    itemId: string,
+    dto: UpdateOrderItemDto,
+  ) {
+    const item = await this.prisma.orderItem.findUnique({
+      where: { id: itemId },
+    });
+    if (!item) throw new NotFoundException('Ítem no encontrado');
+    if (item.orderId !== orderId) {
+      throw new BadRequestException('El ítem no pertenece a este pedido');
+    }
+    await this.prisma.orderItem.update({
+      where: { id: itemId },
+      data: { quantity: dto.quantity },
+    });
+    return this.findOneAdmin(orderId);
+  }
+
+  async adminRemoveOrderItem(orderId: string, itemId: string) {
+    const item = await this.prisma.orderItem.findUnique({
+      where: { id: itemId },
+    });
+    if (!item) throw new NotFoundException('Ítem no encontrado');
+    if (item.orderId !== orderId) {
+      throw new BadRequestException('El ítem no pertenece a este pedido');
+    }
+    await this.prisma.orderItem.delete({ where: { id: itemId } });
+    return this.findOneAdmin(orderId);
+  }
+
+  async adminAddOrderItem(orderId: string, dto: AddOrderItemDto) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Pedido no encontrado');
+
+    const product = await this.prisma.product.findUnique({
+      where: { id: dto.productId },
+      include: { sizes: true },
+    });
+    if (!product) throw new NotFoundException('Producto no encontrado');
+    const hasSizes = product.sizes.length > 0;
+    if (hasSizes && !dto.sizeId) {
+      throw new BadRequestException('Debe elegir una talla para este producto');
+    }
+    if (!hasSizes && dto.sizeId) {
+      throw new BadRequestException('Este producto no tiene tallas');
+    }
+    if (dto.sizeId) {
+      const ok = product.sizes.some((ps) => ps.sizeId === dto.sizeId);
+      if (!ok) throw new BadRequestException('Talla no válida para este producto');
+    }
+
+    const sizeKey = dto.sizeId ?? null;
+    const existing = await this.prisma.orderItem.findFirst({
+      where: {
+        orderId,
+        productId: dto.productId,
+        sizeId: sizeKey,
+      },
+    });
+    const priceSnapshot = product.price;
+    if (existing) {
+      await this.prisma.orderItem.update({
+        where: { id: existing.id },
+        data: { quantity: existing.quantity + dto.quantity },
+      });
+    } else {
+      await this.prisma.orderItem.create({
+        data: {
+          orderId,
+          productId: dto.productId,
+          sizeId: sizeKey,
+          quantity: dto.quantity,
+          priceSnapshot,
+        },
+      });
+    }
+    return this.findOneAdmin(orderId);
   }
 
   /**
@@ -432,15 +520,7 @@ export class OrdersService {
     const updated = await this.prisma.order.update({
       where: { id },
       data: { status: to },
-      include: {
-        user: { select: { id: true, email: true, name: true } },
-        items: {
-          include: {
-            product: { select: { id: true, title: true } },
-            size: true,
-          },
-        },
-      },
+      include: orderAdminDetailInclude,
     });
     if (to === OrderStatus.SHIPPED || to === OrderStatus.DELIVERED) {
       void this.mailService
