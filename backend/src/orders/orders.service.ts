@@ -9,13 +9,14 @@ import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   OrderStatus,
+  ORDER_STATUS_VALUES,
   type OrderStatusValue,
 } from '../common/constants/order-status';
-import { assertAdminStatusTransition, assertClientConfirm } from './order-transitions';
+import { assertClientConfirm, assertPatchOrderStatusTransition } from './order-transitions';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { PatchCartItemDto } from './dto/patch-cart-item.dto';
 import { PatchPaymentDto } from './dto/patch-payment.dto';
-import { AdminUpdateOrderStatusDto } from './dto/admin-update-order-status.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { WompiSignatureDto } from './dto/wompi-signature.dto';
 import { MailService, type OrderMailPayload } from '../mail/mail.service';
 
@@ -376,14 +377,31 @@ export class OrdersService {
     return order;
   }
 
-  async adminUpdateStatus(id: string, dto: AdminUpdateOrderStatusDto) {
+  /**
+   * Normaliza el body del PATCH: CONFIRMED → PAID (valor en Prisma).
+   */
+  private normalizePatchStatusToPrisma(status: string): OrderStatusValue {
+    if (status === 'CONFIRMED') {
+      return OrderStatus.PAID;
+    }
+    const v = status as OrderStatusValue;
+    if (!ORDER_STATUS_VALUES.includes(v)) {
+      throw new BadRequestException('Estado inválido');
+    }
+    return v;
+  }
+
+  async updateStatus(id: string, dto: UpdateOrderStatusDto) {
     const order = await this.prisma.order.findUnique({ where: { id } });
-    if (!order) throw new NotFoundException('Pedido no encontrado');
-    const from = order.status as Parameters<typeof assertAdminStatusTransition>[0];
-    assertAdminStatusTransition(from, dto.status);
+    if (!order) {
+      throw new NotFoundException('Pedido no encontrado');
+    }
+    const from = order.status as OrderStatusValue;
+    const to = this.normalizePatchStatusToPrisma(dto.status);
+    assertPatchOrderStatusTransition(from, to);
     const updated = await this.prisma.order.update({
       where: { id },
-      data: { status: dto.status },
+      data: { status: to },
       include: {
         user: { select: { id: true, email: true, name: true } },
         items: {
@@ -394,9 +412,9 @@ export class OrdersService {
         },
       },
     });
-    if (dto.status === OrderStatus.SHIPPED || dto.status === OrderStatus.DELIVERED) {
+    if (to === OrderStatus.SHIPPED || to === OrderStatus.DELIVERED) {
       void this.mailService
-        .sendEstadoActualizadoCliente(updated as OrderMailPayload, dto.status)
+        .sendEstadoActualizadoCliente(updated as OrderMailPayload, to)
         .catch((err: unknown) => {
           this.logger.error(`Email estado pedido: ${String(err)}`);
         });

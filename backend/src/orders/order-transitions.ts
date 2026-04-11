@@ -14,34 +14,34 @@ export function assertClientConfirm(from: OrderStatusValue): void {
   }
 }
 
+const TRANSITION_DENIED = 'Transición de estado no permitida';
+
 /**
- * Transiciones que el **administrador** puede aplicar (seguimiento del PDF:
- * marcar pagado, cancelar, marcar enviado).
+ * Transiciones admin / PATCH estado (valores persistidos: PAID, no CONFIRMED).
  *
- * - PENDING → PAID | CANCELLED (recibir/cancelar antes de pagar)
- * - PAID → SHIPPED | CANCELLED (enviar o anular tras pago; “canceló” del PDF)
- *
- * - PAID → SHIPPED | DELIVERED | CANCELLED
- * - SHIPPED → DELIVERED | CANCELLED
- *
- * Estados terminales: DELIVERED, SHIPPED (si no se usa entrega) y CANCELLED.
+ * - DRAFT → PENDING | CANCELLED
+ * - PENDING → PAID | CANCELLED
+ * - PAID → SHIPPED | CANCELLED
+ * - SHIPPED → DELIVERED
+ * - DELIVERED / CANCELLED → sin salidas
  */
-export function assertAdminStatusTransition(
+export function assertPatchOrderStatusTransition(
   from: OrderStatusValue,
   to: OrderStatusValue,
 ): void {
   if (from === to) {
-    throw new BadRequestException('El estado es el mismo');
+    throw new BadRequestException(TRANSITION_DENIED);
   }
-  const allowed: Partial<Record<OrderStatusValue, OrderStatusValue[]>> = {
+  const allowed: Record<OrderStatusValue, OrderStatusValue[]> = {
+    [OrderStatus.DRAFT]: [OrderStatus.PENDING, OrderStatus.CANCELLED],
     [OrderStatus.PENDING]: [OrderStatus.PAID, OrderStatus.CANCELLED],
-    [OrderStatus.PAID]: [OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.CANCELLED],
-    [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+    [OrderStatus.PAID]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
+    [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED],
+    [OrderStatus.DELIVERED]: [],
+    [OrderStatus.CANCELLED]: [],
   };
   const nexts = allowed[from];
   if (!nexts?.includes(to)) {
-    throw new BadRequestException(
-      `Transición no permitida: ${from} → ${to}. Permitidas desde ${from}: ${nexts?.join(', ') ?? 'ninguna'}`,
-    );
+    throw new BadRequestException(TRANSITION_DENIED);
   }
 }

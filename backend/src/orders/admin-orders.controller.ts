@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminUpdateOrderStatusDto } from './dto/admin-update-order-status.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/constants/roles';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -31,12 +31,12 @@ export class AdminOrdersController {
     return this.ordersService.findOneAdmin(id);
   }
 
-  /** Ver `AdminUpdateOrderStatusDto` y `order-transitions.ts` para transiciones. */
+  /** Misma lógica que `PATCH /api/orders/:id/status`. */
   @Patch(':id/status')
   updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: AdminUpdateOrderStatusDto,
+    @Body() dto: UpdateOrderStatusDto,
   ) {
-    return this.ordersService.adminUpdateStatus(id, dto);
+    return this.ordersService.updateStatus(id, dto);
   }
 }
