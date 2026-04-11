@@ -163,6 +163,14 @@ export default function MisPedidosPage() {
                     </p>
                   </div>
                 </div>
+                <div className="mt-4">
+                  <Link
+                    href={`/checkout/factura-detallada/${o.id}`}
+                    className="btn-brand-outline inline-flex px-4 py-2 text-xs"
+                  >
+                    Ver factura
+                  </Link>
+                </div>
                 <div className="mt-4 border-t border-brand-border pt-4">
                   {o.items.map((line) => {
                     const imgUrl = productImageUrl(line);

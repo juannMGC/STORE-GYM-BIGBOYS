@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Fragment, Suspense, useCallback, useEffect, useMemo, useState } from "react";
@@ -440,13 +441,21 @@ function AdminPedidosInner() {
                         {new Date(o.createdAt).toLocaleString("es-CO")}
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => openRow(o.id)}
-                          className="btn-brand text-xs py-1.5 px-3"
-                        >
-                          {open ? "Cerrar" : "Ver detalle"}
-                        </button>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openRow(o.id)}
+                            className="btn-brand text-xs py-1.5 px-3"
+                          >
+                            {open ? "Cerrar" : "Ver detalle"}
+                          </button>
+                          <Link
+                            href={`/checkout/factura-detallada/${o.id}`}
+                            className="inline-flex items-center rounded-sm border border-brand-yellow/50 px-3 py-1.5 text-xs font-medium text-brand-yellow hover:bg-brand-yellow/10"
+                          >
+                            Ver factura
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                     {open ? (

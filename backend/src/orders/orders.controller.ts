@@ -139,6 +139,25 @@ export class OrdersController {
     return this.ordersService.buildWompiSignature(user.userId, orderId, dto);
   }
 
+  /** Factura JSON: dueño del pedido o ADMIN. */
+  @Get(':id/detail')
+  getInvoiceDetail(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ordersService.getInvoiceDetail(id, user.userId, user.role);
+  }
+
+  /** Envía factura HTML al email del cliente (dueño o ADMIN). */
+  @Post(':id/send-invoice')
+  @HttpCode(200)
+  sendInvoice(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ordersService.sendInvoiceEmail(id, user.userId, user.role);
+  }
+
   /** Detalle de un pedido del usuario autenticado (p. ej. tras pago Wompi). */
   @Get(':orderId')
   getOne(

@@ -20,7 +20,8 @@ import { PatchPaymentDto } from './dto/patch-payment.dto';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { WompiSignatureDto } from './dto/wompi-signature.dto';
-import { MailService, type OrderMailPayload } from '../mail/mail.service';
+import { Role } from '../common/constants/roles';
+import { MailService, type InvoiceMailOrder, type OrderMailPayload } from '../mail/mail.service';
 
 export function orderTotalAmountInCents(order: {
   items: { priceSnapshot: number; quantity: number }[];
@@ -69,6 +70,26 @@ const orderAdminDetailInclude = {
         },
       },
       size: true,
+    },
+  },
+} as const;
+
+const invoiceOrderInclude = {
+  user: { select: { id: true, email: true, name: true } },
+  items: {
+    include: {
+      product: {
+        select: {
+          title: true,
+          slug: true,
+          images: {
+            orderBy: { sortOrder: 'asc' as const },
+            take: 1,
+            select: { url: true },
+          },
+        },
+      },
+      size: { select: { name: true } },
     },
   },
 } as const;
@@ -530,5 +551,95 @@ export class OrdersService {
         });
     }
     return updated;
+  }
+
+  private assertOrderInvoiceAccess(
+    order: { userId: string },
+    requesterUserId: string,
+    requesterRole: string,
+  ): void {
+    if (order.userId !== requesterUserId && requesterRole !== Role.ADMIN) {
+      throw new ForbiddenException();
+    }
+  }
+
+  /** Factura JSON: dueño del pedido o ADMIN. */
+  async getInvoiceDetail(
+    orderId: string,
+    requesterUserId: string,
+    requesterRole: string,
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: invoiceOrderInclude,
+    });
+    if (!order) {
+      throw new NotFoundException('Pedido no encontrado');
+    }
+    this.assertOrderInvoiceAccess(order, requesterUserId, requesterRole);
+
+    const items = order.items.map((i) => {
+      const imageUrl = i.product.images[0]?.url?.trim() || null;
+      return {
+        id: i.id,
+        quantity: i.quantity,
+        unitPrice: i.priceSnapshot,
+        product: {
+          name: i.product.title,
+          imageUrl,
+          slug: i.product.slug,
+        },
+        size: i.size ? { name: i.size.name } : null,
+      };
+    });
+    const total = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+
+    return {
+      id: order.id,
+      status: order.status,
+      createdAt: order.createdAt,
+      paymentMethod: order.paymentMethod,
+      user: {
+        name: order.user.name,
+        email: order.user.email,
+      },
+      items,
+      total,
+    };
+  }
+
+  /** Envía factura por email al cliente (dueño o ADMIN). */
+  async sendInvoiceEmail(
+    orderId: string,
+    requesterUserId: string,
+    requesterRole: string,
+  ): Promise<{ ok: true; email: string }> {
+    const detail = await this.getInvoiceDetail(
+      orderId,
+      requesterUserId,
+      requesterRole,
+    );
+    const payload: InvoiceMailOrder = {
+      id: detail.id,
+      status: detail.status,
+      createdAt: new Date(detail.createdAt),
+      paymentMethod: detail.paymentMethod,
+      user: {
+        name: detail.user.name,
+        email: detail.user.email,
+      },
+      items: detail.items.map((i) => ({
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        product: {
+          name: i.product.name,
+          imageUrl: i.product.imageUrl,
+        },
+        size: i.size,
+      })),
+      total: detail.total,
+    };
+    await this.mailService.sendInvoice(payload);
+    return { ok: true, email: detail.user.email };
   }
 }

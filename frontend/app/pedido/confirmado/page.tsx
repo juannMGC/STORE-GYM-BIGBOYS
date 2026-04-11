@@ -97,10 +97,16 @@ function PedidoConfirmadoInner() {
         </p>
       </div>
       <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+        <Link
+          href={`/checkout/factura-detallada/${order.id}`}
+          className="btn-brand inline-flex px-6 py-3 text-sm"
+        >
+          Ver factura completa
+        </Link>
         <Link href="/mis-pedidos" className="btn-brand-outline inline-flex px-6 py-3 text-sm">
           Ver mis pedidos
         </Link>
-        <Link href="/tienda" className="btn-brand inline-flex px-6 py-3 text-sm">
+        <Link href="/tienda" className="btn-brand-outline inline-flex px-6 py-3 text-sm">
           Seguir comprando
         </Link>
       </div>
