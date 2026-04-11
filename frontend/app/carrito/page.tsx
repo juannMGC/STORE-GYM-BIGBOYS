@@ -31,7 +31,7 @@ export default function CarritoPage() {
     setError(null);
     setCartLoading(true);
     try {
-      const data = await apiFetch<CartOrder>("/orders/cart");
+      const data = await apiFetch<CartOrder | null>("/orders/cart");
       setOrder(data);
     } catch (e) {
       setError(formatShopApiError(e, { sessionActive: true }));
