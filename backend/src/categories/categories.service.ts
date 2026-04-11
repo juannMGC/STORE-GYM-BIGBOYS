@@ -72,11 +72,16 @@ export class CategoriesService {
       });
       if (clash) throw new ConflictException('slug ya en uso');
     }
+    const imageUrlTrim =
+      dto.imageUrl !== undefined && dto.imageUrl != null && String(dto.imageUrl).trim() !== ''
+        ? String(dto.imageUrl).trim()
+        : undefined;
     return this.prisma.category.create({
       data: {
         name: dto.name,
         slug: dto.slug,
         description: dto.description,
+        ...(imageUrlTrim !== undefined ? { imageUrl: imageUrlTrim } : {}),
         parentId: dto.parentId,
       },
     });

@@ -2,7 +2,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUrl,
   IsUUID,
   MaxLength,
   ValidateIf,
@@ -26,8 +25,9 @@ export class UpdateCategoryDto {
   description?: string | null;
 
   @IsOptional()
-  @ValidateIf((_, v) => v != null && String(v).trim() !== '')
-  @IsUrl({ require_tld: false }, { message: 'URL de imagen inválida' })
+  @ValidateIf((_, v) => v !== null && v !== undefined && String(v).trim() !== '')
+  @IsString()
+  @MaxLength(2048)
   imageUrl?: string | null;
 
   @IsOptional()

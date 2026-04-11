@@ -1,12 +1,4 @@
-import {
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUrl,
-  IsUUID,
-  MaxLength,
-  ValidateIf,
-} from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class CreateCategoryDto {
   @IsString()
@@ -25,8 +17,8 @@ export class CreateCategoryDto {
   description?: string;
 
   @IsOptional()
-  @ValidateIf((_, v) => v != null && String(v).trim() !== '')
-  @IsUrl({ require_tld: false }, { message: 'URL de imagen inválida' })
+  @IsString()
+  @MaxLength(2048)
   imageUrl?: string;
 
   /** Si se omite, categoría raíz. */
