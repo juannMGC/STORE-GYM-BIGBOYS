@@ -18,6 +18,7 @@ import { AddOrderItemDto } from './dto/add-order-item.dto';
 import { PatchCartItemDto } from './dto/patch-cart-item.dto';
 import { PatchPaymentDto } from './dto/patch-payment.dto';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
+import { UpdateShippingDto } from './dto/update-shipping.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { WompiSignatureDto } from './dto/wompi-signature.dto';
 import { Role } from '../common/constants/roles';
@@ -239,6 +240,47 @@ export class OrdersService {
     return this.prisma.order.update({
       where: { id: order.id },
       data: { paymentMethod: dto.paymentMethod },
+      include: orderInclude,
+    });
+  }
+
+  /** Datos de envío del carrito (DRAFT); solo el dueño del pedido. */
+  async updateShipping(orderId: string, userId: string, dto: UpdateShippingDto) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Pedido no encontrado');
+    if (order.userId !== userId) throw new ForbiddenException();
+    if (order.status !== OrderStatus.DRAFT) {
+      throw new BadRequestException('Solo podés actualizar envío del carrito abierto');
+    }
+
+    const trimOrNull = (v: string | undefined): string | null | undefined => {
+      if (v === undefined) return undefined;
+      const t = v.trim();
+      return t === '' ? null : t;
+    };
+
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        ...(dto.shippingEmail !== undefined
+          ? { shippingEmail: trimOrNull(dto.shippingEmail) }
+          : {}),
+        ...(dto.shippingDepartment !== undefined
+          ? { shippingDepartment: trimOrNull(dto.shippingDepartment) }
+          : {}),
+        ...(dto.shippingCity !== undefined
+          ? { shippingCity: trimOrNull(dto.shippingCity) }
+          : {}),
+        ...(dto.shippingNeighborhood !== undefined
+          ? { shippingNeighborhood: trimOrNull(dto.shippingNeighborhood) }
+          : {}),
+        ...(dto.shippingAddress !== undefined
+          ? { shippingAddress: trimOrNull(dto.shippingAddress) }
+          : {}),
+        ...(dto.shippingComplement !== undefined
+          ? { shippingComplement: trimOrNull(dto.shippingComplement) }
+          : {}),
+      },
       include: orderInclude,
     });
   }

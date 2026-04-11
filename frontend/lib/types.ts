@@ -57,6 +57,12 @@ export type CartOrder = {
   userId: string;
   status: string;
   paymentMethod: string | null;
+  shippingEmail?: string | null;
+  shippingDepartment?: string | null;
+  shippingCity?: string | null;
+  shippingNeighborhood?: string | null;
+  shippingAddress?: string | null;
+  shippingComplement?: string | null;
   items: {
     id: string;
     quantity: number;

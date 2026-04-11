@@ -81,14 +81,20 @@ model ProductSize {
 // status: DRAFT | PENDING | PAID | SHIPPED | DELIVERED | CANCELLED
 // paymentMethod: CASH | BANK_TRANSFER | CARD (opcional hasta checkout)
 model Order {
-  id            String      @id @default(uuid())
-  userId        String
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status        String      @default("DRAFT")
-  paymentMethod String?
-  items         OrderItem[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id                   String      @id @default(uuid())
+  userId               String
+  user                 User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status               String      @default("DRAFT")
+  paymentMethod        String?
+  shippingEmail        String?
+  shippingDepartment   String?
+  shippingCity         String?
+  shippingNeighborhood String?
+  shippingAddress      String?
+  shippingComplement   String?
+  items                OrderItem[]
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 }
 
 model OrderItem {

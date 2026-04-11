@@ -22,6 +22,7 @@ import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { PatchCartItemDto } from './dto/patch-cart-item.dto';
 import { PatchPaymentDto } from './dto/patch-payment.dto';
+import { UpdateShippingDto } from './dto/update-shipping.dto';
 import { WompiSignatureDto } from './dto/wompi-signature.dto';
 import { CurrentUser, type RequestUser } from '../common/decorators/current-user.decorator';
 
@@ -65,6 +66,16 @@ export class OrdersController {
   @Patch('cart/payment')
   patchPayment(@CurrentUser() user: RequestUser, @Body() dto: PatchPaymentDto) {
     return this.ordersService.patchPayment(user.userId, dto);
+  }
+
+  /** Datos de envío del carrito; solo el dueño del pedido. */
+  @Patch(':id/shipping')
+  updateShipping(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateShippingDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ordersService.updateShipping(id, user.userId, dto);
   }
 
   /** DRAFT → PENDING (requiere ítems + paymentMethod). */
