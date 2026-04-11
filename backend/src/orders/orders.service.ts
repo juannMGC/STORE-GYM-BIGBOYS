@@ -216,19 +216,31 @@ export class OrdersService {
     return o as OrderMailPayload | null;
   }
 
-  async getCart(userId: string) {
-    const order = await this.prisma.order.findFirst({
+  /**
+   * Carrito activo: el borrador DRAFT más reciente del usuario, o uno nuevo vacío.
+   * Tras confirmar/pagar, el pedido deja de ser DRAFT y la siguiente operación obtiene un borrador nuevo.
+   */
+  async getOrCreateCart(userId: string) {
+    const existing = await this.prisma.order.findFirst({
       where: { userId, status: OrderStatus.DRAFT },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
       include: orderInclude,
     });
-    return order;
+    if (existing) return existing;
+    return this.prisma.order.create({
+      data: { userId, status: OrderStatus.DRAFT },
+      include: orderInclude,
+    });
+  }
+
+  async getCart(userId: string) {
+    return this.getOrCreateCart(userId);
   }
 
   private async getOrCreateDraftOrder(userId: string) {
     let order = await this.prisma.order.findFirst({
       where: { userId, status: OrderStatus.DRAFT },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
     if (!order) {
       order = await this.prisma.order.create({
@@ -335,7 +347,7 @@ export class OrdersService {
   async patchPayment(userId: string, dto: PatchPaymentDto) {
     const order = await this.prisma.order.findFirst({
       where: { userId, status: OrderStatus.DRAFT },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
     if (!order) {
       throw new BadRequestException('No hay carrito activo');
@@ -530,7 +542,7 @@ export class OrdersService {
   async confirmCart(userId: string) {
     const order = await this.prisma.order.findFirst({
       where: { userId, status: OrderStatus.DRAFT },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
       include: { items: true },
     });
     if (!order) {

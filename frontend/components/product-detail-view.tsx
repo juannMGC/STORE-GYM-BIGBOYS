@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ApiError, apiFetch, formatShopApiError, isSessionExpiredError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
@@ -13,7 +12,6 @@ type Props = {
 };
 
 export function ProductDetailView({ apiPath }: Props) {
-  const router = useRouter();
   const { isLoggedIn, isLoading: authLoading } = useAuth();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -21,6 +19,7 @@ export function ProductDetailView({ apiPath }: Props) {
   const [sizeId, setSizeId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [addSuccess, setAddSuccess] = useState(false);
   const [sessionTokenError, setSessionTokenError] = useState(false);
 
   const needsSize = (product?.sizes?.length ?? 0) > 0;
@@ -68,7 +67,7 @@ export function ProductDetailView({ apiPath }: Props) {
           ...(needsSize && sizeId ? { sizeId } : {}),
         }),
       });
-      router.push("/carrito");
+      setAddSuccess(true);
     } catch (e) {
       if (isSessionExpiredError(e)) {
         setSessionTokenError(true);
@@ -209,6 +208,9 @@ export function ProductDetailView({ apiPath }: Props) {
                 </a>{" "}
                 para comprar. Volvés a esta página al terminar.
               </p>
+            )}
+            {addSuccess && (
+              <p className="text-sm font-medium text-emerald-400">Producto agregado ✓</p>
             )}
             {msg && <p className="text-sm text-brand-red">{msg}</p>}
             {sessionTokenError && (

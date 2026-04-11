@@ -34,7 +34,7 @@ import { CurrentUser, type RequestUser } from '../common/decorators/current-user
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  /** Carrito actual o null si no hay borrador. */
+  /** Carrito DRAFT actual (se crea vacío si no existe). */
   @Get('cart')
   getCart(@CurrentUser() user: RequestUser) {
     return this.ordersService.getCart(user.userId);

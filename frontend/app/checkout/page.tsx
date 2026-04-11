@@ -92,7 +92,7 @@ export default function CheckoutPage() {
     setError(null);
     setCartLoading(true);
     try {
-      const data = await apiFetch<CartOrder | null>("/orders/cart");
+      const data = await apiFetch<CartOrder>("/orders/cart");
       setOrder(data);
       if (data?.paymentMethod) setMethod(data.paymentMethod);
     } catch (e) {
