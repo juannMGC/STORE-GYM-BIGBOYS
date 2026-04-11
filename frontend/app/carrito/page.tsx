@@ -6,7 +6,8 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch, formatShopApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { auth0LoginHref } from "@/lib/auth-routes";
-import type { CartOrder } from "@/lib/types";
+import type { CartGetResponse, CartOrder } from "@/lib/types";
+import { isCartOrderPayload } from "@/lib/types";
 
 function CarritoSkeleton() {
   return (
@@ -31,8 +32,8 @@ export default function CarritoPage() {
     setError(null);
     setCartLoading(true);
     try {
-      const data = await apiFetch<CartOrder | null>("/orders/cart");
-      setOrder(data);
+      const data = await apiFetch<CartGetResponse>("/orders/cart");
+      setOrder(isCartOrderPayload(data) ? data : null);
     } catch (e) {
       setError(formatShopApiError(e, { sessionActive: true }));
     } finally {

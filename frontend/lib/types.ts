@@ -77,3 +77,12 @@ export type CartOrder = {
     size: Size | null;
   }[];
 };
+
+/** GET /orders/cart cuando no hay borrador DRAFT (no se crea pedido vacío). */
+export type EmptyCartResponse = { items: []; total: 0 };
+
+export type CartGetResponse = CartOrder | EmptyCartResponse;
+
+export function isCartOrderPayload(r: CartGetResponse): r is CartOrder {
+  return typeof r === "object" && r !== null && "id" in r;
+}

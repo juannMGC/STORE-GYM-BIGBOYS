@@ -34,10 +34,10 @@ import { CurrentUser, type RequestUser } from '../common/decorators/current-user
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  /** Carrito actual o null si no hay borrador. */
+  /** Carrito DRAFT actual; sin borrador → { items: [], total: 0 } (no crea pedido). */
   @Get('cart')
   getCart(@CurrentUser() user: RequestUser) {
-    return this.ordersService.getCart(user.userId);
+    return this.ordersService.getCartPayload(user.userId);
   }
 
   @Post('cart/items')
@@ -82,6 +82,16 @@ export class OrdersController {
   @Post('cart/confirm')
   confirm(@CurrentUser() user: RequestUser) {
     return this.ordersService.confirmCart(user.userId);
+  }
+
+  /** DRAFT → PENDING para un pedido concreto (mismas reglas que cart/confirm). */
+  @Post(':orderId/confirm')
+  @HttpCode(200)
+  confirmOrder(
+    @CurrentUser() user: RequestUser,
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+  ) {
+    return this.ordersService.confirmOrderById(orderId, user.userId);
   }
 
   /** Listado de pedidos del usuario autenticado (sin borradores). */

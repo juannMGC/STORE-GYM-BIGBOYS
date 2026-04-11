@@ -216,26 +216,38 @@ export class OrdersService {
     return o as OrderMailPayload | null;
   }
 
-  async getCart(userId: string) {
-    const order = await this.prisma.order.findFirst({
+  /** Borrador DRAFT más reciente del usuario, o null (no crea fila). */
+  private async findActiveDraftOrder(userId: string) {
+    return this.prisma.order.findFirst({
       where: { userId, status: OrderStatus.DRAFT },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
       include: orderInclude,
     });
-    return order;
   }
 
+  /**
+   * GET carrito: solo lectura. Sin DRAFT → { items: [], total: 0 } (no se crea pedido vacío).
+   */
+  async getCartPayload(userId: string) {
+    const draft = await this.findActiveDraftOrder(userId);
+    if (!draft) {
+      return { items: [], total: 0 } as const;
+    }
+    return draft;
+  }
+
+  /** Crea DRAFT solo al añadir ítems u otras mutaciones que lo requieran. */
   private async getOrCreateDraftOrder(userId: string) {
-    let order = await this.prisma.order.findFirst({
+    let row = await this.prisma.order.findFirst({
       where: { userId, status: OrderStatus.DRAFT },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
-    if (!order) {
-      order = await this.prisma.order.create({
+    if (!row) {
+      row = await this.prisma.order.create({
         data: { userId, status: OrderStatus.DRAFT },
       });
     }
-    return order;
+    return row;
   }
 
   private async assertDraftOwned(orderId: string, userId: string) {
@@ -296,7 +308,7 @@ export class OrdersService {
       });
     }
 
-    return this.getCart(userId);
+    return this.findActiveDraftOrder(userId)!;
   }
 
   async patchCartItem(
@@ -312,13 +324,13 @@ export class OrdersService {
     await this.assertDraftOwned(item.orderId, userId);
     if (dto.quantity === 0) {
       await this.prisma.orderItem.delete({ where: { id: itemId } });
-      return this.getCart(userId);
+      return this.findActiveDraftOrder(userId)!;
     }
     await this.prisma.orderItem.update({
       where: { id: itemId },
       data: { quantity: dto.quantity },
     });
-    return this.getCart(userId);
+    return this.findActiveDraftOrder(userId)!;
   }
 
   async removeCartItem(userId: string, itemId: string) {
@@ -329,13 +341,13 @@ export class OrdersService {
     if (!item) throw new NotFoundException('Línea no encontrada');
     await this.assertDraftOwned(item.orderId, userId);
     await this.prisma.orderItem.delete({ where: { id: itemId } });
-    return this.getCart(userId);
+    return this.findActiveDraftOrder(userId)!;
   }
 
   async patchPayment(userId: string, dto: PatchPaymentDto) {
     const order = await this.prisma.order.findFirst({
       where: { userId, status: OrderStatus.DRAFT },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
     if (!order) {
       throw new BadRequestException('No hay carrito activo');
@@ -527,14 +539,19 @@ export class OrdersService {
     return { ok: true, detail: 'ignored_status' };
   }
 
-  async confirmCart(userId: string) {
-    const order = await this.prisma.order.findFirst({
-      where: { userId, status: OrderStatus.DRAFT },
-      orderBy: { updatedAt: 'desc' },
+  async confirmOrderById(orderId: string, userId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
       include: { items: true },
     });
     if (!order) {
-      throw new BadRequestException('No hay carrito para confirmar');
+      throw new NotFoundException('Pedido no encontrado');
+    }
+    if (order.userId !== userId) {
+      throw new ForbiddenException();
+    }
+    if (order.status !== OrderStatus.DRAFT) {
+      throw new BadRequestException('Este pedido ya fue confirmado');
     }
     if (order.items.length === 0) {
       throw new BadRequestException('El carrito está vacío');
@@ -546,17 +563,29 @@ export class OrdersService {
     }
     assertClientConfirm(order.status as OrderStatusValue);
     const updated = await this.prisma.order.update({
-      where: { id: order.id },
+      where: { id: orderId },
       data: { status: OrderStatus.PENDING },
       include: orderInclude,
     });
-    const forMail = await this.loadOrderForMail(order.id);
+    const forMail = await this.loadOrderForMail(orderId);
     if (forMail) {
       void this.mailService.sendPedidoConfirmado(forMail).catch((err: unknown) => {
-        this.logger.error(`Email pedido confirmado (carrito): ${String(err)}`);
+        this.logger.error(`Email pedido confirmado: ${String(err)}`);
       });
     }
     return updated;
+  }
+
+  async confirmCart(userId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { userId, status: OrderStatus.DRAFT },
+      orderBy: { createdAt: 'desc' },
+      include: { items: true },
+    });
+    if (!order) {
+      throw new BadRequestException('No hay carrito para confirmar');
+    }
+    return this.confirmOrderById(order.id, userId);
   }
 
   findAllAdmin(status?: string) {

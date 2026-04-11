@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch, formatShopApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { auth0LoginHref } from "@/lib/auth-routes";
-import type { CartOrder } from "@/lib/types";
+import type { CartGetResponse, CartOrder } from "@/lib/types";
+import { isCartOrderPayload } from "@/lib/types";
 
 function CheckoutSkeleton() {
   return (
@@ -92,9 +93,13 @@ export default function CheckoutPage() {
     setError(null);
     setCartLoading(true);
     try {
-      const data = await apiFetch<CartOrder | null>("/orders/cart");
-      setOrder(data);
-      if (data?.paymentMethod) setMethod(data.paymentMethod);
+      const data = await apiFetch<CartGetResponse>("/orders/cart");
+      if (isCartOrderPayload(data)) {
+        setOrder(data);
+        if (data.paymentMethod) setMethod(data.paymentMethod);
+      } else {
+        setOrder(null);
+      }
     } catch (e) {
       setError(formatShopApiError(e, { sessionActive: true }));
     } finally {
