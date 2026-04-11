@@ -209,7 +209,18 @@ export class OrdersService {
       include: {
         items: {
           include: {
-            product: true,
+            product: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                images: {
+                  orderBy: { sortOrder: 'asc' as const },
+                  take: 1,
+                  select: { url: true },
+                },
+              },
+            },
             size: true,
           },
         },

@@ -77,12 +77,14 @@ export function SiteHeader() {
               >
                 Carrito
               </Link>
-              <Link
-                href="/mis-pedidos"
-                className="rounded-sm px-2 py-1.5 font-medium uppercase tracking-wide text-zinc-300 hover:bg-brand-steel hover:text-brand-yellow"
-              >
-                Mis pedidos
-              </Link>
+              {user?.role === "CLIENT" && (
+                <Link
+                  href="/mis-pedidos"
+                  className="rounded-sm px-2 py-1.5 font-medium uppercase tracking-wide text-zinc-300 hover:bg-brand-steel hover:text-brand-yellow"
+                >
+                  Mis pedidos
+                </Link>
+              )}
               {isAdmin && (
                 <Link
                   href="/admin"

@@ -8,7 +8,12 @@ type MyOrderItem = {
   id: string;
   quantity: number;
   priceSnapshot: number;
-  product: { id: string; title: string };
+  product: {
+    id: string;
+    title: string;
+    slug: string | null;
+    images: { url: string }[];
+  };
   size: { name: string } | null;
 };
 
@@ -25,6 +30,19 @@ function orderTotal(o: MyOrder): number {
 
 function shortOrderId(id: string): string {
   return id.replace(/-/g, "").slice(0, 8);
+}
+
+function formatCop(value: number): string {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function productImageUrl(item: MyOrderItem): string | undefined {
+  const first = item.product?.images?.[0];
+  return first?.url?.trim() || undefined;
 }
 
 /** PAID en API = “confirmado” (pago recibido). */
@@ -141,18 +159,84 @@ export default function MisPedidosPage() {
                       {label}
                     </span>
                     <p className="mt-2 font-display text-2xl text-brand-yellow">
-                      ${total.toFixed(2)}
+                      {formatCop(total)}
                     </p>
                   </div>
                 </div>
-                <ul className="mt-4 space-y-1 border-t border-brand-border pt-4 text-sm text-zinc-300">
-                  {o.items.map((line) => (
-                    <li key={line.id}>
-                      {line.product.title}
-                      {line.size ? ` · ${line.size.name}` : ""} × {line.quantity}
-                    </li>
-                  ))}
-                </ul>
+                <div className="mt-4 border-t border-brand-border pt-4">
+                  {o.items.map((line) => {
+                    const imgUrl = productImageUrl(line);
+                    const title = line.product?.title ?? "";
+                    const initial = title.charAt(0).toUpperCase() || "?";
+                    return (
+                      <div
+                        key={line.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
+                          padding: "8px 0",
+                          borderBottom: "1px solid #2a2a2a",
+                        }}
+                      >
+                        {imgUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={imgUrl}
+                            alt={title}
+                            style={{
+                              width: "64px",
+                              height: "64px",
+                              objectFit: "cover",
+                              borderRadius: "2px",
+                              flexShrink: 0,
+                              border: "1px solid #2a2a2a",
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: "64px",
+                              height: "64px",
+                              background: "#1a1a1a",
+                              border: "1px solid #2a2a2a",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#d91920",
+                              fontSize: "1.5rem",
+                              flexShrink: 0,
+                              fontFamily: "var(--font-display)",
+                            }}
+                          >
+                            {initial}
+                          </div>
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <p
+                            style={{
+                              color: "#f7e047",
+                              fontWeight: 600,
+                              fontSize: "0.9rem",
+                            }}
+                          >
+                            {title}
+                            {line.size ? ` · ${line.size.name}` : ""}
+                          </p>
+                          <p style={{ color: "#71717a", fontSize: "0.8rem" }}>
+                            Cantidad: {line.quantity}
+                          </p>
+                          <p style={{ color: "#d4d4d8", fontSize: "0.85rem" }}>
+                            {formatCop(line.priceSnapshot)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </li>
             );
           })}
