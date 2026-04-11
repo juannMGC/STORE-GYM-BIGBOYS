@@ -342,16 +342,36 @@ export default function AdminProductosPage() {
 
       {modal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="admin-product-modal-title"
+          className="fixed inset-0 z-50 overflow-y-auto p-2 sm:p-4"
+          style={{
+            backgroundColor: "rgba(0,0,0,0.85)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
-          <div className="flex max-h-[90vh] w-full max-w-[640px] flex-col overflow-hidden border border-[#2a2a2a] bg-[#1a1a1a]">
-            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#2a2a2a] px-6 py-4">
+          <div
+            className="my-4 flex w-full max-w-[640px] flex-col overflow-hidden max-h-[95vh] sm:my-8 sm:max-h-[85vh]"
+            style={{
+              backgroundColor: "#1a1a1a",
+              border: "1px solid #2a2a2a",
+              borderRadius: "4px",
+              margin: "auto",
+            }}
+          >
+            <div
+              className="flex shrink-0 items-center justify-between gap-3"
+              style={{
+                padding: "16px 24px",
+                borderBottom: "1px solid #2a2a2a",
+              }}
+            >
               <h2
                 id="admin-product-modal-title"
-                className="font-display text-2xl uppercase text-white"
+                className="font-display text-xl uppercase text-white sm:text-2xl"
               >
                 {modal === "create" ? "Nuevo producto" : "Editar producto"}
               </h2>
@@ -365,13 +385,21 @@ export default function AdminProductosPage() {
                 ×
               </button>
             </div>
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-6">
+            <div
+              className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain"
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflowY: "auto",
+                padding: "24px",
+              }}
+            >
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
                   Nombre
                 </label>
                 <input
-                  className="input-brand mt-1"
+                  className="input-brand mt-1 w-full"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   autoFocus
@@ -382,7 +410,7 @@ export default function AdminProductosPage() {
                   Slug (URL)
                 </label>
                 <input
-                  className="input-brand mt-1 font-mono text-sm"
+                  className="input-brand mt-1 w-full font-mono text-sm"
                   value={slug}
                   onChange={(e) => {
                     setSlugDirty(true);
@@ -396,14 +424,14 @@ export default function AdminProductosPage() {
                   Descripción
                 </label>
                 <textarea
-                  className="input-brand mt-1 min-h-[100px] resize-y"
+                  className="input-brand mt-1 min-h-[100px] w-full resize-y"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
                 />
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="min-w-0">
                   <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
                     Precio
                   </label>
@@ -411,12 +439,12 @@ export default function AdminProductosPage() {
                     type="number"
                     min={0}
                     step="0.01"
-                    className="input-brand mt-1"
+                    className="input-brand mt-1 w-full"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                   />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
                     Stock
                   </label>
@@ -424,7 +452,7 @@ export default function AdminProductosPage() {
                     type="number"
                     min={0}
                     step={1}
-                    className="input-brand mt-1"
+                    className="input-brand mt-1 w-full"
                     value={stock}
                     onChange={(e) => setStock(e.target.value)}
                   />
@@ -435,7 +463,7 @@ export default function AdminProductosPage() {
                   URL de imagen
                 </label>
                 <input
-                  className="input-brand mt-1"
+                  className="input-brand mt-1 w-full"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
                   placeholder="https://…"
@@ -458,7 +486,7 @@ export default function AdminProductosPage() {
                   Categoría
                 </label>
                 <select
-                  className="select-brand mt-1"
+                  className="select-brand mt-1 w-full"
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
                 >
@@ -509,12 +537,18 @@ export default function AdminProductosPage() {
                 ) : null}
               </div>
             </div>
-            <div className="flex shrink-0 flex-wrap justify-end gap-3 border-t border-[#2a2a2a] px-6 py-4">
+            <div
+              className="flex w-full shrink-0 flex-col gap-3 sm:flex-row sm:justify-end"
+              style={{
+                padding: "16px 24px",
+                borderTop: "1px solid #2a2a2a",
+              }}
+            >
               <button
                 type="button"
                 onClick={closeModal}
                 disabled={saving}
-                className="btn-brand-outline px-4 py-2 text-sm"
+                className="btn-brand-outline w-full px-4 py-2 text-sm sm:w-auto"
               >
                 Cancelar
               </button>
@@ -522,7 +556,7 @@ export default function AdminProductosPage() {
                 type="button"
                 onClick={() => void submitModal()}
                 disabled={saving}
-                className="btn-brand px-4 py-2 text-sm disabled:opacity-50"
+                className="btn-brand w-full px-4 py-2 text-sm disabled:opacity-50 sm:w-auto"
               >
                 {saving ? "Guardando…" : "Guardar"}
               </button>

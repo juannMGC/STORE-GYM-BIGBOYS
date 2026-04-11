@@ -293,12 +293,12 @@ export default function AdminCategoriasPage() {
                     placeholder="https://…"
                   />
                   {imageUrl.trim() && !imageBroken ? (
-                    <div className="relative h-20 w-20 shrink-0 overflow-hidden border-2 border-brand-border bg-brand-black">
+                    <div className="shrink-0 overflow-hidden border-2 border-brand-border bg-brand-black">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={imageUrl.trim()}
                         alt=""
-                        className="h-full w-full object-cover"
+                        style={{ width: 80, height: 80, objectFit: "cover" }}
                         onError={() => setImageBroken(true)}
                       />
                     </div>

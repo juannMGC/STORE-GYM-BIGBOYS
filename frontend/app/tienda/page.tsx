@@ -1,10 +1,44 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import type { Category } from "@/lib/types";
+
+/** Imagen de categoría con `c.imageUrl`; fallback si falla la carga o no hay URL. */
+function CategoryCardMedia({ imageUrl, name }: { imageUrl: string | null | undefined; name: string }) {
+  const [loadFailed, setLoadFailed] = useState(false);
+  const url = imageUrl?.trim() ?? "";
+  const initial = name.trim().charAt(0).toUpperCase() || "?";
+
+  useEffect(() => {
+    setLoadFailed(false);
+  }, [url]);
+
+  if (!url || loadFailed) {
+    return (
+      <div
+        className="flex h-40 w-full flex-col items-center justify-center gap-1 bg-gradient-to-b from-[#1a1a1a] to-[#2a2a2a] px-3"
+        aria-hidden
+      >
+        <span className="text-center font-display text-lg uppercase leading-tight tracking-wide text-zinc-400">
+          {name}
+        </span>
+        <span className="font-display text-4xl text-[#d91920]">{initial}</span>
+      </div>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={url}
+      alt={name}
+      className="h-40 w-full object-cover"
+      onError={() => setLoadFailed(true)}
+    />
+  );
+}
 
 export default function TiendaPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -59,47 +93,24 @@ export default function TiendaPage() {
         Elegí una categoría y encontrá lo que necesitás para el entrenamiento.
       </p>
       <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {categories.map((c) => {
-          const img = c.imageUrl?.trim();
-          const initial = c.name.trim().charAt(0).toUpperCase() || "?";
-          return (
-            <li key={c.id}>
-              <Link
-                href={`/categoria/${c.id}`}
-                className="panel-brand block overflow-hidden transition hover:border-brand-red"
-              >
-                <div className="relative h-44 w-full overflow-hidden bg-brand-black">
-                  {img ? (
-                    <Image
-                      src={img}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    />
-                  ) : (
-                    <div
-                      className="flex h-full w-full items-center justify-center bg-gradient-to-br from-brand-red/40 via-brand-steel to-brand-black"
-                      aria-hidden
-                    >
-                      <span className="font-display text-5xl uppercase text-brand-yellow/50">
-                        {initial}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="p-6">
-                  <span className="font-display text-2xl uppercase tracking-wide text-brand-yellow">
-                    {c.name}
-                  </span>
-                  {c.slug ? (
-                    <span className="mt-2 block font-mono text-xs text-zinc-500">{c.slug}</span>
-                  ) : null}
-                </div>
-              </Link>
-            </li>
-          );
-        })}
+        {categories.map((c) => (
+          <li key={c.id}>
+            <Link
+              href={`/categoria/${c.id}`}
+              className="panel-brand block overflow-hidden transition hover:border-brand-red"
+            >
+              <CategoryCardMedia imageUrl={c.imageUrl} name={c.name} />
+              <div className="p-6">
+                <span className="font-display text-2xl uppercase tracking-wide text-brand-yellow">
+                  {c.name}
+                </span>
+                {c.slug ? (
+                  <span className="mt-2 block font-mono text-xs text-zinc-500">{c.slug}</span>
+                ) : null}
+              </div>
+            </Link>
+          </li>
+        ))}
       </ul>
       {categories.length === 0 && (
         <p className="mt-10 text-zinc-500">
