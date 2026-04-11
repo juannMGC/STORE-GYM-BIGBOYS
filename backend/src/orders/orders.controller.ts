@@ -23,7 +23,6 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { PatchCartItemDto } from './dto/patch-cart-item.dto';
 import { PatchPaymentDto } from './dto/patch-payment.dto';
 import { UpdateShippingDto } from './dto/update-shipping.dto';
-import { WompiSignatureDto } from './dto/wompi-signature.dto';
 import { CurrentUser, type RequestUser } from '../common/decorators/current-user.decorator';
 
 /**
@@ -150,14 +149,13 @@ export class OrdersController {
     return this.ordersService.updateStatus(id, dto);
   }
 
-  @Post(':orderId/wompi-signature')
+  @Post(':id/wompi-signature')
   @HttpCode(200)
   wompiSignature(
     @CurrentUser() user: RequestUser,
-    @Param('orderId', ParseUUIDPipe) orderId: string,
-    @Body() dto: WompiSignatureDto,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.ordersService.buildWompiSignature(user.userId, orderId, dto);
+    return this.ordersService.generateWompiSignature(id, user.userId);
   }
 
   /** Factura JSON: dueño del pedido o ADMIN. */

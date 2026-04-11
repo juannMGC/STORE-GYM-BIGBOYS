@@ -12,6 +12,11 @@ const backend =
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "checkout.wompi.co",
+        pathname: "/**",
+      },
       { protocol: "https", hostname: "**" },
       {
         protocol: "http",

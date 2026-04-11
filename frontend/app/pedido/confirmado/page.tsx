@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { apiFetch, formatShopApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
+
 type OrderFetchShape = { id: string; status: string };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -16,9 +17,40 @@ const STATUS_LABEL: Record<string, string> = {
   CANCELLED: "Cancelado",
 };
 
+function wompiStatusMessage(status: string | null): { text: string; tone: "ok" | "warn" | "bad" } | null {
+  if (!status) return null;
+  const s = status.toUpperCase();
+  if (s === "APPROVED") {
+    return {
+      text: "¡Pago exitoso! Tu pedido está confirmado 🎉",
+      tone: "ok",
+    };
+  }
+  if (s === "DECLINED" || s === "VOIDED" || s === "ERROR") {
+    return {
+      text: "El pago fue rechazado. Intentá de nuevo.",
+      tone: "bad",
+    };
+  }
+  if (s === "PENDING") {
+    return {
+      text: "Pago en proceso, te notificaremos.",
+      tone: "warn",
+    };
+  }
+  return null;
+}
+
 function PedidoConfirmadoInner() {
   const searchParams = useSearchParams();
-  const ref = searchParams.get("ref");
+  const ref =
+    searchParams.get("reference") ??
+    searchParams.get("ref") ??
+    searchParams.get("id") ??
+    null;
+  const wompiStatus = searchParams.get("status");
+  const wompiMsg = wompiStatusMessage(wompiStatus);
+
   const { isLoggedIn, loading: sessionLoading } = useAuth();
   const [order, setOrder] = useState<OrderFetchShape | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,9 +95,7 @@ function PedidoConfirmadoInner() {
   if (error) {
     return (
       <div className="mx-auto max-w-lg px-4 py-20 text-center">
-        <h1 className="font-display text-4xl uppercase tracking-wide text-white">
-          Pedido
-        </h1>
+        <h1 className="font-display text-4xl uppercase tracking-wide text-white">Pedido</h1>
         <p className="mt-4 text-brand-red">{error}</p>
         <Link href="/tienda" className="btn-brand-outline mt-8 inline-flex">
           Ir a la tienda
@@ -79,6 +109,14 @@ function PedidoConfirmadoInner() {
   }
 
   const label = STATUS_LABEL[order.status] ?? order.status;
+  const toneClass =
+    wompiMsg?.tone === "ok"
+      ? "text-emerald-400"
+      : wompiMsg?.tone === "bad"
+        ? "text-brand-red"
+        : wompiMsg?.tone === "warn"
+          ? "text-brand-yellow"
+          : "text-zinc-200";
 
   return (
     <div className="mx-auto max-w-lg px-4 py-20 text-center">
@@ -88,12 +126,17 @@ function PedidoConfirmadoInner() {
       <p className="mt-2 text-sm text-zinc-500">
         Pedido <span className="font-mono text-zinc-400">{order.id}</span>
       </p>
+
+      {wompiMsg ? (
+        <p className={`mt-6 text-lg font-medium leading-snug ${toneClass}`}>{wompiMsg.text}</p>
+      ) : null}
+
       <div className="panel-brand mt-8 p-6 text-left">
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Estado</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Estado en tienda</p>
         <p className="font-display text-2xl text-brand-yellow">{label}</p>
         <p className="mt-2 text-sm text-zinc-400">
-          Si el pago fue recién aprobado, el webhook puede tardar unos segundos. Actualizá la
-          página si el estado sigue en borrador.
+          Si el pago fue recién aprobado, el webhook puede tardar unos segundos. Actualizá la página
+          si el estado sigue en borrador.
         </p>
       </div>
       <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">

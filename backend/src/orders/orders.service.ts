@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -20,8 +21,8 @@ import { PatchPaymentDto } from './dto/patch-payment.dto';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 import { UpdateShippingDto } from './dto/update-shipping.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-import { WompiSignatureDto } from './dto/wompi-signature.dto';
 import { Role } from '../common/constants/roles';
+import { verifyWompiEventChecksum } from '../wompi/wompi-event-verify';
 import { MailService, type InvoiceMailOrder, type OrderMailPayload } from '../mail/mail.service';
 
 export function orderTotalAmountInCents(order: {
@@ -437,20 +438,18 @@ export class OrdersService {
     });
   }
 
-  async buildWompiSignature(
-    userId: string,
-    orderId: string,
-    dto: WompiSignatureDto,
-  ): Promise<{
+  /**
+   * Firma de integridad y datos para checkout Wompi (sandbox/prod).
+   * El monto se calcula solo en servidor (items × priceSnapshot).
+   */
+  async generateWompiSignature(orderId: string, userId: string): Promise<{
     signature: string;
     publicKey: string;
     reference: string;
     amountInCents: number;
     currency: 'COP';
+    redirectUrl: string;
   }> {
-    if (dto.reference !== orderId) {
-      throw new BadRequestException('reference debe coincidir con el pedido');
-    }
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: { items: true },
@@ -467,24 +466,62 @@ export class OrdersService {
     if (order.items.length === 0) {
       throw new BadRequestException('El pedido no tiene ítems');
     }
-    const expected = orderTotalAmountInCents(order);
-    if (dto.amountInCents !== expected) {
-      throw new BadRequestException('El monto no coincide con el total del pedido');
+    const amountInCents = orderTotalAmountInCents(order);
+    if (amountInCents < 1) {
+      throw new BadRequestException('El total debe ser mayor a 0.');
     }
+    const currency = 'COP' as const;
+    const reference = orderId;
     const integrityKey = process.env.WOMPI_INTEGRITY_KEY?.trim();
     const publicKey = process.env.WOMPI_PUBLIC_KEY?.trim();
     if (!integrityKey || !publicKey) {
       throw new BadRequestException('Wompi no está configurado (WOMPI_INTEGRITY_KEY / WOMPI_PUBLIC_KEY)');
     }
-    const raw = `${dto.reference}${dto.amountInCents}${dto.currency}${integrityKey}`;
+    const raw = `${reference}${amountInCents}${currency}${integrityKey}`;
     const signature = createHash('sha256').update(raw, 'utf8').digest('hex');
+    const base =
+      process.env.FRONTEND_URL?.trim() ||
+      process.env.CORS_ORIGIN?.trim()?.split(',')[0]?.trim() ||
+      'http://localhost:3000';
+    const origin = base.replace(/\/$/, '');
+    const redirectUrl = `${origin}/pedido/confirmado?reference=${encodeURIComponent(reference)}`;
     return {
       signature,
       publicKey,
-      reference: dto.reference,
-      amountInCents: dto.amountInCents,
-      currency: 'COP',
+      reference,
+      amountInCents,
+      currency,
+      redirectUrl,
     };
+  }
+
+  /**
+   * Webhook Wompi (eventos firmados según docs: signature.properties + timestamp + events key).
+   */
+  async handleWompiWebhook(body: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const secret = process.env.WOMPI_EVENTS_KEY?.trim();
+    if (!secret) {
+      throw new ServiceUnavailableException('WOMPI_EVENTS_KEY no configurada');
+    }
+    if (!verifyWompiEventChecksum(body, secret)) {
+      throw new ForbiddenException('Firma de evento inválida');
+    }
+
+    const event = body.event as string | undefined;
+    if (event !== 'transaction.updated') {
+      return { ok: true, ignored: true };
+    }
+
+    const data = body.data as
+      | { transaction?: { reference?: string; status?: string; amount_in_cents?: number } }
+      | undefined;
+    const tx = data?.transaction;
+    if (!tx?.reference || tx.status === undefined) {
+      return { ok: true };
+    }
+
+    const amount = Number(tx.amount_in_cents ?? 0);
+    return this.applyWompiTransaction(tx.reference, String(tx.status), amount);
   }
 
   /**
@@ -510,6 +547,7 @@ export class OrdersService {
       if (order.status !== OrderStatus.DRAFT) {
         return { ok: true, detail: 'already_final' };
       }
+      // PAID = pago confirmado (UI “Confirmado”; el admin también acepta CONFIRMED→PAID en PATCH).
       await this.prisma.order.update({
         where: { id: order.id },
         data: { status: OrderStatus.PAID },

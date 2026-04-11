@@ -31,9 +31,8 @@ type WompiSigResponse = {
   reference: string;
   amountInCents: number;
   currency: "COP";
+  redirectUrl: string;
 };
-
-const WOMPI_SCRIPT_ID = "wompi-widget-js";
 
 function formatCop(value: number): string {
   return new Intl.NumberFormat("es-CO", {
@@ -149,22 +148,6 @@ export default function CheckoutPage() {
     user?.email,
   ]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const existing = document.getElementById(WOMPI_SCRIPT_ID);
-    if (existing) {
-      setWompiReady(!!window.WidgetCheckout);
-      return;
-    }
-    const s = document.createElement("script");
-    s.id = WOMPI_SCRIPT_ID;
-    s.src = "https://checkout.wompi.co/widget.js";
-    s.async = true;
-    s.onload = () => setWompiReady(true);
-    s.onerror = () => setError("No se pudo cargar Wompi. Revisá tu conexión.");
-    document.body.appendChild(s);
-  }, []);
-
   function validateShipping(): boolean {
     const next: Record<string, string> = {};
     if (!isValidEmail(shippingEmail)) {
@@ -231,40 +214,31 @@ export default function CheckoutPage() {
         method: "PATCH",
         body: JSON.stringify({ paymentMethod: method }),
       });
-      const subtotal = order.items.reduce(
-        (s, i) => s + i.priceSnapshot * i.quantity,
-        0,
-      );
-      const amountInCents = Math.round(subtotal * 100);
-      if (amountInCents < 1) {
-        setError("El total debe ser mayor a 0.");
-        return;
-      }
       const res = await apiFetch<WompiSigResponse>(`/orders/${order.id}/wompi-signature`, {
         method: "POST",
-        body: JSON.stringify({
-          currency: "COP",
-          amountInCents,
-          reference: order.id,
-        }),
       });
-      await load();
-      if (!window.WidgetCheckout) {
-        setError("El script de Wompi aún no cargó. Esperá unos segundos e intentá de nuevo.");
-        return;
-      }
-      const checkout = new window.WidgetCheckout({
+      const form = document.createElement("form");
+      form.method = "GET";
+      form.action = "https://checkout.wompi.co/p/";
+      const fields: Record<string, string> = {
+        "public-key": res.publicKey,
         currency: res.currency,
-        amountInCents: res.amountInCents,
+        "amount-in-cents": String(res.amountInCents),
         reference: res.reference,
-        publicKey: res.publicKey,
-        signature: { integrity: res.signature },
-        redirectUrl: `${window.location.origin}/pedido/confirmado?ref=${encodeURIComponent(res.reference)}`,
-      });
-      checkout.open(() => {});
+        "signature:integrity": res.signature,
+        "redirect-url": res.redirectUrl,
+      };
+      for (const [key, value] of Object.entries(fields)) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      }
+      document.body.appendChild(form);
+      form.submit();
     } catch (e) {
       setError(formatShopApiError(e, { sessionActive: true }));
-    } finally {
       setSaving(false);
     }
   }
@@ -646,15 +620,11 @@ export default function CheckoutPage() {
 
               <button
                 type="button"
-                disabled={saving || !wompiReady}
+                disabled={saving}
                 onClick={() => void payWithWompi()}
                 className="btn-brand mt-6 w-full disabled:opacity-50"
               >
-                {saving
-                  ? "Procesando…"
-                  : !wompiReady
-                    ? "Cargando Wompi…"
-                    : "Confirmar pedido y pagar con Wompi"}
+                {saving ? "Iniciando pago…" : "💳 Pagar con Wompi"}
               </button>
 
               <button
