@@ -58,6 +58,11 @@ function shippingComplete(o: CartOrder): boolean {
   );
 }
 
+function cartLineImageUrl(item: CartOrder["items"][number]): string | undefined {
+  const u = item.product?.images?.[0]?.url?.trim();
+  return u || undefined;
+}
+
 export default function CheckoutPage() {
   const { isLoggedIn, isLoading, displayName, user } = useAuth();
   const [order, setOrder] = useState<CartOrder | null>(null);
@@ -300,8 +305,21 @@ export default function CheckoutPage() {
     0,
   );
 
+  const shipCity = order.shippingCity?.trim() || shippingCity.trim();
+  const shipDept = order.shippingDepartment?.trim() || shippingDepartment.trim();
+  const shipAddr = order.shippingAddress?.trim() || shippingAddress.trim();
+  const shipBarrio = order.shippingNeighborhood?.trim() || shippingNeighborhood.trim();
+  const shipComp = order.shippingComplement?.trim() || shippingComplement.trim();
+  const shipMail = order.shippingEmail?.trim() || shippingEmail.trim();
+
   return (
-    <div className="mx-auto max-w-lg px-4 py-10">
+    <div
+      className={
+        step === 2
+          ? "mx-auto max-w-5xl px-4 py-10"
+          : "mx-auto max-w-lg px-4 py-10"
+      }
+    >
       <h1 className="font-display text-5xl uppercase tracking-wide text-white">Checkout</h1>
       {displayName ? (
         <p className="mt-1 text-sm text-zinc-500">Pedido de {displayName}</p>
@@ -483,78 +501,170 @@ export default function CheckoutPage() {
       ) : (
         <>
           <p className="mt-4 text-zinc-400">
-            Elegí la forma de pago y pagá con Wompi (sandbox). El pedido queda en borrador hasta que el
-            pago sea aprobado.
+            Revisá el detalle del pedido y elegí la forma de pago. Podés pagar con Wompi (sandbox); el
+            pedido queda en borrador hasta que el pago sea aprobado.
           </p>
 
-          <div className="panel-brand mt-6 space-y-3 p-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Resumen</p>
-            <p className="text-sm text-zinc-300">
-              <span className="text-zinc-500">Envío a:</span> {shippingCity}, {shippingDepartment} ·{" "}
-              {shippingNeighborhood}
-            </p>
-            <p className="text-sm text-zinc-300">
-              <span className="text-zinc-500">Dirección:</span> {shippingAddress}
-              {shippingComplement.trim() ? ` · ${shippingComplement.trim()}` : ""}
-            </p>
-            <p className="text-sm text-zinc-300">
-              <span className="text-zinc-500">Correo:</span> {shippingEmail.trim()}
-            </p>
-            <div className="border-t border-brand-border pt-3">
-              <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-                Total estimado (COP)
+          <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
+            <div className="panel-brand p-6">
+              <p className="font-display text-lg uppercase tracking-wide text-brand-yellow">
+                Resumen del pedido
               </p>
-              <p className="font-display text-3xl text-brand-yellow">{formatCop(subtotal)}</p>
+              <ul className="mt-4 space-y-4">
+                {order.items.map((item) => {
+                  const imgUrl = cartLineImageUrl(item);
+                  const title = item.product?.title ?? "";
+                  const initial = (title.charAt(0) || "?").toUpperCase();
+                  const lineSub = item.priceSnapshot * item.quantity;
+                  return (
+                    <li
+                      key={item.id}
+                      className="flex gap-3 border-b border-brand-border pb-4 last:border-0 last:pb-0"
+                    >
+                      <div className="shrink-0">
+                        {imgUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={imgUrl}
+                            alt=""
+                            style={{
+                              width: 64,
+                              height: 64,
+                              objectFit: "cover",
+                              borderRadius: 2,
+                              border: "1px solid #2a2a2a",
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: 64,
+                              height: 64,
+                              background: "#1a1a1a",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#d91920",
+                              fontSize: "1.5rem",
+                              borderRadius: 2,
+                              border: "1px solid #2a2a2a",
+                              fontFamily: "var(--font-display)",
+                            }}
+                          >
+                            {initial}
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 text-sm">
+                        <p className="font-semibold text-zinc-100">{title}</p>
+                        <p className="text-xs text-zinc-500">
+                          Talla: {item.size?.name ?? "—"}
+                        </p>
+                        <p className="mt-1 text-zinc-400">
+                          Cantidad: {item.quantity} · Unit. {formatCop(item.priceSnapshot)}
+                        </p>
+                        <p className="mt-1 font-display text-base" style={{ color: "#f7e047" }}>
+                          Subtotal {formatCop(lineSub)}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="mt-6 border-t border-brand-border pt-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Total</p>
+                <p className="font-display text-4xl" style={{ color: "#f7e047" }}>
+                  {formatCop(subtotal)}
+                </p>
+              </div>
+              <div className="mt-6 space-y-2 border-t border-brand-border pt-4 text-sm text-zinc-300">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Envío a
+                </p>
+                <p>
+                  {shipCity}, {shipDept}
+                  {shipBarrio ? ` · ${shipBarrio}` : ""}
+                </p>
+                <p className="text-zinc-400">
+                  {shipAddr}
+                  {shipComp ? ` · ${shipComp}` : ""}
+                </p>
+                {shipMail ? (
+                  <p className="text-zinc-500">
+                    <span className="text-zinc-600">Correo:</span> {shipMail}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="panel-brand p-6">
+              <p className="font-display text-lg uppercase tracking-wide text-brand-yellow">
+                Método de pago
+              </p>
+              <fieldset className="mt-4 space-y-3">
+                <legend className="sr-only">Forma de pago</legend>
+                {METHODS.map((m) => (
+                  <label
+                    key={m.value}
+                    className={
+                      "flex cursor-pointer items-center gap-3 rounded-sm border px-3 py-2.5 hover:bg-brand-black/40 " +
+                      (method === m.value
+                        ? "border-brand-yellow/60 bg-brand-yellow/5"
+                        : "border-brand-border")
+                    }
+                  >
+                    <input
+                      type="radio"
+                      name="checkout-payment-method"
+                      value={m.value}
+                      checked={method === m.value}
+                      onChange={() => setMethod(m.value)}
+                      className="h-4 w-4 shrink-0 accent-brand-yellow"
+                    />
+                    <span className="text-sm text-zinc-200">{m.label}</span>
+                  </label>
+                ))}
+              </fieldset>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void savePayment()}
+                className="mt-4 text-sm font-medium text-brand-yellow hover:underline"
+              >
+                Solo guardar forma de pago
+              </button>
+
+              {error ? <p className="mt-4 text-sm text-brand-red">{error}</p> : null}
+
+              <button
+                type="button"
+                disabled={saving || !wompiReady}
+                onClick={() => void payWithWompi()}
+                className="btn-brand mt-6 w-full disabled:opacity-50"
+              >
+                {saving
+                  ? "Procesando…"
+                  : !wompiReady
+                    ? "Cargando Wompi…"
+                    : "Confirmar pedido y pagar con Wompi"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  skipShippingCompleteStep.current = true;
+                  setStep(1);
+                  setError(null);
+                }}
+                className="mt-4 w-full text-center text-sm text-zinc-400 hover:text-brand-yellow"
+              >
+                ← Volver a datos de envío
+              </button>
             </div>
           </div>
-
-          <div className="mt-8">
-            <label className="block text-sm font-medium text-zinc-300">
-              Forma de pago (referencia interna)
-            </label>
-            <select
-              value={method}
-              onChange={(e) => setMethod(e.target.value)}
-              className="select-brand mt-2 w-full"
-            >
-              {METHODS.map((m) => (
-                <option key={m.value} value={m.value} className="bg-brand-steel">
-                  {m.label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void savePayment()}
-              className="mt-3 text-sm font-medium text-brand-yellow hover:underline"
-            >
-              Guardar forma de pago
-            </button>
-          </div>
-
-          {error ? <p className="mt-4 text-sm text-brand-red">{error}</p> : null}
-
-          <button
-            type="button"
-            disabled={saving || !wompiReady}
-            onClick={() => void payWithWompi()}
-            className="btn-brand mt-8 w-full disabled:opacity-50"
-          >
-            {saving ? "Procesando…" : !wompiReady ? "Cargando Wompi…" : "Pagar con Wompi"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              skipShippingCompleteStep.current = true;
-              setStep(1);
-              setError(null);
-            }}
-            className="mt-6 w-full text-center text-sm text-zinc-400 hover:text-brand-yellow"
-          >
-            ← Volver a datos de envío
-          </button>
         </>
       )}
 
