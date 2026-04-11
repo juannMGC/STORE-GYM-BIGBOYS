@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, apiFetch } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 
 type OrderDetail = {
   id: string;
@@ -36,6 +37,8 @@ function statusLabel(status: string): string {
 }
 
 export default function AdminPedidoDetailPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const params = useParams();
   const id = params.id as string;
   const [order, setOrder] = useState<OrderDetail | null>(null);
@@ -162,50 +165,52 @@ export default function AdminPedidoDetailPage() {
         ))}
       </ul>
 
-      <div className="panel-brand mt-8 border-brand-yellow/40 p-6">
-        <p className="text-sm font-medium text-zinc-300">Cambiar estado del pedido</p>
-        <p className="mt-1 text-xs text-zinc-500">
-          Solo se permiten las transiciones definidas por la API (p. ej. Pendiente → Confirmado o
-          Cancelado).
-        </p>
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex-1">
-            <label htmlFor="order-status" className="text-xs text-zinc-500">
-              Estado
-            </label>
-            <select
-              id="order-status"
-              value={selectedStatus}
-              onChange={(e) => {
-                setSelectedStatus(e.target.value);
-                setStatusSuccess(null);
-                setStatusError(null);
-              }}
-              className="select-brand mt-1 w-full max-w-md"
+      {isAdmin ? (
+        <div className="panel-brand mt-8 border-brand-yellow/40 p-6">
+          <p className="text-sm font-medium text-zinc-300">Cambiar estado del pedido</p>
+          <p className="mt-1 text-xs text-zinc-500">
+            Solo se permiten las transiciones definidas por la API (p. ej. Pendiente → Confirmado o
+            Cancelado).
+          </p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <label htmlFor="order-status" className="text-xs text-zinc-500">
+                Estado
+              </label>
+              <select
+                id="order-status"
+                value={selectedStatus}
+                onChange={(e) => {
+                  setSelectedStatus(e.target.value);
+                  setStatusSuccess(null);
+                  setStatusError(null);
+                }}
+                className="select-brand mt-1 w-full max-w-md"
+              >
+                {selectOptions.map((o) => (
+                  <option key={o.value} value={o.value} className="bg-brand-steel">
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              disabled={!canSubmit}
+              onClick={() => void submitStatus()}
+              className="btn-brand disabled:opacity-50"
             >
-              {selectOptions.map((o) => (
-                <option key={o.value} value={o.value} className="bg-brand-steel">
-                  {o.label}
-                </option>
-              ))}
-            </select>
+              {saving ? "Guardando…" : "Actualizar estado"}
+            </button>
           </div>
-          <button
-            type="button"
-            disabled={!canSubmit}
-            onClick={() => void submitStatus()}
-            className="btn-brand disabled:opacity-50"
-          >
-            {saving ? "Guardando…" : "Actualizar estado"}
-          </button>
+          {statusSuccess ? (
+            <p className="mt-3 text-sm text-green-400">{statusSuccess}</p>
+          ) : null}
+          {statusError ? (
+            <p className="mt-3 text-sm text-brand-red">{statusError}</p>
+          ) : null}
         </div>
-        {statusSuccess ? (
-          <p className="mt-3 text-sm text-green-400">{statusSuccess}</p>
-        ) : null}
-        {statusError ? (
-          <p className="mt-3 text-sm text-brand-red">{statusError}</p>
-        ) : null}
-      </div>
+      ) : null}
 
       {error ? <p className="mt-4 text-sm text-brand-red">{error}</p> : null}
     </div>

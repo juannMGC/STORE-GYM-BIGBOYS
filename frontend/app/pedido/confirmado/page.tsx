@@ -96,9 +96,14 @@ function PedidoConfirmadoInner() {
           página si el estado sigue en borrador.
         </p>
       </div>
-      <Link href="/tienda" className="btn-brand mt-8 inline-flex">
-        Seguir comprando
-      </Link>
+      <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+        <Link href="/mis-pedidos" className="btn-brand-outline inline-flex px-6 py-3 text-sm">
+          Ver mis pedidos
+        </Link>
+        <Link href="/tienda" className="btn-brand inline-flex px-6 py-3 text-sm">
+          Seguir comprando
+        </Link>
+      </div>
     </div>
   );
 }

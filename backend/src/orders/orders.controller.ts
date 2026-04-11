@@ -70,9 +70,15 @@ export class OrdersController {
     return this.ordersService.confirmCart(user.userId);
   }
 
-  /** Admin: `PATCH /api/orders/:id/status` (JWT + rol ADMIN). */
+  /** Listado de pedidos del usuario autenticado (sin borradores). */
+  @Get('my-orders')
+  getMyOrders(@CurrentUser() user: RequestUser) {
+    return this.ordersService.getOrdersByUser(user.userId);
+  }
+
+  /** Solo ADMIN. Un CLIENT recibe 403 Forbidden. */
   @Patch(':id/status')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   updateStatus(
     @Param('id', ParseUUIDPipe) id: string,

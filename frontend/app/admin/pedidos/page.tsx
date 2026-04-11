@@ -48,8 +48,8 @@ export default function AdminPedidosPage() {
     <div>
       <h1 className="font-display text-4xl uppercase tracking-wide text-white">Pedidos</h1>
       <p className="mt-1 text-sm text-zinc-400">
-        Estado inicial tras compra: <strong className="text-brand-yellow">PENDING</strong>. Podés
-        actualizar desde el detalle.
+        Estado inicial tras compra: <strong className="text-brand-yellow">PENDING</strong>. Solo
+        administradores pueden cambiar el estado desde el detalle del pedido.
       </p>
       <div className="panel-brand mt-6 overflow-x-auto">
         <table className="min-w-full text-left text-sm">

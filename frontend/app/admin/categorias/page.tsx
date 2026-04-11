@@ -29,6 +29,8 @@ export default function AdminCategoriasPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageBroken, setImageBroken] = useState(false);
   const [slugManual, setSlugManual] = useState(false);
   const [formFeedback, setFormFeedback] = useState<FormFeedback>(null);
 
@@ -64,6 +66,8 @@ export default function AdminCategoriasPage() {
     setName(c.name);
     setSlug(c.slug ?? "");
     setDescription(c.description ?? "");
+    setImageUrl(c.imageUrl?.trim() ?? "");
+    setImageBroken(false);
     setSlugManual(true);
     setFormFeedback(null);
     setModal("edit");
@@ -97,6 +101,7 @@ export default function AdminCategoriasPage() {
     const slugTrim = slug.trim();
     const resolvedSlug = slugTrim || slugify(trimmedName) || undefined;
     const descTrim = description.trim();
+    const imgTrim = imageUrl.trim();
     setSaving(true);
     try {
       if (modal === "create") {
@@ -106,6 +111,7 @@ export default function AdminCategoriasPage() {
             name: trimmedName,
             ...(resolvedSlug ? { slug: resolvedSlug } : {}),
             ...(descTrim ? { description: descTrim } : {}),
+            ...(imgTrim ? { imageUrl: imgTrim } : {}),
           }),
         });
       } else if (modal === "edit" && editingId) {
@@ -115,6 +121,7 @@ export default function AdminCategoriasPage() {
             name: trimmedName,
             slug: resolvedSlug ?? null,
             description: descTrim || null,
+            imageUrl: imgTrim || null,
           }),
         });
       }
@@ -273,6 +280,33 @@ export default function AdminCategoriasPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  URL de imagen
+                </label>
+                <div className="mt-1 flex gap-3">
+                  <input
+                    className="input-brand min-w-0 flex-1"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="https://…"
+                  />
+                  {imageUrl.trim() && !imageBroken ? (
+                    <div className="relative h-20 w-20 shrink-0 overflow-hidden border-2 border-brand-border bg-brand-black">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imageUrl.trim()}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        onError={() => setImageBroken(true)}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+                {imageUrl.trim() && imageBroken ? (
+                  <p className="mt-1 text-xs text-brand-red">No se pudo cargar la imagen.</p>
+                ) : null}
               </div>
               {formFeedback && (
                 <p

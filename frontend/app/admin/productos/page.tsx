@@ -342,15 +342,13 @@ export default function AdminProductosPage() {
 
       {modal && (
         <div
-          className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-3 md:p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="admin-product-modal-title"
         >
-          <div
-            className="panel-brand flex max-h-[95vh] w-[95vw] max-w-[95vw] flex-col overflow-hidden shadow-[8px_8px_0_0_rgba(0,0,0,0.5)] md:max-h-[90vh] md:w-full md:max-w-lg"
-          >
-            <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-3 border-b border-brand-border bg-brand-steel px-4 py-4 md:px-6">
+          <div className="flex max-h-[90vh] w-full max-w-[640px] flex-col overflow-hidden border border-[#2a2a2a] bg-[#1a1a1a]">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#2a2a2a] px-6 py-4">
               <h2
                 id="admin-product-modal-title"
                 className="font-display text-2xl uppercase text-white"
@@ -361,13 +359,13 @@ export default function AdminProductosPage() {
                 type="button"
                 onClick={closeModal}
                 disabled={saving}
-                className="shrink-0 rounded border-2 border-brand-border px-2.5 py-1 font-display text-lg leading-none text-brand-yellow transition hover:border-brand-yellow hover:bg-brand-yellow/10 disabled:opacity-50"
+                className="shrink-0 rounded border-2 border-[#2a2a2a] px-2.5 py-1 font-display text-lg leading-none text-brand-yellow transition hover:border-brand-yellow hover:bg-brand-yellow/10 disabled:opacity-50"
                 aria-label="Cerrar"
               >
                 ×
               </button>
             </div>
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 md:px-6 md:py-4">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-6">
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
                   Nombre
@@ -511,7 +509,7 @@ export default function AdminProductosPage() {
                 ) : null}
               </div>
             </div>
-            <div className="sticky bottom-0 z-10 flex shrink-0 flex-wrap justify-end gap-2 border-t border-brand-border bg-brand-steel px-4 py-4 md:px-6">
+            <div className="flex shrink-0 flex-wrap justify-end gap-3 border-t border-[#2a2a2a] px-6 py-4">
               <button
                 type="button"
                 onClick={closeModal}

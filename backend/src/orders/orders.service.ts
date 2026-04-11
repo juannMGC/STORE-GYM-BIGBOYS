@@ -199,6 +199,25 @@ export class OrdersService {
     });
   }
 
+  /** Pedidos del usuario (excluye carrito DRAFT), más recientes primero. */
+  async getOrdersByUser(userId: string) {
+    return this.prisma.order.findMany({
+      where: {
+        userId,
+        status: { not: OrderStatus.DRAFT },
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+            size: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async findOneForUser(userId: string, orderId: string) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, userId },

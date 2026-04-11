@@ -13,6 +13,7 @@ export type CategoryTreeNode = {
   name: string;
   slug: string | null;
   description: string | null;
+  imageUrl: string | null;
   parentId: string | null;
   createdAt: Date;
   children: CategoryTreeNode[];
@@ -39,6 +40,7 @@ export class CategoriesService {
         name: c.name,
         slug: c.slug,
         description: c.description,
+        imageUrl: c.imageUrl,
         parentId: c.parentId,
         createdAt: c.createdAt,
         children: [],
@@ -102,12 +104,20 @@ export class CategoriesService {
       });
       if (clash) throw new ConflictException('slug ya en uso');
     }
+    const imagePatch =
+      dto.imageUrl === undefined
+        ? {}
+        : dto.imageUrl === null || String(dto.imageUrl).trim() === ''
+          ? { imageUrl: null }
+          : { imageUrl: String(dto.imageUrl).trim() };
+
     return this.prisma.category.update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.slug !== undefined && { slug: dto.slug }),
         ...(dto.description !== undefined && { description: dto.description }),
+        ...imagePatch,
         ...(dto.parentId !== undefined && { parentId: dto.parentId }),
       },
     });
