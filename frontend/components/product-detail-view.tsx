@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ApiError, apiFetch, formatShopApiError, isSessionExpiredError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
@@ -21,6 +22,7 @@ export function ProductDetailView({ apiPath }: Props) {
   const [msg, setMsg] = useState<string | null>(null);
   const [addSuccess, setAddSuccess] = useState(false);
   const [sessionTokenError, setSessionTokenError] = useState(false);
+  const [isNotFound, setIsNotFound] = useState(false);
 
   const needsSize = (product?.sizes?.length ?? 0) > 0;
 
@@ -38,8 +40,13 @@ export function ProductDetailView({ apiPath }: Props) {
           }
         }
       } catch (e) {
-        if (!cancelled)
-          setError(e instanceof Error ? e.message : "Producto no encontrado");
+        if (!cancelled) {
+          if (e instanceof ApiError && e.status === 404) {
+            setIsNotFound(true);
+          } else {
+            setError(e instanceof Error ? e.message : "Producto no encontrado");
+          }
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -48,6 +55,10 @@ export function ProductDetailView({ apiPath }: Props) {
       cancelled = true;
     };
   }, [apiPath]);
+
+  if (isNotFound) {
+    notFound();
+  }
 
   async function addToCart() {
     if (!product || !isLoggedIn) return;

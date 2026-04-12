@@ -1,23 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import type { ProductListItem } from "@/lib/types";
 
 export default function CategoriaPage() {
   const params = useParams();
-  const id = params.id as string;
+  const id = typeof params.id === "string" ? params.id : "";
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [categoryMissing, setCategoryMissing] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setCategoryMissing(true);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
+        const categories = await apiFetch<{ id: string }[]>("/categories", {
+          skipAuth: true,
+        });
+        if (!categories.some((c) => c.id === id)) {
+          if (!cancelled) setCategoryMissing(true);
+          return;
+        }
         const qs = new URLSearchParams({ categoryId: id });
         const data = await apiFetch<ProductListItem[]>(`/products?${qs.toString()}`, {
           skipAuth: true,
@@ -34,6 +46,10 @@ export default function CategoriaPage() {
       cancelled = true;
     };
   }, [id]);
+
+  if (categoryMissing) {
+    notFound();
+  }
 
   if (loading) {
     return (

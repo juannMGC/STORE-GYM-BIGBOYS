@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { notFound } from "next/navigation";
 
 const SITE = "https://store-gym-bigboys.vercel.app";
 
@@ -109,7 +110,7 @@ export default async function TiendaProductoSlugLayout({
   const producto = await fetchProductBySlug(slug);
 
   if (!producto?.title) {
-    return children;
+    notFound();
   }
 
   const imageUrl = producto.images?.[0]?.url;
