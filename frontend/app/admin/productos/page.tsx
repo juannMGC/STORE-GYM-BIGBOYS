@@ -21,6 +21,11 @@ type Toast = { type: "ok" | "err"; text: string } | null;
 
 type ModalMode = "create" | "edit" | null;
 
+function isHttpImageUrl(u: string): boolean {
+  const t = u.trim();
+  return /^https?:\/\//i.test(t);
+}
+
 export default function AdminProductosPage() {
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -231,46 +236,59 @@ export default function AdminProductosPage() {
     e.target.value = "";
     if (!files.length) return;
 
-    let ok = 0;
+    setSubiendo(true);
+    const errores: string[] = [];
+    let editAdds = 0;
+    let createAdds = 0;
+
     for (const file of files) {
-      if (!file.type.startsWith("image/")) {
-        showToast({ type: "err", text: `${file.name}: no es una imagen` });
+      if (file.size > 5 * 1024 * 1024) {
+        errores.push(`${file.name} supera 5MB`);
         continue;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        showToast({ type: "err", text: `${file.name} supera 5MB` });
+      if (!file.type.startsWith("image/")) {
+        errores.push(`${file.name} no es una imagen`);
         continue;
       }
       try {
-        setSubiendo(true);
         const cloudUrl = await uploadImageFile(file, "products");
-        console.log("[galería] imagen subida:", cloudUrl);
+        console.log("[galería] subida a Cloudinary:", cloudUrl);
+
         if (modal === "edit" && editingId) {
           await apiFetch(`/admin/products/${editingId}/images`, {
             method: "POST",
             body: JSON.stringify({ url: cloudUrl }),
           });
-          ok += 1;
+          editAdds += 1;
         } else {
           setImagenes((prev) => [
             ...prev,
             {
-              id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              id: `cloudinary-${Date.now()}-${Math.random().toString(36).slice(2)}`,
               url: cloudUrl,
               sortOrder: prev.length,
             },
           ]);
-          ok += 1;
+          createAdds += 1;
         }
-      } catch {
-        showToast({ type: "err", text: `Error al subir ${file.name}` });
-      } finally {
-        setSubiendo(false);
+      } catch (err) {
+        console.error("[galería] error:", err);
+        errores.push(`Error al subir ${file.name}`);
       }
     }
-    if (modal === "edit" && editingId && ok > 0) {
+
+    if (modal === "edit" && editingId && editAdds > 0) {
       await recargarImagenes(editingId);
-      showToast({ type: "ok", text: "Imágenes actualizadas." });
+    }
+
+    setSubiendo(false);
+
+    if (errores.length > 0) {
+      showToast({ type: "err", text: errores.join(" · ") });
+    } else if (editAdds > 0) {
+      showToast({ type: "ok", text: "Imágenes añadidas." });
+    } else if (createAdds > 0) {
+      showToast({ type: "ok", text: "Imágenes listas (Cloudinary). Guardá el producto para persistirlas." });
     }
   }
 
@@ -282,6 +300,20 @@ export default function AdminProductosPage() {
   async function agregarImagenUrl() {
     const u = nuevaImagenUrl.trim();
     if (!u) return;
+    if (u.startsWith("data:") || u.startsWith("blob:")) {
+      showToast({
+        type: "err",
+        text: "No se puede usar base64 ni blob. Subí el archivo o pegá una URL https.",
+      });
+      return;
+    }
+    if (!isHttpImageUrl(u)) {
+      showToast({
+        type: "err",
+        text: "La imagen debe ser una URL que empiece con http:// o https://",
+      });
+      return;
+    }
     if (modal === "edit" && editingId) {
       try {
         await apiFetch(`/admin/products/${editingId}/images`, {
@@ -306,7 +338,9 @@ export default function AdminProductosPage() {
 
   async function eliminarImagen(imageId: string) {
     if (!window.confirm("¿Eliminar esta imagen?")) return;
-    if (modal === "edit" && editingId && !imageId.startsWith("local-")) {
+    const draftId =
+      imageId.startsWith("local-") || imageId.startsWith("cloudinary-");
+    if (modal === "edit" && editingId && !draftId) {
       try {
         await apiFetch(`/admin/products/${editingId}/images/${imageId}`, {
           method: "DELETE",
@@ -363,19 +397,21 @@ export default function AdminProductosPage() {
 
     const imageUrls = (() => {
       const ordered = [...imagenes].sort((a, b) => a.sortOrder - b.sortOrder);
-      const urls = ordered.map((i) => i.url.trim()).filter(Boolean);
+      const out: string[] = [];
       const seen = new Set<string>();
-      return urls.filter((u) => {
-        if (seen.has(u)) return false;
+      for (const i of ordered) {
+        const u = i.url.trim();
+        if (!u || !isHttpImageUrl(u) || seen.has(u)) continue;
         seen.add(u);
-        return true;
-      });
+        out.push(u);
+      }
+      return out;
     })();
 
     setSaving(true);
     try {
       if (modal === "create") {
-        await apiFetch<ProductListItem>("/admin/products", {
+        const nuevo = await apiFetch<ProductListItem>("/admin/products", {
           method: "POST",
           body: JSON.stringify({
             title: t,
@@ -384,11 +420,16 @@ export default function AdminProductosPage() {
             price: priceNum,
             stock: stockNum,
             categoryId,
-            ...(imageUrls.length ? { imageUrls } : {}),
             sizeIds: selectedSizeIds,
           }),
         });
-        showToast({ type: "ok", text: "Producto creado." });
+        for (const url of imageUrls) {
+          await apiFetch(`/admin/products/${nuevo.id}/images`, {
+            method: "POST",
+            body: JSON.stringify({ url }),
+          });
+        }
+        showToast({ type: "ok", text: "Producto creado con imágenes ✓" });
       } else if (modal === "edit" && editingId) {
         await apiFetch<ProductListItem>(`/admin/products/${editingId}`, {
           method: "PATCH",
@@ -804,9 +845,16 @@ export default function AdminProductosPage() {
                       className="input-brand w-full"
                       value={imagenes[0]?.url ?? ""}
                       onChange={(e) => {
+                        const v = e.target.value;
+                        if (v.trim().startsWith("data:") || v.trim().startsWith("blob:")) {
+                          showToast({
+                            type: "err",
+                            text: "No pegues base64. Subí la imagen o una URL https.",
+                          });
+                          return;
+                        }
                         revokePrincipalBlob();
                         setPrincipalPreview(null);
-                        const v = e.target.value;
                         setImagenes((prev) => {
                           if (prev.length === 0) {
                             return [{ id: `local-${Date.now()}`, url: v, sortOrder: 0 }];
@@ -862,12 +910,17 @@ export default function AdminProductosPage() {
                 >
                   Galería de imágenes
                 </p>
+                <style>{`
+                  @keyframes bbg-galeria-spin {
+                    to { transform: rotate(360deg); }
+                  }
+                `}</style>
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
                     gap: "8px",
-                    marginBottom: "16px",
+                    marginBottom: "12px",
                   }}
                 >
                   {imagenes.map((img, index) => (
@@ -879,6 +932,7 @@ export default function AdminProductosPage() {
                         border:
                           index === 0 ? "2px solid #d91920" : "1px solid #2a2a2a",
                         overflow: "hidden",
+                        background: "#1a1a1a",
                       }}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -901,9 +955,9 @@ export default function AdminProductosPage() {
                             bottom: 0,
                             left: 0,
                             right: 0,
-                            background: "#d91920",
+                            background: "rgba(217,25,32,0.9)",
                             color: "white",
-                            fontSize: "9px",
+                            fontSize: "8px",
                             textAlign: "center",
                             padding: "2px",
                             fontFamily: "var(--font-display)",
@@ -918,16 +972,17 @@ export default function AdminProductosPage() {
                         onClick={() => void eliminarImagen(img.id)}
                         style={{
                           position: "absolute",
-                          top: "4px",
-                          right: "4px",
+                          top: "2px",
+                          right: "2px",
                           background: "rgba(0,0,0,0.8)",
                           border: "none",
                           color: "#d91920",
-                          width: "20px",
-                          height: "20px",
+                          width: "18px",
+                          height: "18px",
                           borderRadius: "50%",
                           cursor: "pointer",
-                          fontSize: "12px",
+                          fontSize: "10px",
+                          lineHeight: 1,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -937,7 +992,64 @@ export default function AdminProductosPage() {
                       </button>
                     </div>
                   ))}
+                  <label
+                    htmlFor="galeria-upload"
+                    style={{
+                      aspectRatio: "1",
+                      border: "2px dashed #2a2a2a",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: subiendo ? "wait" : "pointer",
+                      background: "#111111",
+                      transition: "border-color 0.15s",
+                      minHeight: "72px",
+                    }}
+                    onMouseEnter={(ev) => {
+                      if (!subiendo) ev.currentTarget.style.borderColor = "#d91920";
+                    }}
+                    onMouseLeave={(ev) => {
+                      ev.currentTarget.style.borderColor = "#2a2a2a";
+                    }}
+                  >
+                    {subiendo ? (
+                      <span
+                        style={{
+                          fontSize: "20px",
+                          display: "inline-block",
+                          animation: "bbg-galeria-spin 0.8s linear infinite",
+                        }}
+                      >
+                        ⏳
+                      </span>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: "20px", color: "#52525b" }}>+</span>
+                        <span
+                          style={{
+                            fontSize: "9px",
+                            color: "#52525b",
+                            fontFamily: "var(--font-display)",
+                            letterSpacing: "1px",
+                            marginTop: "2px",
+                          }}
+                        >
+                          FOTO
+                        </span>
+                      </>
+                    )}
+                  </label>
                 </div>
+                <input
+                  id="galeria-upload"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  style={{ display: "none" }}
+                  onChange={(e) => void handleGaleriaUpload(e)}
+                  disabled={subiendo}
+                />
                 <div
                   style={{
                     display: "flex",
@@ -985,39 +1097,30 @@ export default function AdminProductosPage() {
                     }}
                   />
                 ) : null}
-                <div style={{ marginTop: "8px" }}>
-                  <label
-                    htmlFor="prod-galeria"
-                    className="btn-brand-outline"
-                    style={{
-                      display: "inline-block",
-                      cursor: subiendo ? "wait" : "pointer",
-                      fontSize: "12px",
-                    }}
-                  >
-                    {subiendo ? "⏳ Subiendo…" : "📷 Agregar fotos"}
-                  </label>
-                  <input
-                    id="prod-galeria"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    style={{ display: "none" }}
-                    onChange={(e) => void handleGaleriaUpload(e)}
-                    disabled={subiendo}
-                  />
+                {subiendo ? (
                   <p
                     style={{
-                      color: "#52525b",
-                      fontSize: "11px",
+                      color: "#f7e047",
+                      fontSize: "12px",
+                      fontFamily: "var(--font-display)",
+                      letterSpacing: "1px",
                       marginTop: "8px",
                     }}
                   >
-                    Cada archivo se sube a Cloudinary (POST /api/upload/image, carpeta{" "}
-                    <code className="text-[10px] text-brand-yellow">products</code>). Máx. 5MB
-                    por imagen.
+                    ⏳ Subiendo imágenes a Cloudinary...
                   </p>
-                </div>
+                ) : null}
+                <p
+                  style={{
+                    color: "#52525b",
+                    fontSize: "11px",
+                    marginTop: "8px",
+                  }}
+                >
+                  Cada archivo pasa por POST /api/upload/image → Cloudinary (
+                  <code className="text-[10px] text-brand-yellow">bigboys/products</code>
+                  ). Máx. 5MB por imagen. Sin base64 en DB.
+                </p>
               </div>
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
