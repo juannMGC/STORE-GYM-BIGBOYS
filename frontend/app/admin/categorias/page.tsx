@@ -1,16 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { BackButton } from "@/components/back-button";
+import { ImageUploader } from "@/components/image-uploader";
 import { AdminTableSkeleton } from "@/components/admin/table-skeleton";
 import { apiFetch, ApiError } from "@/lib/api-client";
-import { uploadImageFile } from "@/lib/upload-image";
 import type { Category } from "@/lib/types";
 
 type ModalMode = "create" | "edit" | null;
 
 type FormFeedback = { type: "ok" | "err"; text: string } | null;
+
+const labelStyle: CSSProperties = {
+  display: "block",
+  color: "#a1a1aa",
+  fontSize: "12px",
+  marginBottom: "6px",
+  fontFamily: "var(--font-display)",
+  letterSpacing: "1px",
+  textTransform: "uppercase",
+};
 
 function slugify(value: string): string {
   return value
@@ -145,35 +155,6 @@ export default function AdminCategoriasPage() {
       });
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleCategoriaImageUpload(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setFormFeedback({ type: "err", text: "La imagen supera 5MB" });
-      return;
-    }
-    try {
-      setCatUploadBusy(true);
-      setFormFeedback(null);
-      const url = await uploadImageFile(file, "categories");
-      setImageUrl(url);
-      setImageBroken(false);
-    } catch (err) {
-      setFormFeedback({
-        type: "err",
-        text:
-          err instanceof ApiError
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : "Error al subir imagen de categoría",
-      });
-    } finally {
-      setCatUploadBusy(false);
     }
   }
 
@@ -356,44 +337,55 @@ export default function AdminCategoriasPage() {
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
                   Imagen
                 </label>
-                <div className="mt-1 flex gap-2">
-                  <input
-                    className="input-brand min-w-0 flex-1"
-                    value={imageUrl}
-                    onChange={(e) => {
-                      setImageUrl(e.target.value);
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "16px",
+                    alignItems: "flex-start",
+                    marginTop: "8px",
+                  }}
+                >
+                  <ImageUploader
+                    folder="categories"
+                    currentUrl={imageUrl.trim() || null}
+                    size="md"
+                    shape="square"
+                    placeholder="Imagen categoría"
+                    onUpload={(url) => {
+                      setImageUrl(url);
                       setImageBroken(false);
+                      setFormFeedback(null);
                     }}
-                    placeholder="https://… o subí desde dispositivo"
+                    onError={(msg) => setFormFeedback({ type: "err", text: msg })}
                   />
-                  <label
-                    htmlFor="cat-image-upload"
-                    className="btn-brand-outline shrink-0 cursor-pointer"
-                  >
-                    {catUploadBusy ? "⏳" : "📷"}
-                  </label>
-                  <input
-                    id="cat-image-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => void handleCategoriaImageUpload(e)}
-                  />
-                </div>
-                {imageUrl.trim() && !imageBroken ? (
-                  <div className="mt-2 shrink-0 overflow-hidden border-2 border-brand-border bg-brand-black">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={imageUrl.trim()}
-                      alt=""
-                      style={{ width: 80, height: 80, objectFit: "cover" }}
-                      onError={() => setImageBroken(true)}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <label style={labelStyle}>O pegá una URL</label>
+                    <input
+                      type="text"
+                      className="input-brand w-full"
+                      value={imageUrl}
+                      onChange={(e) => {
+                        setImageUrl(e.target.value);
+                        setImageBroken(false);
+                      }}
+                      placeholder="https://..."
                     />
+                    {imageUrl.trim() ? (
+                      <p
+                        style={{
+                          color: "#22c55e",
+                          fontSize: "11px",
+                          marginTop: "6px",
+                        }}
+                      >
+                        ✓ Imagen lista
+                      </p>
+                    ) : null}
+                    {imageUrl.trim() && imageBroken ? (
+                      <p className="mt-1 text-xs text-brand-red">No se pudo cargar la imagen.</p>
+                    ) : null}
                   </div>
-                ) : null}
-                {imageUrl.trim() && imageBroken ? (
-                  <p className="mt-1 text-xs text-brand-red">No se pudo cargar la imagen.</p>
-                ) : null}
+                </div>
               </div>
               {formFeedback && (
                 <p

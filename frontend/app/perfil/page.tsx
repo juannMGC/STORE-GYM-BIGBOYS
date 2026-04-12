@@ -1,22 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import { BackButton } from "@/components/back-button";
+import { ImageUploader } from "@/components/image-uploader";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch, ApiError } from "@/lib/api-client";
-import { uploadBase64Image } from "@/lib/upload-image";
 import type { AuthUser } from "@/lib/types";
 
 type MePatch = { user: AuthUser };
-
-function initials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 const labelStyle: CSSProperties = {
   display: "block",
@@ -30,7 +21,6 @@ const labelStyle: CSSProperties = {
 
 export default function PerfilPage() {
   const { user, loading, isLoggedIn, refreshUser } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -42,9 +32,7 @@ export default function PerfilPage() {
     complement: "",
   });
 
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [avatarSaving, setAvatarSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [avatarFeedback, setAvatarFeedback] = useState<string | null>(null);
   const [avatarErr, setAvatarErr] = useState<string | null>(null);
@@ -61,44 +49,6 @@ export default function PerfilPage() {
       complement: user.complement ?? "",
     });
   }, [user]);
-
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setAvatarErr("La imagen debe pesar menos de 5MB");
-      return;
-    }
-    setAvatarErr(null);
-    setAvatarFeedback(null);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      void (async () => {
-        const base64 = ev.target?.result as string;
-        setAvatarPreview(base64);
-        try {
-          setAvatarSaving(true);
-          const cloudinaryUrl = await uploadBase64Image(base64, "avatars");
-          await apiFetch<MePatch>("/users/me/avatar", {
-            method: "PATCH",
-            body: JSON.stringify({ avatarUrl: cloudinaryUrl }),
-          });
-          setAvatarPreview(cloudinaryUrl);
-          await refreshUser();
-          setAvatarFeedback("Foto actualizada ✓");
-        } catch (err) {
-          const text =
-            err instanceof ApiError ? err.message : "Error al subir la imagen";
-          setAvatarErr(text);
-          setAvatarPreview(user?.avatarUrl ?? null);
-        } finally {
-          setAvatarSaving(false);
-        }
-      })();
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
-  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -136,10 +86,6 @@ export default function PerfilPage() {
       `login_hint=${encodeURIComponent(user.email)}`;
   }
 
-  const labelForInitials =
-    user?.name?.trim() || user?.email?.trim() || "U";
-  const showAvatar = avatarPreview ?? user?.avatarUrl ?? null;
-
   const direccionCompleta =
     Boolean(form.address?.trim()) &&
     Boolean(form.city?.trim()) &&
@@ -168,56 +114,36 @@ export default function PerfilPage() {
         <h1 className="font-display text-3xl uppercase tracking-wide text-white sm:text-4xl">
           Mi perfil
         </h1>
-        <div className="mt-8 flex flex-col items-center">
-          <div
-            style={{
-              width: "120px",
-              height: "120px",
-              borderRadius: "50%",
-              border: "2px solid #d91920",
-              overflow: "hidden",
-              background: "#1a1a1a",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+        <div className="mt-8 flex flex-col items-center" style={{ marginBottom: "24px" }}>
+          <ImageUploader
+            folder="avatars"
+            currentUrl={user.avatarUrl}
+            size="lg"
+            shape="circle"
+            placeholder="Tu foto"
+            onUpload={async (url) => {
+              setAvatarErr(null);
+              try {
+                await apiFetch<MePatch>("/users/me/avatar", {
+                  method: "PATCH",
+                  body: JSON.stringify({ avatarUrl: url }),
+                });
+                await refreshUser();
+                setAvatarFeedback("Foto de perfil actualizada ✓");
+              } catch (err) {
+                setAvatarErr(
+                  err instanceof ApiError ? err.message : "No se pudo guardar la foto",
+                );
+              }
             }}
-          >
-            {showAvatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={showAvatar}
-                alt={user.name ?? "Avatar"}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            ) : (
-              <span
-                style={{
-                  color: "#f7e047",
-                  fontSize: "40px",
-                  fontWeight: 700,
-                  fontFamily: "var(--font-display)",
-                  letterSpacing: "1px",
-                }}
-              >
-                {initials(labelForInitials)}
-              </span>
-            )}
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={handleFileChange}
+            onError={(msg) => {
+              setAvatarErr(msg);
+              setAvatarFeedback(null);
+            }}
           />
-          <button
-            type="button"
-            disabled={avatarSaving}
-            className="btn-brand-outline mt-4 w-full text-sm disabled:opacity-50 sm:w-auto"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {avatarSaving ? "Subiendo…" : "📷 Cambiar foto"}
-          </button>
+          <p style={{ color: "#52525b", fontSize: "12px", marginTop: "8px" }}>
+            Clic para cambiar tu foto
+          </p>
           {avatarFeedback ? (
             <p className="mt-2 text-sm text-brand-yellow" role="status">
               {avatarFeedback}

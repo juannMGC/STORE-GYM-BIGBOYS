@@ -1,18 +1,11 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ChangeEvent,
-  type CSSProperties,
-} from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { BackButton } from "@/components/back-button";
+import { ImageUploader } from "@/components/image-uploader";
 import { AdminTableSkeleton } from "@/components/admin/table-skeleton";
 import { apiFetch, ApiError } from "@/lib/api-client";
-import { uploadImageFile } from "@/lib/upload-image";
 import { PRODUCT_SLUG_PATTERN, slugifyTitle } from "@/lib/slugify";
 import type { Category, ProductListItem, Size } from "@/lib/types";
 
@@ -44,7 +37,6 @@ export default function AdminProductosPage() {
   const [categoryId, setCategoryId] = useState("");
   const [selectedSizeIds, setSelectedSizeIds] = useState<string[]>([]);
   const [stockAdjustingId, setStockAdjustingId] = useState<string | null>(null);
-  const [uploadBusy, setUploadBusy] = useState(false);
 
   const stockBtnStyle: CSSProperties = {
     width: "28px",
@@ -204,85 +196,6 @@ export default function AdminProductosPage() {
       }
     } else {
       setImagenes((prev) => prev.filter((i) => i.id !== imageId));
-    }
-  }
-
-  async function handleImagenPrincipalUpload(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      showToast({ type: "err", text: "La imagen principal supera 5MB" });
-      return;
-    }
-    try {
-      setUploadBusy(true);
-      const url = await uploadImageFile(file, "products");
-      setImagenes((prev) => {
-        if (prev.length === 0) {
-          return [{ id: `local-${Date.now()}`, url, sortOrder: 0 }];
-        }
-        const next = [...prev];
-        next[0] = { ...next[0], url };
-        return next;
-      });
-    } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Error al subir imagen principal";
-      showToast({ type: "err", text: msg });
-    } finally {
-      setUploadBusy(false);
-    }
-  }
-
-  async function handleGalleryUpload(e: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = "";
-    let ok = 0;
-    for (const file of files) {
-      if (file.size > 5 * 1024 * 1024) {
-        showToast({ type: "err", text: `${file.name} supera 5MB` });
-        continue;
-      }
-      try {
-        setUploadBusy(true);
-        const url = await uploadImageFile(file, "products");
-        if (modal === "edit" && editingId) {
-          await apiFetch(`/admin/products/${editingId}/images`, {
-            method: "POST",
-            body: JSON.stringify({ url }),
-          });
-          ok += 1;
-        } else {
-          setImagenes((prev) => [
-            ...prev,
-            {
-              id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-              url,
-              sortOrder: prev.length,
-            },
-          ]);
-          ok += 1;
-        }
-      } catch (err) {
-        const msg =
-          err instanceof ApiError
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : "Error al subir";
-        showToast({ type: "err", text: `${file.name}: ${msg}` });
-      } finally {
-        setUploadBusy(false);
-      }
-    }
-    if (modal === "edit" && editingId && ok > 0) {
-      await recargarImagenes(editingId);
-      showToast({ type: "ok", text: "Imágenes actualizadas." });
     }
   }
 
@@ -720,50 +633,58 @@ export default function AdminProductosPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  URL de imagen principal
+                  Imagen principal
                 </label>
-                <div className="mt-1 flex gap-2">
-                  <input
-                    className="input-brand min-w-0 flex-1"
-                    value={imagenes[0]?.url ?? ""}
-                    onChange={(e) => {
-                      const v = e.target.value;
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "16px",
+                    alignItems: "flex-start",
+                    marginTop: "8px",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <ImageUploader
+                    folder="products"
+                    currentUrl={imagenes[0]?.url ?? null}
+                    size="md"
+                    shape="square"
+                    placeholder="Imagen principal"
+                    onUpload={(url) => {
                       setImagenes((prev) => {
                         if (prev.length === 0) {
-                          return [{ id: `local-${Date.now()}`, url: v, sortOrder: 0 }];
+                          return [{ id: `local-${Date.now()}`, url, sortOrder: 0 }];
                         }
                         const next = [...prev];
-                        next[0] = { ...next[0], url: v };
+                        next[0] = { ...next[0], url };
                         return next;
                       });
                     }}
-                    placeholder="https://… o subí una imagen"
+                    onError={(msg) => showToast({ type: "err", text: msg })}
                   />
-                  <label
-                    htmlFor="main-image-upload"
-                    className="btn-brand-outline shrink-0 cursor-pointer"
-                  >
-                    {uploadBusy ? "⏳" : "📷"}
-                  </label>
-                  <input
-                    id="main-image-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => void handleImagenPrincipalUpload(e)}
-                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      O pegá una URL de imagen
+                    </label>
+                    <input
+                      type="text"
+                      className="input-brand mt-1 w-full"
+                      value={imagenes[0]?.url ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setImagenes((prev) => {
+                          if (prev.length === 0) {
+                            return [{ id: `local-${Date.now()}`, url: v, sortOrder: 0 }];
+                          }
+                          const next = [...prev];
+                          next[0] = { ...next[0], url: v };
+                          return next;
+                        });
+                      }}
+                      placeholder="https://..."
+                    />
+                  </div>
                 </div>
-                {imagenes[0]?.url?.trim() ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={imagenes[0].url.trim()}
-                    alt=""
-                    className="mt-3 max-h-44 w-auto max-w-full rounded border-2 border-brand-border object-contain"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                  />
-                ) : null}
               </div>
 
               <div
@@ -860,6 +781,49 @@ export default function AdminProductosPage() {
                       </button>
                     </div>
                   ))}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: "80px",
+                    }}
+                  >
+                    <ImageUploader
+                      key={`gallery-add-${editingId ?? "new"}`}
+                      folder="products"
+                      size="sm"
+                      shape="square"
+                      placeholder="+ foto"
+                      onUpload={async (url) => {
+                        if (modal === "edit" && editingId) {
+                          try {
+                            await apiFetch(`/admin/products/${editingId}/images`, {
+                              method: "POST",
+                              body: JSON.stringify({ url }),
+                            });
+                            await recargarImagenes(editingId);
+                            showToast({ type: "ok", text: "Imagen añadida." });
+                          } catch (e) {
+                            showToast({
+                              type: "err",
+                              text: e instanceof ApiError ? e.message : "Error al añadir imagen",
+                            });
+                          }
+                        } else {
+                          setImagenes((prev) => [
+                            ...prev,
+                            {
+                              id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                              url,
+                              sortOrder: prev.length,
+                            },
+                          ]);
+                        }
+                      }}
+                      onError={(msg) => showToast({ type: "err", text: msg })}
+                    />
+                  </div>
                 </div>
                 <div
                   style={{
@@ -908,37 +872,15 @@ export default function AdminProductosPage() {
                     }}
                   />
                 ) : null}
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    id="gallery-upload"
-                    style={{ display: "none" }}
-                    onChange={(e) => void handleGalleryUpload(e)}
-                  />
-                  <label
-                    htmlFor="gallery-upload"
-                    className="btn-brand-outline"
-                    style={{
-                      display: "inline-block",
-                      cursor: uploadBusy ? "wait" : "pointer",
-                      fontSize: "12px",
-                      opacity: uploadBusy ? 0.7 : 1,
-                    }}
-                  >
-                    {uploadBusy ? "⏳ Subiendo…" : "📷 Subir desde dispositivo"}
-                  </label>
-                  <p
-                    style={{
-                      color: "#52525b",
-                      fontSize: "11px",
-                      marginTop: "6px",
-                    }}
-                  >
-                    Máx. 5MB por imagen. Podés seleccionar varias.
-                  </p>
-                </div>
+                <p
+                  style={{
+                    color: "#52525b",
+                    fontSize: "11px",
+                    marginTop: "8px",
+                  }}
+                >
+                  Usá &quot;+ foto&quot; en la grilla para subir a Cloudinary (máx. 5MB).
+                </p>
               </div>
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
