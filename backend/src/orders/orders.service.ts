@@ -600,18 +600,11 @@ export class OrdersService {
       );
     }
     assertClientConfirm(order.status as OrderStatusValue);
-    const updated = await this.prisma.order.update({
+    return this.prisma.order.update({
       where: { id: orderId },
       data: { status: OrderStatus.PENDING },
       include: orderInclude,
     });
-    const forMail = await this.loadOrderForMail(orderId);
-    if (forMail) {
-      void this.mailService.sendPedidoConfirmado(forMail).catch((err: unknown) => {
-        this.logger.error(`Email pedido confirmado: ${String(err)}`);
-      });
-    }
-    return updated;
   }
 
   async confirmCart(userId: string) {
@@ -747,18 +740,39 @@ export class OrdersService {
     const from = order.status as OrderStatusValue;
     const to = this.normalizePatchStatusToPrisma(dto.status);
     assertPatchOrderStatusTransition(from, to);
-    const updated = await this.prisma.order.update({
+    await this.prisma.order.update({
       where: { id },
       data: { status: to },
       include: orderAdminDetailInclude,
     });
-    if (to === OrderStatus.SHIPPED || to === OrderStatus.DELIVERED) {
-      void this.mailService
-        .sendEstadoActualizadoCliente(updated as OrderMailPayload, to)
-        .catch((err: unknown) => {
-          this.logger.error(`Email estado pedido: ${String(err)}`);
+
+    if (to === OrderStatus.PAID && from === OrderStatus.PENDING) {
+      const forMail = await this.loadOrderForMail(id);
+      if (forMail) {
+        void this.mailService.sendPedidoConfirmado(forMail).catch((err: unknown) => {
+          this.logger.error(`Email pedido confirmado (admin → PAID): ${String(err)}`);
         });
+      }
     }
+
+    if (
+      to === OrderStatus.SHIPPED ||
+      to === OrderStatus.DELIVERED ||
+      to === OrderStatus.CANCELLED
+    ) {
+      const forMail = await this.loadOrderForMail(id);
+      if (forMail) {
+        void this.mailService
+          .sendEstadoActualizadoCliente(
+            forMail,
+            to as 'SHIPPED' | 'DELIVERED' | 'CANCELLED',
+          )
+          .catch((err: unknown) => {
+            this.logger.error(`Email estado pedido: ${String(err)}`);
+          });
+      }
+    }
+
     return this.getOrderDetailDtoById(id);
   }
 

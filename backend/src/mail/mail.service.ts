@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { Resend } from 'resend';
+import * as nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
 import type { Order, OrderItem, Product, Size, User } from '@prisma/client';
 
 const BRAND_RED = '#d91920';
@@ -33,11 +34,23 @@ export type InvoiceMailOrder = {
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly resend: Resend | null;
+  private readonly transporter: Transporter | undefined;
 
   constructor() {
-    const key = process.env.RESEND_API_KEY?.trim();
-    this.resend = key ? new Resend(key) : null;
+    const user = process.env.MAIL_USER?.trim();
+    const pass = process.env.MAIL_PASS?.trim();
+    if (!user || !pass) {
+      this.logger.warn('[MailService] MAIL_USER o MAIL_PASS no configurados');
+      return;
+    }
+    const host = process.env.MAIL_HOST?.trim() ?? 'smtp.gmail.com';
+    const port = Number(process.env.MAIL_PORT ?? 465);
+    this.transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+    });
   }
 
   private wrapHtml(inner: string): string {
@@ -158,23 +171,52 @@ ${rows}
     return m || '—';
   }
 
-  private async sendHtml(to: string, subject: string, html: string): Promise<void> {
+  private frontendBase(): string {
+    const raw =
+      process.env.FRONTEND_URL?.trim() ||
+      process.env.CORS_ORIGIN?.trim()?.split(',')[0]?.trim() ||
+      'http://localhost:3000';
+    return raw.replace(/\/$/, '');
+  }
+
+  /**
+   * @param requireConfigured si true, lanza BadRequestException si falta SMTP (p. ej. factura).
+   */
+  private async sendHtml(
+    to: string,
+    subject: string,
+    html: string,
+    requireConfigured = false,
+  ): Promise<void> {
     const from = process.env.MAIL_FROM?.trim();
     if (!from) {
-      this.logger.warn('MAIL_FROM no definido; email omitido.');
+      const msg = 'MAIL_FROM no definido';
+      this.logger.warn(`${msg}; email omitido.`);
+      if (requireConfigured) {
+        throw new BadRequestException(`Envío de correo no configurado (${msg})`);
+      }
       return;
     }
-    if (!this.resend) {
-      this.logger.warn('RESEND_API_KEY no definido; email omitido.');
+    if (!this.transporter) {
+      const msg = 'MAIL_USER / MAIL_PASS no configurados';
+      this.logger.warn(`[MailService] ${msg}; email omitido.`);
+      if (requireConfigured) {
+        throw new BadRequestException(`Envío de correo no configurado (${msg})`);
+      }
       return;
     }
-    const { error } = await this.resend.emails.send({ from, to, subject, html });
-    if (error) {
-      this.logger.error(`Resend error (${to}): ${JSON.stringify(error)}`);
+    try {
+      await this.transporter.sendMail({ from, to, subject, html });
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      this.logger.error(`Nodemailer error (${to}): ${err}`);
+      if (requireConfigured) {
+        throw new BadRequestException('No se pudo enviar el correo');
+      }
     }
   }
 
-  /** Pedido confirmado (PENDING manual o PAID): cliente + admin. */
+  /** Pedido confirmado / pagado (PAID): cliente + admin. */
   async sendPedidoConfirmado(order: OrderMailPayload): Promise<void> {
     const idShort = order.id.slice(0, 8);
     const total = this.orderTotal(order);
@@ -196,17 +238,20 @@ ${this.itemsTable(order)}
       clientEmail,
       `¡Tu pedido #${idShort} está confirmado! 💪`,
       this.wrapHtml(clientInner),
+      false,
     );
 
     const adminTo =
       process.env.MAIL_ADMIN_TO?.trim() ||
+      process.env.MAIL_USER?.trim() ||
       process.env.ADMIN_EMAIL?.trim() ||
       process.env.ADMIN_ORDER_EMAIL?.trim();
     if (!adminTo) {
-      this.logger.warn('MAIL_ADMIN_TO / ADMIN_EMAIL no definido; email admin omitido.');
+      this.logger.warn('MAIL_ADMIN_TO / MAIL_USER / ADMIN_EMAIL no definido; email admin omitido.');
       return;
     }
 
+    const adminUrl = `${this.frontendBase()}/admin/pedidos/${encodeURIComponent(order.id)}`;
     const adminInner = `
 <p style="margin:0 0 16px;font-size:18px;font-weight:700;color:${BRAND_YELLOW};">Nuevo pedido #${idShort}</p>
 <p style="margin:0 0 8px;"><strong>Cliente:</strong> ${this.escape(order.user.email)}${order.user.name ? ` · ${this.escape(order.user.name)}` : ''}</p>
@@ -214,31 +259,51 @@ ${this.itemsTable(order)}
 <p style="margin:0 0 8px;font-size:12px;color:#a1a1aa;">ID: ${this.escape(order.id)}</p>
 ${this.itemsTable(order)}
 <p style="margin:16px 0 0;font-size:16px;font-weight:700;">Total: ${this.formatCop(total)}</p>
+<p style="margin:20px 0 0;"><a href="${this.escape(adminUrl)}" style="display:inline-block;padding:12px 24px;background:${BRAND_RED};color:#fff;text-decoration:none;font-weight:700;border-radius:4px;">Ver pedido en admin →</a></p>
 `;
 
     await this.sendHtml(
       adminTo,
       `Nuevo pedido #${idShort} — Big Boys Gym`,
       this.wrapHtml(adminInner),
+      false,
     );
   }
 
-  /** Admin cambió estado a enviado o entregado. */
+  /** Admin o sistema actualiza estado: enviado, entregado o cancelado. */
   async sendEstadoActualizadoCliente(
     order: OrderMailPayload,
-    status: 'SHIPPED' | 'DELIVERED',
+    status: 'SHIPPED' | 'DELIVERED' | 'CANCELLED',
   ): Promise<void> {
     const clientEmail = order.user.email;
     if (!clientEmail) return;
 
     const idShort = order.id.slice(0, 8);
+    const base = this.frontendBase();
+    const misPedidosUrl = `${base}/mis-pedidos`;
+
+    if (status === 'CANCELLED') {
+      const inner = `
+<p style="margin:0 0 16px;font-size:18px;font-weight:700;color:${BRAND_RED};">Tu pedido fue cancelado</p>
+<p style="margin:0 0 12px;line-height:1.5;">Hola${order.user.name ? ` ${this.escape(order.user.name)}` : ''},</p>
+<p style="margin:0 0 12px;line-height:1.5;">El pedido <strong style="color:${BRAND_YELLOW};">#${idShort}</strong> quedó registrado como <strong>cancelado</strong>. Si no reconocés esta acción, contactanos.</p>
+<p style="margin:0;font-size:13px;color:#a1a1aa;">Total referido: ${this.formatCop(this.orderTotal(order))}</p>
+<p style="margin:20px 0 0;"><a href="${this.escape(misPedidosUrl)}" style="display:inline-block;padding:12px 24px;background:${BRAND_RED};color:#fff;text-decoration:none;font-weight:700;border-radius:4px;">Ver mis pedidos →</a></p>
+`;
+      await this.sendHtml(
+        clientEmail,
+        `Pedido #${idShort} cancelado — Big Boys Gym`,
+        this.wrapHtml(inner),
+        false,
+      );
+      return;
+    }
+
     const isShipped = status === 'SHIPPED';
     const subject = isShipped
       ? `Tu pedido #${idShort} fue enviado 📦`
       : `Tu pedido #${idShort} fue entregado ✅`;
-    const title = isShipped
-      ? 'Tu pedido va en camino'
-      : 'Tu pedido fue entregado';
+    const title = isShipped ? 'Tu pedido va en camino' : 'Tu pedido fue entregado';
     const body = isShipped
       ? 'Ya despachamos tu pedido. Pronto deberías recibirlo según el método de envío acordado.'
       : 'Registramos la entrega de tu pedido. ¡Gracias por comprar en Big Boys Gym!';
@@ -248,20 +313,14 @@ ${this.itemsTable(order)}
 <p style="margin:0 0 12px;line-height:1.5;">Hola${order.user.name ? ` ${this.escape(order.user.name)}` : ''},</p>
 <p style="margin:0 0 12px;line-height:1.5;">${this.escape(body)}</p>
 <p style="margin:0;font-size:13px;color:#a1a1aa;">Pedido <strong style="color:${BRAND_YELLOW};">#${idShort}</strong> · Total ${this.formatCop(this.orderTotal(order))}</p>
+<p style="margin:20px 0 0;"><a href="${this.escape(misPedidosUrl)}" style="display:inline-block;padding:12px 24px;background:${BRAND_RED};color:#fff;text-decoration:none;font-weight:700;border-radius:4px;">Ver mis pedidos →</a></p>
 `;
 
-    await this.sendHtml(clientEmail, subject, this.wrapHtml(inner));
+    await this.sendHtml(clientEmail, subject, this.wrapHtml(inner), false);
   }
 
   /** Factura detallada al correo del cliente. */
   async sendInvoice(order: InvoiceMailOrder): Promise<void> {
-    const from = process.env.MAIL_FROM?.trim();
-    if (!from) {
-      throw new BadRequestException('Envío de correo no configurado (MAIL_FROM)');
-    }
-    if (!this.resend) {
-      throw new BadRequestException('Envío de correo no configurado (RESEND_API_KEY)');
-    }
     const clientEmail = order.user.email?.trim();
     if (!clientEmail) {
       throw new BadRequestException('El pedido no tiene email de cliente');
@@ -290,15 +349,6 @@ ${this.invoiceItemsTable(order)}
 `;
 
     const html = this.wrapHtml(inner);
-    const { error } = await this.resend.emails.send({
-      from,
-      to: clientEmail,
-      subject,
-      html,
-    });
-    if (error) {
-      this.logger.error(`Resend invoice (${clientEmail}): ${JSON.stringify(error)}`);
-      throw new BadRequestException('No se pudo enviar la factura por correo');
-    }
+    await this.sendHtml(clientEmail, subject, html, true);
   }
 }
