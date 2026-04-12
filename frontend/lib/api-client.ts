@@ -100,6 +100,9 @@ export function formatShopApiError(
     return "No se obtuvo un token de acceso válido. Verificá que en el servidor exista AUTH0_AUDIENCE y que Auth0Client use authorizationParameters.audience (mismo valor que el API en Nest). Cerrá sesión y volvé a entrar.";
   }
   if (e instanceof ApiError) {
+    if (e.status === 429) {
+      return e.message;
+    }
     if (e.status === 401) {
       if (opts?.sessionActive) {
         return "Tenés sesión en la tienda pero el API rechazó el pedido (401). En Vercel definí NEXT_PUBLIC_API_URL=https://tu-api.onrender.com (URL directa del Nest) y NEXT_PUBLIC_AUTH0_AUDIENCE. Luego redeploy. Si ya está, cerrá sesión y volvé a entrar.";
@@ -147,6 +150,21 @@ export async function apiFetch<T = unknown>(
     } catch {
       data = text;
     }
+  }
+  if (res.status === 429) {
+    const fromApi =
+      typeof data === "object" &&
+      data !== null &&
+      "message" in data &&
+      typeof (data as { message: unknown }).message === "string"
+        ? (data as { message: string }).message
+        : null;
+    throw new ApiError(
+      429,
+      fromApi ??
+        "Demasiadas solicitudes. Esperá un momento e intentá de nuevo.",
+      data,
+    );
   }
   if (!res.ok) {
     const msg = parseApiMessage(data, res.statusText);

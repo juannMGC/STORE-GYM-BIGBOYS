@@ -7,6 +7,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -49,6 +50,11 @@ export class UploadController {
   }
 
   @Post('base64')
+  @Throttle({
+    short: { ttl: 1000, limit: 2 },
+    medium: { ttl: 60_000, limit: 20 },
+    long: { ttl: 3_600_000, limit: 100 },
+  })
   async uploadBase64(@Body() body: UploadBase64Dto) {
     if (!body.base64?.trim()) {
       throw new BadRequestException('No se recibió imagen en base64');

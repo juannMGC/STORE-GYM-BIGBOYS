@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -19,6 +20,10 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { CurrentUser, type RequestUser } from '../common/decorators/current-user.decorator';
 
 @Controller('admin/orders')
+@Throttle({
+  medium: { ttl: 60_000, limit: 120 },
+  long: { ttl: 3_600_000, limit: 1000 },
+})
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class AdminOrdersController {

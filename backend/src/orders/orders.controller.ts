@@ -11,6 +11,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -35,11 +36,20 @@ export class OrdersController {
 
   /** Carrito DRAFT actual; sin borrador → { items: [], total: 0 } (no crea pedido). */
   @Get('cart')
+  @Throttle({
+    short: { ttl: 1000, limit: 5 },
+    medium: { ttl: 60_000, limit: 60 },
+  })
   getCart(@CurrentUser() user: RequestUser) {
     return this.ordersService.getCartPayload(user.userId);
   }
 
   @Post('cart/items')
+  @Throttle({
+    short: { ttl: 1000, limit: 3 },
+    medium: { ttl: 60_000, limit: 30 },
+    long: { ttl: 3_600_000, limit: 200 },
+  })
   addItem(@CurrentUser() user: RequestUser, @Body() dto: AddCartItemDto) {
     return this.ordersService.addCartItem(user.userId, dto);
   }
@@ -79,6 +89,11 @@ export class OrdersController {
 
   /** DRAFT → PAID (requiere ítems + paymentMethod). */
   @Post('cart/confirm')
+  @Throttle({
+    short: { ttl: 1000, limit: 1 },
+    medium: { ttl: 60_000, limit: 5 },
+    long: { ttl: 3_600_000, limit: 20 },
+  })
   confirm(@CurrentUser() user: RequestUser) {
     return this.ordersService.confirmCart(user.userId);
   }
@@ -101,6 +116,10 @@ export class OrdersController {
 
   /** Solo ADMIN. Todos los pedidos; filtro opcional ?status= */
   @Get()
+  @Throttle({
+    medium: { ttl: 60_000, limit: 120 },
+    long: { ttl: 3_600_000, limit: 1000 },
+  })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   findAllAdmin(@Query('status') status?: string) {
@@ -108,6 +127,10 @@ export class OrdersController {
   }
 
   @Post(':id/items/admin')
+  @Throttle({
+    medium: { ttl: 60_000, limit: 120 },
+    long: { ttl: 3_600_000, limit: 1000 },
+  })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   adminAddItem(
@@ -129,6 +152,10 @@ export class OrdersController {
   }
 
   @Delete(':id/items/:itemId')
+  @Throttle({
+    medium: { ttl: 60_000, limit: 120 },
+    long: { ttl: 3_600_000, limit: 1000 },
+  })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   adminRemoveItem(
@@ -140,6 +167,10 @@ export class OrdersController {
 
   /** Solo ADMIN. Actualizar método de pago de un pedido. */
   @Patch(':id/payment')
+  @Throttle({
+    medium: { ttl: 60_000, limit: 120 },
+    long: { ttl: 3_600_000, limit: 1000 },
+  })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   adminPatchOrderPayment(
@@ -162,6 +193,11 @@ export class OrdersController {
 
   @Post(':id/wompi-signature')
   @HttpCode(200)
+  @Throttle({
+    short: { ttl: 1000, limit: 1 },
+    medium: { ttl: 60_000, limit: 5 },
+    long: { ttl: 3_600_000, limit: 15 },
+  })
   wompiSignature(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseUUIDPipe) id: string,

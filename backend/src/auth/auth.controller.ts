@@ -1,4 +1,5 @@
 import { Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   CurrentUser,
   type RequestUser,
@@ -25,6 +26,10 @@ export class AuthController {
   }
 
   @Get('me')
+  @Throttle({
+    short: { ttl: 1000, limit: 5 },
+    medium: { ttl: 60_000, limit: 30 },
+  })
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: RequestUser) {
     return this.authService.getMeResponse(user.userId);
@@ -32,6 +37,9 @@ export class AuthController {
 
   /** Verificación de rol ADMIN (útil para probar guards en Fase 1). */
   @Get('admin/ping')
+  @Throttle({
+    medium: { ttl: 60_000, limit: 20 },
+  })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   adminPing(@CurrentUser() user: RequestUser) {

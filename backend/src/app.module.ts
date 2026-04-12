@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import { validateEnv } from './config/env.validation';
 import { AppController } from './app.controller';
@@ -18,6 +20,23 @@ import { UploadModule } from './upload/upload.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,
+        limit: 5,
+      },
+      {
+        name: 'medium',
+        ttl: 60_000,
+        limit: 60,
+      },
+      {
+        name: 'long',
+        ttl: 3_600_000,
+        limit: 500,
+      },
+    ]),
     PrismaModule,
     MailModule,
     UsersModule,
@@ -31,6 +50,12 @@ import { UploadModule } from './upload/upload.module';
     UploadModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

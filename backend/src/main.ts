@@ -2,6 +2,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import * as express from 'express';
 import { AppModule } from './app.module';
+import { ThrottlerExceptionFilter } from './common/filters/throttler-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -34,6 +35,21 @@ async function bootstrap() {
     origin: corsOrigin,
     credentials: true,
     allowedHeaders: ['Authorization', 'Content-Type', 'Accept'],
+    exposedHeaders: [
+      'X-RateLimit-Limit-short',
+      'X-RateLimit-Remaining-short',
+      'X-RateLimit-Reset-short',
+      'X-RateLimit-Limit-medium',
+      'X-RateLimit-Remaining-medium',
+      'X-RateLimit-Reset-medium',
+      'X-RateLimit-Limit-long',
+      'X-RateLimit-Remaining-long',
+      'X-RateLimit-Reset-long',
+      'Retry-After-short',
+      'Retry-After-medium',
+      'Retry-After-long',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
   const port = Number(process.env.PORT ?? 3001);
   await app.listen(port);

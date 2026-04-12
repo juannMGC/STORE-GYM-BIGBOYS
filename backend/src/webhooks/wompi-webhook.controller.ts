@@ -1,4 +1,5 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { OrdersService } from '../orders/orders.service';
 
 /** Público: sin JwtAuthGuard (Wompi llama desde sus servidores). */
@@ -8,6 +9,7 @@ export class WompiWebhookController {
 
   @Post('wompi')
   @HttpCode(200)
+  @SkipThrottle({ short: true, medium: true, long: true })
   async handleWompi(@Body() body: Record<string, unknown>) {
     return this.ordersService.handleWompiWebhook(body);
   }

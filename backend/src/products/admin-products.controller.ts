@@ -8,6 +8,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ProductsService } from './products.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AddProductImageDto } from './dto/add-product-image.dto';
@@ -19,6 +20,10 @@ import { Role } from '../common/constants/roles';
 import { RolesGuard } from '../common/guards/roles.guard';
 
 @Controller('admin/products')
+@Throttle({
+  medium: { ttl: 60_000, limit: 120 },
+  long: { ttl: 3_600_000, limit: 1000 },
+})
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class AdminProductsController {
