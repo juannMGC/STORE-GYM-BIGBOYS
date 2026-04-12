@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -18,9 +19,46 @@ const productPublicInclude = {
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findManyPublic(categoryId?: string) {
+  async findManyPublic(filters?: {
+    search?: string;
+    categoryId?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    inStock?: boolean;
+  }) {
+    const where: Prisma.ProductWhereInput = {};
+
+    const catId = filters?.categoryId?.trim();
+    if (catId) {
+      where.categoryId = catId;
+    }
+
+    const q = filters?.search?.trim();
+    if (q) {
+      where.OR = [
+        { title: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+        { category: { name: { contains: q, mode: 'insensitive' } } },
+      ];
+    }
+
+    const priceFilter: Prisma.FloatFilter = {};
+    if (filters?.minPrice !== undefined && Number.isFinite(filters.minPrice)) {
+      priceFilter.gte = filters.minPrice;
+    }
+    if (filters?.maxPrice !== undefined && Number.isFinite(filters.maxPrice)) {
+      priceFilter.lte = filters.maxPrice;
+    }
+    if (Object.keys(priceFilter).length > 0) {
+      where.price = priceFilter;
+    }
+
+    if (filters?.inStock) {
+      where.stock = { gt: 0 };
+    }
+
     return this.prisma.product.findMany({
-      where: categoryId ? { categoryId } : {},
+      where,
       orderBy: { createdAt: 'desc' },
       include: {
         category: { select: { id: true, name: true, slug: true } },
