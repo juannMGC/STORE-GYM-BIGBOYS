@@ -18,12 +18,57 @@ const bebasNeue = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://store-gym-bigboys.vercel.app"),
   title: {
-    default: "BIG BOYS GYM · Tienda",
-    template: "%s · BIG BOYS",
+    default: "Big Boys Gym · Tienda Oficial",
+    template: "%s | Big Boys Gym",
   },
   description:
-    "BIG BOYS GYM: fuerza real, equipo real. Tienda oficial — suplementación e indumentaria.",
+    "Tienda oficial de Big Boys Gym en Manizales, Colombia. Suplementación, ropa deportiva y equipamiento para tu entrenamiento.",
+  keywords: [
+    "gym",
+    "suplementos",
+    "proteína",
+    "ropa deportiva",
+    "Manizales",
+    "Colombia",
+    "Big Boys Gym",
+    "entrenamiento",
+  ],
+  authors: [{ name: "Big Boys Gym" }],
+  creator: "Big Boys Gym",
+  openGraph: {
+    type: "website",
+    locale: "es_CO",
+    url: "https://store-gym-bigboys.vercel.app",
+    siteName: "Big Boys Gym · Tienda",
+    title: "Big Boys Gym · Tienda Oficial",
+    description:
+      "Suplementación, ropa deportiva y equipamiento. Manizales, Colombia.",
+    images: [
+      {
+        url: "/brand/logo-bigboys.jpg",
+        width: 400,
+        height: 400,
+        alt: "Big Boys Gym Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Big Boys Gym · Tienda Oficial",
+    description: "Suplementación y ropa deportiva en Manizales.",
+    images: ["/brand/logo-bigboys.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+    },
+  },
 };
 
 export default function RootLayout({

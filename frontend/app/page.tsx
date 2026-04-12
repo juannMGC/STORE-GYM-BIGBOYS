@@ -1,8 +1,28 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { REGISTRO_ENTRY_HREF } from "@/lib/auth-routes";
 import { InstagramCarousel } from "@/components/instagram-carousel";
 import { InstagramHomeCta } from "@/components/instagram-home-cta";
+
+export const metadata: Metadata = {
+  title: "Inicio",
+  description:
+    "Big Boys Gym · Tienda oficial en Manizales, Colombia. Encontrá suplementación, ropa deportiva y equipamiento para llevar tu entrenamiento al siguiente nivel.",
+  openGraph: {
+    title: "Big Boys Gym · Tienda Oficial",
+    description: "Suplementación y ropa deportiva en Manizales.",
+    url: "https://store-gym-bigboys.vercel.app",
+    images: [
+      {
+        url: "/brand/logo-bigboys.jpg",
+        width: 400,
+        height: 400,
+        alt: "Big Boys Gym",
+      },
+    ],
+  },
+};
 
 export default function HomePage() {
   return (
