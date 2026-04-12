@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AddProductImageDto } from './dto/add-product-image.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { slugify } from './slug.util';
@@ -282,5 +283,56 @@ export class ProductsService {
     }
     await this.prisma.product.delete({ where: { id } });
     return { deleted: true };
+  }
+
+  async addProductImage(productId: string, dto: AddProductImageDto) {
+    const p = await this.prisma.product.findUnique({ where: { id: productId } });
+    if (!p) throw new NotFoundException('Producto no encontrado');
+    const url = dto.url?.trim();
+    if (!url) throw new BadRequestException('url vacía');
+    const count = await this.prisma.productImage.count({ where: { productId } });
+    const sortOrder = dto.order !== undefined && Number.isFinite(dto.order) ? dto.order : count;
+    return this.prisma.productImage.create({
+      data: {
+        productId,
+        url,
+        sortOrder,
+      },
+    });
+  }
+
+  async removeProductImage(productId: string, imageId: string) {
+    const r = await this.prisma.productImage.deleteMany({
+      where: { id: imageId, productId },
+    });
+    if (r.count === 0) throw new NotFoundException('Imagen no encontrada');
+    return { deleted: true };
+  }
+
+  async reorderProductImages(productId: string, imageIds: string[]) {
+    const p = await this.prisma.product.findUnique({ where: { id: productId } });
+    if (!p) throw new NotFoundException('Producto no encontrado');
+    const existing = await this.prisma.productImage.findMany({
+      where: { productId },
+      select: { id: true },
+    });
+    const set = new Set(existing.map((e) => e.id));
+    if (imageIds.length !== existing.length || !imageIds.every((id) => set.has(id))) {
+      throw new BadRequestException(
+        'La lista de IDs debe incluir todas las imágenes del producto, sin duplicados',
+      );
+    }
+    await this.prisma.$transaction(
+      imageIds.map((imageId, index) =>
+        this.prisma.productImage.update({
+          where: { id: imageId },
+          data: { sortOrder: index },
+        }),
+      ),
+    );
+    return this.prisma.product.findUniqueOrThrow({
+      where: { id: productId },
+      include: productPublicInclude,
+    });
   }
 }

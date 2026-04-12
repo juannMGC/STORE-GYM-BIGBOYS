@@ -10,7 +10,9 @@ import {
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AddProductImageDto } from './dto/add-product-image.dto';
 import { CreateProductDto } from './dto/create-product.dto';
+import { ReorderImagesDto } from './dto/reorder-images.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/constants/roles';
@@ -25,6 +27,30 @@ export class AdminProductsController {
   @Post()
   create(@Body() dto: CreateProductDto) {
     return this.productsService.create(dto);
+  }
+
+  @Post(':id/images')
+  addImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AddProductImageDto,
+  ) {
+    return this.productsService.addProductImage(id, dto);
+  }
+
+  @Delete(':id/images/:imageId')
+  removeImage(
+    @Param('id', ParseUUIDPipe) productId: string,
+    @Param('imageId', ParseUUIDPipe) imageId: string,
+  ) {
+    return this.productsService.removeProductImage(productId, imageId);
+  }
+
+  @Patch(':id/images/reorder')
+  reorderImages(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ReorderImagesDto,
+  ) {
+    return this.productsService.reorderProductImages(id, dto.imageIds);
   }
 
   @Patch(':id')

@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type CSSProperties,
+} from "react";
 import Link from "next/link";
 import { AdminTableSkeleton } from "@/components/admin/table-skeleton";
 import { apiFetch, ApiError } from "@/lib/api-client";
@@ -27,8 +34,11 @@ export default function AdminProductosPage() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("0");
-  const [imageUrl, setImageUrl] = useState("");
-  const [imageBroken, setImageBroken] = useState(false);
+  /** Galería completa; la primera es la principal en tienda. */
+  const [imagenes, setImagenes] = useState<
+    { id: string; url: string; sortOrder: number }[]
+  >([]);
+  const [nuevaImagenUrl, setNuevaImagenUrl] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [selectedSizeIds, setSelectedSizeIds] = useState<string[]>([]);
   const [stockAdjustingId, setStockAdjustingId] = useState<string | null>(null);
@@ -105,10 +115,6 @@ export default function AdminProductosPage() {
     setSlug(t ? slugifyTitle(title) : "");
   }, [title, modal, slugDirty]);
 
-  useEffect(() => {
-    setImageBroken(false);
-  }, [imageUrl]);
-
   function openCreate() {
     setEditingId(null);
     setModal("create");
@@ -118,12 +124,13 @@ export default function AdminProductosPage() {
     setDescription("");
     setPrice("");
     setStock("0");
-    setImageUrl("");
+    setImagenes([]);
+    setNuevaImagenUrl("");
     setCategoryId(sortedCategories[0]?.id ?? "");
     setSelectedSizeIds([]);
   }
 
-  function openEdit(p: ProductListItem) {
+  async function openEdit(p: ProductListItem) {
     setEditingId(p.id);
     setModal("edit");
     setSlugDirty(true);
@@ -132,14 +139,113 @@ export default function AdminProductosPage() {
     setDescription(p.description ?? "");
     setPrice(String(p.price));
     setStock(String(p.stock ?? 0));
-    setImageUrl(p.images[0]?.url ?? "");
     setCategoryId(p.categoryId);
     setSelectedSizeIds(p.sizes.map((x) => x.size.id));
+    setNuevaImagenUrl("");
+    try {
+      const full = await apiFetch<ProductListItem>(`/products/${p.id}`, { skipAuth: true });
+      setImagenes([...full.images].sort((a, b) => a.sortOrder - b.sortOrder));
+    } catch {
+      setImagenes([...p.images].sort((a, b) => a.sortOrder - b.sortOrder));
+    }
   }
 
   function closeModal() {
     setModal(null);
     setEditingId(null);
+    setNuevaImagenUrl("");
+  }
+
+  const recargarImagenes = useCallback(async (productId: string) => {
+    const full = await apiFetch<ProductListItem>(`/products/${productId}`, { skipAuth: true });
+    setImagenes([...full.images].sort((a, b) => a.sortOrder - b.sortOrder));
+  }, []);
+
+  async function agregarImagenUrl() {
+    const u = nuevaImagenUrl.trim();
+    if (!u) return;
+    if (modal === "edit" && editingId) {
+      try {
+        await apiFetch(`/admin/products/${editingId}/images`, {
+          method: "POST",
+          body: JSON.stringify({ url: u }),
+        });
+        setNuevaImagenUrl("");
+        await recargarImagenes(editingId);
+        showToast({ type: "ok", text: "Imagen añadida." });
+      } catch (e) {
+        const msg = e instanceof ApiError ? e.message : "No se pudo añadir la imagen";
+        showToast({ type: "err", text: msg });
+      }
+    } else {
+      setImagenes((prev) => [
+        ...prev,
+        { id: `local-${Date.now()}`, url: u, sortOrder: prev.length },
+      ]);
+      setNuevaImagenUrl("");
+    }
+  }
+
+  async function eliminarImagen(imageId: string) {
+    if (!window.confirm("¿Eliminar esta imagen?")) return;
+    if (modal === "edit" && editingId && !imageId.startsWith("local-")) {
+      try {
+        await apiFetch(`/admin/products/${editingId}/images/${imageId}`, {
+          method: "DELETE",
+        });
+        await recargarImagenes(editingId);
+        showToast({ type: "ok", text: "Imagen eliminada." });
+      } catch (e) {
+        const msg = e instanceof ApiError ? e.message : "No se pudo eliminar";
+        showToast({ type: "err", text: msg });
+      }
+    } else {
+      setImagenes((prev) => prev.filter((i) => i.id !== imageId));
+    }
+  }
+
+  async function handleGalleryUpload(e: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    let ok = 0;
+    for (const file of files) {
+      if (file.size > 2 * 1024 * 1024) {
+        showToast({ type: "err", text: `${file.name} supera 2MB` });
+        continue;
+      }
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      if (modal === "edit" && editingId) {
+        try {
+          await apiFetch(`/admin/products/${editingId}/images`, {
+            method: "POST",
+            body: JSON.stringify({ url: base64 }),
+          });
+          ok += 1;
+        } catch (err) {
+          const msg = err instanceof ApiError ? err.message : "Error al subir";
+          showToast({ type: "err", text: msg });
+        }
+      } else {
+        setImagenes((prev) => [
+          ...prev,
+          {
+            id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            url: base64,
+            sortOrder: prev.length,
+          },
+        ]);
+        ok += 1;
+      }
+    }
+    if (modal === "edit" && editingId && ok > 0) {
+      await recargarImagenes(editingId);
+      showToast({ type: "ok", text: "Imágenes actualizadas." });
+    }
   }
 
   function toggleSize(id: string) {
@@ -181,8 +287,16 @@ export default function AdminProductosPage() {
       return;
     }
 
-    const trimmedImg = imageUrl.trim();
-    const imageUrls = trimmedImg ? [trimmedImg] : [];
+    const imageUrls = (() => {
+      const ordered = [...imagenes].sort((a, b) => a.sortOrder - b.sortOrder);
+      const urls = ordered.map((i) => i.url.trim()).filter(Boolean);
+      const seen = new Set<string>();
+      return urls.filter((u) => {
+        if (seen.has(u)) return false;
+        seen.add(u);
+        return true;
+      });
+    })();
 
     setSaving(true);
     try {
@@ -409,7 +523,7 @@ export default function AdminProductosPage() {
                       <td className="p-4 text-right">
                         <button
                           type="button"
-                          onClick={() => openEdit(p)}
+                          onClick={() => void openEdit(p)}
                           className="mr-2 text-brand-yellow hover:underline"
                         >
                           Editar
@@ -565,26 +679,209 @@ export default function AdminProductosPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  URL de imagen
+                  URL de imagen principal
                 </label>
                 <input
                   className="input-brand mt-1 w-full"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://…"
+                  value={imagenes[0]?.url ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setImagenes((prev) => {
+                      if (prev.length === 0) {
+                        return [{ id: `local-${Date.now()}`, url: v, sortOrder: 0 }];
+                      }
+                      const next = [...prev];
+                      next[0] = { ...next[0], url: v };
+                      return next;
+                    });
+                  }}
+                  placeholder="https://… (primera en la galería)"
                 />
-                {imageUrl.trim() && !imageBroken ? (
+                {imagenes[0]?.url?.trim() ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={imageUrl.trim()}
+                    src={imagenes[0].url.trim()}
                     alt=""
                     className="mt-3 max-h-44 w-auto max-w-full rounded border-2 border-brand-border object-contain"
-                    onError={() => setImageBroken(true)}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
                   />
                 ) : null}
-                {imageUrl.trim() && imageBroken ? (
-                  <p className="mt-2 text-xs text-brand-red">No se pudo cargar la imagen.</p>
+              </div>
+
+              <div
+                style={{
+                  borderTop: "1px solid #2a2a2a",
+                  margin: "20px 0",
+                  paddingTop: "20px",
+                }}
+              >
+                <p
+                  style={{
+                    color: "#f7e047",
+                    fontFamily: "var(--font-display)",
+                    fontSize: "11px",
+                    letterSpacing: "3px",
+                    textTransform: "uppercase",
+                    marginBottom: "16px",
+                  }}
+                >
+                  Galería de imágenes
+                </p>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
+                    gap: "8px",
+                    marginBottom: "16px",
+                  }}
+                >
+                  {imagenes.map((img, index) => (
+                    <div
+                      key={img.id}
+                      style={{
+                        position: "relative",
+                        aspectRatio: "1",
+                        border:
+                          index === 0 ? "2px solid #d91920" : "1px solid #2a2a2a",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={img.url}
+                        alt={`Imagen ${index + 1}`}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                      {index === 0 ? (
+                        <div
+                          style={{
+                            position: "absolute",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            background: "#d91920",
+                            color: "white",
+                            fontSize: "9px",
+                            textAlign: "center",
+                            padding: "2px",
+                            fontFamily: "var(--font-display)",
+                            letterSpacing: "1px",
+                          }}
+                        >
+                          PRINCIPAL
+                        </div>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => void eliminarImagen(img.id)}
+                        style={{
+                          position: "absolute",
+                          top: "4px",
+                          right: "4px",
+                          background: "rgba(0,0,0,0.8)",
+                          border: "none",
+                          color: "#d91920",
+                          width: "20px",
+                          height: "20px",
+                          borderRadius: "50%",
+                          cursor: "pointer",
+                          fontSize: "12px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                    marginBottom: "12px",
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={nuevaImagenUrl}
+                    onChange={(e) => setNuevaImagenUrl(e.target.value)}
+                    placeholder="https://... URL de imagen"
+                    className="input-brand"
+                    style={{ flex: 1, fontSize: "13px" }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void agregarImagenUrl();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void agregarImagenUrl()}
+                    className="btn-brand-outline"
+                    style={{ flexShrink: 0, fontSize: "12px" }}
+                  >
+                    + URL
+                  </button>
+                </div>
+                {nuevaImagenUrl.trim() ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={nuevaImagenUrl.trim()}
+                    alt=""
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                      objectFit: "cover",
+                      border: "1px solid #2a2a2a",
+                      marginBottom: "12px",
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
                 ) : null}
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    id="gallery-upload"
+                    style={{ display: "none" }}
+                    onChange={(e) => void handleGalleryUpload(e)}
+                  />
+                  <label
+                    htmlFor="gallery-upload"
+                    className="btn-brand-outline"
+                    style={{
+                      display: "inline-block",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                    }}
+                  >
+                    📷 Subir desde dispositivo
+                  </label>
+                  <p
+                    style={{
+                      color: "#52525b",
+                      fontSize: "11px",
+                      marginTop: "6px",
+                    }}
+                  >
+                    Máx. 2MB por imagen. Podés seleccionar varias.
+                  </p>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from "react";
 import { ApiError, apiFetch, formatShopApiError, isSessionExpiredError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { auth0LoginHref, auth0SignupHref } from "@/lib/auth-routes";
@@ -23,6 +23,58 @@ export function ProductDetailView({ apiPath }: Props) {
   const [addSuccess, setAddSuccess] = useState(false);
   const [sessionTokenError, setSessionTokenError] = useState(false);
   const [isNotFound, setIsNotFound] = useState(false);
+  const [imagenActiva, setImagenActiva] = useState(0);
+  const touchStartX = useRef(0);
+
+  const todasLasImagenes = useMemo(() => {
+    if (!product) return [];
+    const list = [...(product.images ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
+    const seen = new Set<string>();
+    return list.filter((im) => {
+      const u = im.url?.trim();
+      if (!u) return false;
+      if (seen.has(u)) return false;
+      seen.add(u);
+      return true;
+    });
+  }, [product]);
+
+  useEffect(() => {
+    setImagenActiva(0);
+  }, [product?.id]);
+
+  useEffect(() => {
+    const n = todasLasImagenes.length;
+    if (n <= 1) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        setImagenActiva((prev) => (prev === 0 ? n - 1 : prev - 1));
+      } else if (e.key === "ArrowRight") {
+        setImagenActiva((prev) => (prev === n - 1 ? 0 : prev + 1));
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [todasLasImagenes.length]);
+
+  const handleTouchStart = useCallback((e: TouchEvent<HTMLDivElement>) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: TouchEvent<HTMLDivElement>) => {
+      const n = todasLasImagenes.length;
+      if (n <= 1) return;
+      const diff = touchStartX.current - e.changedTouches[0].clientX;
+      if (Math.abs(diff) < 50) return;
+      if (diff > 0) {
+        setImagenActiva((prev) => (prev === n - 1 ? 0 : prev + 1));
+      } else {
+        setImagenActiva((prev) => (prev === 0 ? n - 1 : prev - 1));
+      }
+    },
+    [todasLasImagenes.length],
+  );
 
   const needsSize = (product?.sizes?.length ?? 0) > 0;
 
@@ -141,22 +193,223 @@ export function ProductDetailView({ apiPath }: Props) {
       </nav>
 
       <div className="mt-8 grid gap-10 md:grid-cols-2">
-        <div className="panel-brand space-y-3 overflow-hidden rounded-sm p-1">
-          {product.images.length > 0 ? (
-            product.images.map((im) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={im.id}
-                src={im.url}
-                alt=""
-                className="w-full rounded-sm object-cover"
-              />
-            ))
-          ) : (
-            <div className="flex aspect-square items-center justify-center rounded-sm bg-brand-black text-zinc-600">
-              Sin imagen
+        <div className="panel-brand overflow-hidden rounded-sm p-1">
+          <div
+            style={{ position: "relative", marginBottom: "16px" }}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                aspectRatio: "1",
+                background: "#1a1a1a",
+                overflow: "hidden",
+                border: "1px solid #2a2a2a",
+              }}
+            >
+              {todasLasImagenes.length > 0 ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={todasLasImagenes[imagenActiva]?.url}
+                  alt={product.title}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    transition: "opacity 0.3s ease",
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#d91920",
+                    fontSize: "4rem",
+                    fontFamily: "var(--font-display)",
+                  }}
+                >
+                  {(product.title?.charAt(0) ?? "?").toUpperCase()}
+                </div>
+              )}
+
+              {todasLasImagenes.length > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Imagen anterior"
+                    onClick={() =>
+                      setImagenActiva((prev) =>
+                        prev === 0 ? todasLasImagenes.length - 1 : prev - 1,
+                      )
+                    }
+                    style={{
+                      position: "absolute",
+                      left: "8px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "rgba(0,0,0,0.7)",
+                      border: "1px solid #2a2a2a",
+                      color: "#e4e4e7",
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "2px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "18px",
+                      transition: "background 0.15s",
+                      zIndex: 2,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(217,25,32,0.8)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(0,0,0,0.7)";
+                    }}
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Imagen siguiente"
+                    onClick={() =>
+                      setImagenActiva((prev) =>
+                        prev === todasLasImagenes.length - 1 ? 0 : prev + 1,
+                      )
+                    }
+                    style={{
+                      position: "absolute",
+                      right: "8px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "rgba(0,0,0,0.7)",
+                      border: "1px solid #2a2a2a",
+                      color: "#e4e4e7",
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "2px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "18px",
+                      transition: "background 0.15s",
+                      zIndex: 2,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(217,25,32,0.8)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(0,0,0,0.7)";
+                    }}
+                  >
+                    ›
+                  </button>
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: "8px",
+                      right: "8px",
+                      background: "rgba(0,0,0,0.7)",
+                      color: "#e4e4e7",
+                      fontSize: "11px",
+                      padding: "3px 8px",
+                      fontFamily: "var(--font-display)",
+                      letterSpacing: "1px",
+                    }}
+                  >
+                    {imagenActiva + 1} / {todasLasImagenes.length}
+                  </div>
+                </>
+              ) : null}
             </div>
-          )}
+
+            {todasLasImagenes.length > 1 ? (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: "6px",
+                  marginTop: "12px",
+                }}
+              >
+                {todasLasImagenes.map((thumb, index) => (
+                  <button
+                    key={thumb.id}
+                    type="button"
+                    aria-label={`Ir a imagen ${index + 1}`}
+                    onClick={() => setImagenActiva(index)}
+                    style={{
+                      width: index === imagenActiva ? "20px" : "8px",
+                      height: "8px",
+                      borderRadius: index === imagenActiva ? "4px" : "50%",
+                      background: index === imagenActiva ? "#d91920" : "#2a2a2a",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 0,
+                      transition: "all 0.2s",
+                    }}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          {todasLasImagenes.length > 1 ? (
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                overflowX: "auto",
+                paddingBottom: "4px",
+              }}
+            >
+              {todasLasImagenes.map((img, index) => (
+                <button
+                  key={img.id}
+                  type="button"
+                  onClick={() => setImagenActiva(index)}
+                  style={{
+                    flexShrink: 0,
+                    width: "64px",
+                    height: "64px",
+                    border:
+                      index === imagenActiva ? "2px solid #d91920" : "1px solid #2a2a2a",
+                    overflow: "hidden",
+                    cursor: "pointer",
+                    background: "#1a1a1a",
+                    padding: 0,
+                    transition: "border-color 0.15s",
+                    opacity: index === imagenActiva ? 1 : 0.6,
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.url}
+                    alt={`Vista ${index + 1}`}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div>
           <h1 className="font-display text-4xl uppercase leading-tight text-white md:text-5xl">
