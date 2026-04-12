@@ -31,6 +31,8 @@ export type InvoiceMailOrder = {
   total: number;
 };
 
+type SmtpError = Error & { code?: string; command?: string; responseCode?: number };
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -39,18 +41,86 @@ export class MailService {
   constructor() {
     const user = process.env.MAIL_USER?.trim();
     const pass = process.env.MAIL_PASS?.trim();
-    if (!user || !pass) {
-      this.logger.warn('[MailService] MAIL_USER o MAIL_PASS no configurados');
-      return;
-    }
     const host = process.env.MAIL_HOST?.trim() ?? 'smtp.gmail.com';
     const port = Number(process.env.MAIL_PORT ?? 465);
+
+    this.logger.log(
+      `[MailService] Configuración: ${JSON.stringify({
+        host,
+        port,
+        user: user ? `${user.slice(0, 5)}...` : 'NO DEFINIDO',
+        pass: pass ? `${pass.length} chars` : 'NO DEFINIDO',
+        from: process.env.MAIL_FROM?.trim() ?? 'NO DEFINIDO',
+      })}`,
+    );
+
+    if (!user || !pass) {
+      this.logger.warn('[MailService] Sin credenciales, emails deshabilitados');
+      return;
+    }
+
     this.transporter = nodemailer.createTransport({
       host,
       port,
       secure: port === 465,
       auth: { user, pass },
+      tls: {
+        rejectUnauthorized: false,
+      },
     });
+
+    void this.transporter
+      .verify()
+      .then(() => this.logger.log('[MailService] Conexión SMTP OK ✓'))
+      .catch((err: Error) =>
+        this.logger.error(`[MailService] Error de conexión SMTP: ${err.message}`),
+      );
+  }
+
+  /**
+   * Envío SMTP unificado. Si throwOnFailure es false, solo registra el error (emails opcionales).
+   */
+  private async deliverMail(
+    to: string,
+    subject: string,
+    html: string,
+    throwOnFailure: boolean,
+  ): Promise<void> {
+    if (!this.transporter) {
+      const msg =
+        'Transporter no inicializado. Verificar MAIL_USER y MAIL_PASS en Render.';
+      this.logger.warn(`[MailService] ${msg}`);
+      if (throwOnFailure) {
+        throw new BadRequestException(msg);
+      }
+      return;
+    }
+    const from = process.env.MAIL_FROM?.trim();
+    if (!from) {
+      const msg = 'MAIL_FROM no definido';
+      if (throwOnFailure) {
+        throw new BadRequestException(`Envío de correo no configurado (${msg})`);
+      }
+      this.logger.warn(`[MailService] ${msg}; email omitido.`);
+      return;
+    }
+    try {
+      const result = await this.transporter.sendMail({ from, to, subject, html });
+      this.logger.log(`[MailService] Email enviado: ${result.messageId ?? '(sin id)'}`);
+    } catch (e: unknown) {
+      const err = e as SmtpError;
+      this.logger.error(
+        `[MailService] Error al enviar: ${JSON.stringify({
+          message: err.message,
+          code: err.code,
+          command: err.command,
+          responseCode: err.responseCode,
+        })}`,
+      );
+      if (throwOnFailure) {
+        throw new BadRequestException(`Error SMTP: ${err.message ?? String(e)}`);
+      }
+    }
   }
 
   private wrapHtml(inner: string): string {
@@ -180,7 +250,7 @@ ${rows}
   }
 
   /**
-   * @param requireConfigured si true, lanza BadRequestException si falta SMTP (p. ej. factura).
+   * @param requireConfigured si true, propaga BadRequestException con mensaje SMTP (p. ej. factura).
    */
   private async sendHtml(
     to: string,
@@ -188,32 +258,7 @@ ${rows}
     html: string,
     requireConfigured = false,
   ): Promise<void> {
-    const from = process.env.MAIL_FROM?.trim();
-    if (!from) {
-      const msg = 'MAIL_FROM no definido';
-      this.logger.warn(`${msg}; email omitido.`);
-      if (requireConfigured) {
-        throw new BadRequestException(`Envío de correo no configurado (${msg})`);
-      }
-      return;
-    }
-    if (!this.transporter) {
-      const msg = 'MAIL_USER / MAIL_PASS no configurados';
-      this.logger.warn(`[MailService] ${msg}; email omitido.`);
-      if (requireConfigured) {
-        throw new BadRequestException(`Envío de correo no configurado (${msg})`);
-      }
-      return;
-    }
-    try {
-      await this.transporter.sendMail({ from, to, subject, html });
-    } catch (e: unknown) {
-      const err = e instanceof Error ? e.message : String(e);
-      this.logger.error(`Nodemailer error (${to}): ${err}`);
-      if (requireConfigured) {
-        throw new BadRequestException('No se pudo enviar el correo');
-      }
-    }
+    await this.deliverMail(to, subject, html, requireConfigured);
   }
 
   /** Pedido confirmado / pagado (PAID): cliente + admin. */
@@ -319,11 +364,11 @@ ${this.itemsTable(order)}
     await this.sendHtml(clientEmail, subject, this.wrapHtml(inner), false);
   }
 
-  /** Factura detallada al correo del cliente. */
+  /** Factura detallada al correo del cliente (to = user.email del payload, ya resuelto en OrdersService). */
   async sendInvoice(order: InvoiceMailOrder): Promise<void> {
     const clientEmail = order.user.email?.trim();
     if (!clientEmail) {
-      throw new BadRequestException('El pedido no tiene email de cliente');
+      throw new BadRequestException('El pedido no tiene email destino');
     }
 
     const idShort = order.id.replace(/-/g, '').slice(0, 8);

@@ -822,6 +822,7 @@ export class OrdersService {
       status: order.status,
       createdAt: order.createdAt,
       paymentMethod: order.paymentMethod,
+      shippingEmail: order.shippingEmail,
       user: {
         name: order.user.name,
         email: order.user.email,
@@ -836,12 +837,17 @@ export class OrdersService {
     orderId: string,
     requesterUserId: string,
     requesterRole: string,
-  ): Promise<{ ok: true; email: string }> {
+  ): Promise<{ ok: true; email: string; sentTo: string }> {
     const detail = await this.getInvoiceDetail(
       orderId,
       requesterUserId,
       requesterRole,
     );
+    const emailDest =
+      detail.user.email?.trim() || detail.shippingEmail?.trim() || '';
+    if (!emailDest) {
+      throw new BadRequestException('El pedido no tiene email destino');
+    }
     const payload: InvoiceMailOrder = {
       id: detail.id,
       status: detail.status,
@@ -849,7 +855,7 @@ export class OrdersService {
       paymentMethod: detail.paymentMethod,
       user: {
         name: detail.user.name,
-        email: detail.user.email,
+        email: emailDest,
       },
       items: detail.items.map((i) => ({
         quantity: i.quantity,
@@ -863,6 +869,6 @@ export class OrdersService {
       total: detail.total,
     };
     await this.mailService.sendInvoice(payload);
-    return { ok: true, email: detail.user.email };
+    return { ok: true, email: emailDest, sentTo: emailDest };
   }
 }
