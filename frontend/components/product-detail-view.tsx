@@ -9,6 +9,20 @@ import { useAuth } from "@/lib/auth-context";
 import { auth0LoginHref, auth0SignupHref } from "@/lib/auth-routes";
 import type { ProductDetail } from "@/lib/types";
 
+type RelatedProductRow = {
+  id: string;
+  title: string;
+  slug: string | null;
+  price: number;
+  stock: number;
+  images: { url: string }[];
+};
+
+function hrefForRelatedProduct(p: RelatedProductRow): string {
+  const s = p.slug?.trim();
+  return s ? `/tienda/productos/${encodeURIComponent(s)}` : `/producto/${p.id}`;
+}
+
 type Props = {
   apiPath: string;
 };
@@ -26,6 +40,8 @@ export function ProductDetailView({ apiPath }: Props) {
   const [isNotFound, setIsNotFound] = useState(false);
   const [imagenActiva, setImagenActiva] = useState(0);
   const touchStartX = useRef(0);
+  const [relatedItems, setRelatedItems] = useState<RelatedProductRow[]>([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
 
   const todasLasImagenes = useMemo(() => {
     if (!product) return [];
@@ -108,6 +124,32 @@ export function ProductDetailView({ apiPath }: Props) {
       cancelled = true;
     };
   }, [apiPath]);
+
+  useEffect(() => {
+    if (!product?.id || !product?.categoryId) return;
+    let cancelled = false;
+    setRelatedItems([]);
+    setRelatedLoading(true);
+    const qs = new URLSearchParams({
+      categoryId: product.categoryId,
+      limit: "4",
+    });
+    void apiFetch<RelatedProductRow[]>(`/products/${product.id}/related?${qs.toString()}`, {
+      skipAuth: true,
+    })
+      .then((data) => {
+        if (!cancelled) setRelatedItems(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setRelatedItems([]);
+      })
+      .finally(() => {
+        if (!cancelled) setRelatedLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [product?.id, product?.categoryId]);
 
   if (isNotFound) {
     notFound();
@@ -542,6 +584,184 @@ export function ProductDetailView({ apiPath }: Props) {
           </div>
         </div>
       </div>
+
+      {(relatedItems.length > 0 || relatedLoading) && (
+        <section
+          style={{
+            marginTop: "64px",
+            paddingTop: "40px",
+            borderTop: "1px solid #2a2a2a",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              marginBottom: "24px",
+              flexWrap: "wrap",
+              gap: "12px",
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(20px, 4vw, 28px)",
+                color: "#ffffff",
+                textTransform: "uppercase",
+                letterSpacing: "4px",
+                margin: 0,
+              }}
+            >
+              También te puede
+              <span style={{ color: "#d91920" }}> interesar</span>
+            </h2>
+            <Link
+              href={`/categoria/${product.categoryId}`}
+              style={{
+                color: "#f7e047",
+                fontSize: "12px",
+                fontFamily: "var(--font-display)",
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                textDecoration: "none",
+                opacity: 0.8,
+              }}
+            >
+              Ver categoría →
+            </Link>
+          </div>
+
+          {relatedLoading ? (
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="animate-pulse rounded-sm border border-brand-border bg-brand-steel/40"
+                  style={{ height: "280px" }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {relatedItems.map((prod) => (
+                <Link
+                  key={prod.id}
+                  href={hrefForRelatedProduct(prod)}
+                  className="group block"
+                  style={{ textDecoration: "none" }}
+                >
+                  <div
+                    className="panel-brand overflow-hidden border-2 border-brand-border transition-colors duration-200 group-hover:border-[#d91920]"
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div
+                      style={{
+                        width: "100%",
+                        aspectRatio: "1",
+                        background: "#1a1a1a",
+                        overflow: "hidden",
+                        position: "relative",
+                      }}
+                    >
+                      {prod.images?.[0]?.url?.trim() ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={prod.images[0].url}
+                          alt={prod.title}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#d91920",
+                            fontSize: "2.5rem",
+                            fontFamily: "var(--font-display)",
+                          }}
+                        >
+                          {(prod.title?.charAt(0) ?? "?").toUpperCase()}
+                        </div>
+                      )}
+
+                      {prod.stock === 0 && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "8px",
+                            right: "8px",
+                            background: "#d91920",
+                            color: "white",
+                            fontSize: "10px",
+                            padding: "3px 8px",
+                            fontFamily: "var(--font-display)",
+                            letterSpacing: "1px",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          AGOTADO
+                        </div>
+                      )}
+
+                      {prod.stock > 0 && prod.stock <= 5 && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "8px",
+                            right: "8px",
+                            background: "#f7e047",
+                            color: "#050505",
+                            fontSize: "10px",
+                            padding: "3px 8px",
+                            fontFamily: "var(--font-display)",
+                            letterSpacing: "1px",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          ÚLTIMAS {prod.stock}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ padding: "14px" }}>
+                      <p
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: "14px",
+                          color: "#ffffff",
+                          textTransform: "uppercase",
+                          letterSpacing: "1px",
+                          margin: "0 0 6px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {prod.title}
+                      </p>
+                      <p
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: "16px",
+                          color: "#f7e047",
+                          margin: 0,
+                          letterSpacing: "1px",
+                        }}
+                      >
+                        ${Number(prod.price).toLocaleString("es-CO")}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

@@ -1,4 +1,11 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Query,
+} from '@nestjs/common';
 import { ProductsService } from './products.service';
 
 /** Catálogo público: sin JWT. */
@@ -42,6 +49,22 @@ export class ProductsController {
   @Get('by-slug/:slug')
   findBySlug(@Param('slug') slug: string) {
     return this.productsService.findOnePublicBySlug(slug);
+  }
+
+  /** Debe ir antes de @Get(':id') para no capturar "related" como UUID. */
+  @Get(':id/related')
+  getRelated(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('categoryId') categoryId: string,
+    @Query('limit') limit?: string,
+  ) {
+    const cat = categoryId?.trim();
+    if (!cat) {
+      throw new BadRequestException('categoryId es obligatorio');
+    }
+    const n = limit !== undefined && limit !== '' ? Number(limit) : 4;
+    const parsed = Number.isFinite(n) ? Math.floor(n) : 4;
+    return this.productsService.getRelated(id, cat, parsed);
   }
 
   @Get(':id')

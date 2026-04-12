@@ -131,6 +131,29 @@ export class ProductsService {
     return product;
   }
 
+  /** Misma categoría, excluye el producto actual; solo con stock (catálogo). */
+  async getRelated(productId: string, categoryId: string, limit = 4) {
+    const take = Math.min(Math.max(1, Math.floor(limit)), 24);
+    return this.prisma.product.findMany({
+      where: {
+        categoryId,
+        id: { not: productId },
+        stock: { gt: 0 },
+      },
+      include: {
+        category: {
+          select: { id: true, name: true, slug: true },
+        },
+        images: {
+          orderBy: { sortOrder: 'asc' },
+          take: 1,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
+    });
+  }
+
   private async ensureUniqueSlug(
     base: string,
     excludeProductId?: string,
