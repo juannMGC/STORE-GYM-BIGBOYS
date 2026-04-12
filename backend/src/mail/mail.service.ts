@@ -1,7 +1,5 @@
-import * as nodemailer from 'nodemailer';
 import { Injectable, Logger } from '@nestjs/common';
-import type SMTPTransport from 'nodemailer/lib/smtp-transport';
-import type { Transporter } from 'nodemailer';
+import { Resend } from 'resend';
 import type { Order, OrderItem, Product, Size, User } from '@prisma/client';
 
 /** Pedido cargado para plantillas (include de `orderIncludeMail` en orders.service). */
@@ -15,44 +13,30 @@ export type OrderMailPayload = Order & {
 
 @Injectable()
 export class MailService {
-  private transporter: Transporter | null = null;
+  private resend: Resend | null = null;
   private readonly logger = new Logger(MailService.name);
+  private readonly fromEmail: string;
+  private readonly frontendUrl: string;
 
   constructor() {
-    const user = process.env.MAIL_USER?.trim();
-    const pass = process.env.MAIL_PASS?.trim();
+    const apiKey = process.env.RESEND_API_KEY?.trim();
+    this.fromEmail =
+      process.env.MAIL_FROM?.trim() ??
+      'Big Boys Gym <noreply@bigboysgym.com>';
+    this.frontendUrl = (
+      process.env.FRONTEND_URL?.trim() ??
+      'https://store-gym-bigboys.vercel.app'
+    ).replace(/\/$/, '');
 
-    if (!user || !pass) {
+    if (!apiKey) {
       this.logger.warn(
-        'MAIL_USER o MAIL_PASS no configurados. Emails deshabilitados.',
+        'RESEND_API_KEY no configurada. Emails deshabilitados.',
       );
       return;
     }
 
-    /** IPv4 fija: evita AAAA/IPv6 en Render; `servername` valida el cert contra smtp.gmail.com. */
-    const smtpOptions: SMTPTransport.Options = {
-      host: '74.125.130.108',
-      port: Number(process.env.MAIL_PORT ?? 587),
-      secure: false,
-      requireTLS: true,
-      auth: { user, pass },
-      tls: {
-        rejectUnauthorized: false,
-        minVersion: 'TLSv1.2',
-        servername: 'smtp.gmail.com',
-      },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000,
-    };
-    this.transporter = nodemailer.createTransport(smtpOptions);
-
-    void this.transporter
-      .verify()
-      .then(() => this.logger.log('✅ SMTP Gmail conectado'))
-      .catch((err: Error) =>
-        this.logger.error(`❌ SMTP error: ${err.message}`),
-      );
+    this.resend = new Resend(apiKey);
+    this.logger.log('✅ Resend inicializado correctamente');
   }
 
   private async send(options: {
@@ -60,23 +44,32 @@ export class MailService {
     subject: string;
     html: string;
   }): Promise<boolean> {
-    if (!this.transporter) {
-      this.logger.warn('Transporter no inicializado');
+    if (!this.resend) {
+      this.logger.warn('Resend no inicializado');
       return false;
     }
-    const from =
-      process.env.MAIL_FROM?.trim() ??
-      'Big Boys Gym <bigboysdevs@gmail.com>';
     try {
-      const result = await this.transporter.sendMail({
-        from,
-        ...options,
+      const { data, error } = await this.resend.emails.send({
+        from: this.fromEmail,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
       });
-      this.logger.log(`Email enviado a ${options.to}: ${result.messageId}`);
+
+      if (error) {
+        this.logger.error(
+          `Error Resend al enviar a ${options.to}: ${JSON.stringify(error)}`,
+        );
+        return false;
+      }
+
+      this.logger.log(`✅ Email enviado a ${options.to}: ${data?.id ?? '(sin id)'}`);
       return true;
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error al enviar email a ${options.to}: ${msg}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `Excepción al enviar email a ${options.to}: ${msg}`,
+      );
       return false;
     }
   }
@@ -116,11 +109,7 @@ export class MailService {
   }
 
   private calcularTotal(
-    items: Array<{
-      unitPrice?: number;
-      priceSnapshot: number;
-      quantity: number;
-    }>,
+    items: OrderMailPayload['items'],
   ): number {
     return (
       items?.reduce(
@@ -137,9 +126,7 @@ export class MailService {
     return p?.title ?? p?.name ?? 'Producto';
   }
 
-  private buildItemsTable(
-    items: OrderMailPayload['items'],
-  ): string {
+  private buildItemsTable(items: OrderMailPayload['items']): string {
     const filas =
       items
         ?.map((item) => {
@@ -211,20 +198,12 @@ export class MailService {
     `;
   }
 
-  private frontendUrl(): string {
-    return (
-      process.env.FRONTEND_URL?.trim() ??
-      'https://store-gym-bigboys.vercel.app'
-    ).replace(/\/$/, '');
-  }
-
   async sendOrderConfirmation(order: OrderMailPayload): Promise<void> {
     const emailDestino =
       order.shippingEmail?.trim() || order.user?.email?.trim();
     if (!emailDestino) return;
 
     const total = this.calcularTotal(order.items);
-    const base = this.frontendUrl();
     const sid = this.shortOrderId(order.id);
     const nombre = this.escapeHtml(order.user?.name ?? 'cliente');
 
@@ -238,15 +217,15 @@ export class MailService {
       </div>
       ${this.buildItemsTable(order.items)}
       <div style="text-align:right;background:#1a1a1a;padding:16px;border-top:2px solid #d91920">
-        <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Total a pagar</p>
-        <p style="margin:4px 0 0;font-size:24px;color:#f7e047;font-weight:bold;letter-spacing:2px">${this.formatCOP(total)}</p>
+        <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Total</p>
+        <p style="margin:4px 0 0;font-size:24px;color:#f7e047;font-weight:bold">${this.formatCOP(total)}</p>
       </div>
       <div style="margin-top:24px;padding:16px;background:#1a1a1a;border:1px solid #2a2a2a">
         <p style="margin:0 0 8px;font-size:11px;color:#f7e047;letter-spacing:2px;text-transform:uppercase;font-weight:bold">Próximos pasos</p>
-        <p style="margin:0;font-size:13px;color:#a1a1aa;line-height:1.6">Nos contactaremos pronto para coordinar la entrega. Si tenés dudas escribinos.</p>
+        <p style="margin:0;font-size:13px;color:#a1a1aa;line-height:1.6">Nos contactaremos pronto para coordinar la entrega.</p>
       </div>
       <div style="text-align:center;margin-top:28px">
-        <a href="${this.escapeHtml(base)}/mis-pedidos" style="display:inline-block;background:#d91920;color:#ffffff;padding:14px 32px;text-decoration:none;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase">VER MIS PEDIDOS →</a>
+        <a href="${this.escapeHtml(this.frontendUrl)}/mis-pedidos" style="display:inline-block;background:#d91920;color:#ffffff;padding:14px 32px;text-decoration:none;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase">VER MIS PEDIDOS →</a>
       </div>
     `;
 
@@ -263,25 +242,17 @@ export class MailService {
       process.env.MAIL_USER?.trim() ??
       process.env.ADMIN_EMAIL?.trim();
     if (!adminEmail) {
-      this.logger.warn('MAIL_ADMIN_TO / MAIL_USER no definido; email admin omitido.');
+      this.logger.warn(
+        'MAIL_ADMIN_TO / MAIL_USER / ADMIN_EMAIL no definido; email admin omitido.',
+      );
       return;
     }
 
     const total = this.calcularTotal(order.items);
-    const base = this.frontendUrl();
     const sid = this.shortOrderId(order.id);
-    const shipRow = order.shippingCity?.trim()
-      ? `<tr>
-        <td style="padding:6px 0;color:#71717a;font-size:12px">Envío a:</td>
-        <td style="padding:6px 0;color:#e4e4e7;font-size:13px">
-          ${this.escapeHtml(order.shippingAddress?.trim() ?? '—')}, ${this.escapeHtml(order.shippingCity.trim())}
-        </td>
-      </tr>`
-      : '';
 
     const contenido = `
       <h2 style="color:#ffffff;margin:0 0 8px;font-size:20px">🛒 Nuevo pedido recibido</h2>
-      <p style="color:#a1a1aa;margin:0 0 24px;font-size:14px">Se acaba de confirmar un nuevo pedido en la tienda.</p>
       <div style="background:#1a1a1a;border:1px solid #2a2a2a;padding:16px;margin-bottom:20px">
         <p style="margin:0 0 12px;font-size:11px;color:#f7e047;letter-spacing:2px;text-transform:uppercase;font-weight:bold">Datos del cliente</p>
         <table style="width:100%;border-collapse:collapse">
@@ -301,18 +272,17 @@ export class MailService {
             <td style="padding:6px 0;color:#71717a;font-size:12px">Total:</td>
             <td style="padding:6px 0;color:#f7e047;font-size:16px;font-weight:bold">${this.formatCOP(total)}</td>
           </tr>
-          ${shipRow}
         </table>
       </div>
       ${this.buildItemsTable(order.items)}
       <div style="text-align:center;margin-top:24px">
-        <a href="${this.escapeHtml(base)}/admin/pedidos/${this.escapeHtml(order.id)}" style="display:inline-block;background:#d91920;color:#ffffff;padding:14px 32px;text-decoration:none;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase">VER PEDIDO EN ADMIN →</a>
+        <a href="${this.escapeHtml(this.frontendUrl)}/admin/pedidos/${this.escapeHtml(order.id)}" style="display:inline-block;background:#d91920;color:#ffffff;padding:14px 32px;text-decoration:none;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase">VER PEDIDO EN ADMIN →</a>
       </div>
     `;
 
     await this.send({
       to: adminEmail,
-      subject: `🛒 Nuevo pedido #${sid} · $${total.toLocaleString('es-CO')}`,
+      subject: `🛒 Nuevo pedido #${sid} · ${this.formatCOP(total)}`,
       html: this.baseTemplate(contenido),
     });
   }
@@ -327,35 +297,29 @@ export class MailService {
 
     const statusConfig: Record<
       string,
-      { emoji: string; titulo: string; mensaje: string; color: string }
+      { emoji: string; titulo: string; mensaje: string }
     > = {
       PAID: {
         emoji: '✅',
         titulo: '¡Pedido confirmado!',
         mensaje:
-          'Tu pedido fue confirmado y está siendo preparado. Pronto nos contactamos para coordinar la entrega.',
-        color: '#22c55e',
+          'Tu pedido fue confirmado y está siendo preparado.',
       },
       SHIPPED: {
         emoji: '🚚',
         titulo: '¡Tu pedido va en camino!',
-        mensaje:
-          'Tu pedido fue despachado y está en camino. Pronto lo recibirás.',
-        color: '#f97316',
+        mensaje: 'Tu pedido fue despachado. Pronto lo recibirás.',
       },
       DELIVERED: {
         emoji: '📦',
         titulo: '¡Pedido entregado!',
         mensaje:
-          '¡Tu pedido fue entregado exitosamente! Esperamos que disfrutes tus productos. 💪',
-        color: '#22c55e',
+          '¡Tu pedido fue entregado! Esperamos que disfrutes tus productos. 💪',
       },
       CANCELLED: {
         emoji: '❌',
         titulo: 'Pedido cancelado',
-        mensaje:
-          'Tu pedido fue cancelado. Si tenés dudas o necesitás ayuda, contactanos.',
-        color: '#d91920',
+        mensaje: 'Tu pedido fue cancelado. Contactanos si tenés dudas.',
       },
     };
 
@@ -363,60 +327,26 @@ export class MailService {
     if (!config) return;
 
     const total = this.calcularTotal(order.items);
-    const base = this.frontendUrl();
     const sid = this.shortOrderId(order.id);
-    const items = order.items ?? [];
-    const head = items.slice(0, 3);
-    const rest = items.length > 3 ? items.length - 3 : 0;
-
-    const lines =
-      head
-        .map((item) => {
-          const unit = this.itemUnitPrice(item);
-          const pl = this.escapeHtml(this.productLineLabel(item));
-          const sz = item.size?.name
-            ? ` · Talla ${this.escapeHtml(item.size.name)}`
-            : '';
-          return `
-          <div style="padding:10px 0;border-bottom:1px solid #1a1a1a">
-            <p style="margin:0;font-size:13px;color:#e4e4e7">${pl}</p>
-            <p style="margin:2px 0 0;font-size:11px;color:#52525b">× ${item.quantity}${sz}</p>
-            <p style="margin:4px 0 0;font-size:13px;color:#f7e047;font-weight:bold;text-align:right">${this.formatCOP(unit * item.quantity)}</p>
-          </div>`;
-        })
-        .join('') ?? '';
-    const more =
-      rest > 0
-        ? `<p style="margin:8px 0 0;font-size:12px;color:#52525b;text-align:center">+ ${rest} producto(s) más</p>`
-        : '';
 
     const contenido = `
       <div style="text-align:center;margin-bottom:28px">
         <div style="font-size:48px;margin-bottom:12px">${config.emoji}</div>
         <h2 style="color:#ffffff;margin:0 0 8px;font-size:22px">${this.escapeHtml(config.titulo)}</h2>
-        <p style="color:#a1a1aa;margin:0;font-size:14px;line-height:1.6;max-width:400px;margin-left:auto;margin-right:auto">${this.escapeHtml(config.mensaje)}</p>
+        <p style="color:#a1a1aa;margin:0;font-size:14px;line-height:1.6">${this.escapeHtml(config.mensaje)}</p>
       </div>
-      <div style="background:#1a1a1a;border-left:3px solid ${config.color};padding:16px;margin-bottom:24px">
-        <table style="width:100%;border-collapse:collapse"><tr>
-          <td style="vertical-align:top">
-            <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Pedido</p>
-            <p style="margin:4px 0 0;font-size:16px;color:#f7e047;font-weight:bold;letter-spacing:2px">#${sid}</p>
-          </td>
-          <td style="vertical-align:top;text-align:right">
-            <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Total</p>
-            <p style="margin:4px 0 0;font-size:16px;color:#f7e047;font-weight:bold">${this.formatCOP(total)}</p>
-          </td>
-        </tr></table>
+      <div style="background:#1a1a1a;border-left:3px solid #d91920;padding:16px;margin-bottom:24px">
+        <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Pedido</p>
+        <p style="margin:4px 0 0;font-size:16px;color:#f7e047;font-weight:bold">#${sid} · ${this.formatCOP(total)}</p>
       </div>
-      <div style="margin-bottom:24px">${lines}${more}</div>
       <div style="text-align:center">
-        <a href="${this.escapeHtml(base)}/mis-pedidos" style="display:inline-block;background:#d91920;color:#ffffff;padding:14px 32px;text-decoration:none;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase">VER MIS PEDIDOS →</a>
+        <a href="${this.escapeHtml(this.frontendUrl)}/mis-pedidos" style="display:inline-block;background:#d91920;color:#ffffff;padding:14px 32px;text-decoration:none;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase">VER MIS PEDIDOS →</a>
       </div>
     `;
 
     await this.send({
       to: emailDestino,
-      subject: `${config.emoji} Pedido #${sid} · ${config.titulo} · Big Boys Gym`,
+      subject: `${config.emoji} ${config.titulo} · Pedido #${sid} · Big Boys Gym`,
       html: this.baseTemplate(contenido),
     });
   }
