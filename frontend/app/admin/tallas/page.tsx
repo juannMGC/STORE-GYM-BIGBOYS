@@ -182,8 +182,8 @@ export default function AdminTallasPage() {
           <AdminTableSkeleton />
         </div>
       ) : (
-        <div className="panel-brand mt-8 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
+        <div className="admin-table-scroll panel-brand mt-8 overflow-x-auto">
+          <table className="w-full min-w-[600px] text-left text-sm">
             <thead>
               <tr className="border-b-2 border-[#2a2a2a] text-xs uppercase tracking-wide text-zinc-500">
                 <th className="p-4 font-medium">Nombre</th>
@@ -236,19 +236,16 @@ export default function AdminTallasPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="size-modal-title"
-          className="p-2 sm:p-5"
+          className="admin-modal-overlay flex items-start justify-center overflow-y-auto p-2 sm:items-center sm:p-5"
           style={{
             position: "fixed",
             inset: 0,
             zIndex: 9999,
             backgroundColor: "rgba(0,0,0,0.85)",
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "center",
-            overflowY: "auto",
           }}
         >
           <div
+            className="admin-modal-container flex flex-col"
             style={{
               width: "100%",
               maxWidth: "448px",
@@ -257,8 +254,6 @@ export default function AdminTallasPage() {
               backgroundColor: "#1a1a1a",
               border: "1px solid #2a2a2a",
               borderRadius: "4px",
-              display: "flex",
-              flexDirection: "column",
             }}
           >
             <div

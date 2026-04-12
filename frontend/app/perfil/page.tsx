@@ -123,8 +123,8 @@ export default function PerfilPage() {
   }
 
   return (
-    <div className="min-h-[60vh] bg-[#050505] px-4 py-10">
-      <div className="mx-auto max-w-[480px]">
+    <div className="min-h-[60vh] bg-[#050505] px-4 py-8 sm:py-10">
+      <div className="mx-auto w-full max-w-[480px]">
         <div className="flex flex-col items-center">
           <div
             style={{
@@ -170,7 +170,7 @@ export default function PerfilPage() {
           <button
             type="button"
             disabled={avatarSaving}
-            className="btn-brand-outline mt-4 text-sm disabled:opacity-50"
+            className="btn-brand-outline mt-4 w-full text-sm disabled:opacity-50 sm:w-auto"
             onClick={() => fileInputRef.current?.click()}
           >
             {avatarSaving ? "Subiendo…" : "📷 Cambiar foto"}
@@ -187,8 +187,8 @@ export default function PerfilPage() {
           ) : null}
         </div>
 
-        <div className="panel-brand mt-10 p-6">
-          <h2 className="font-display text-lg uppercase tracking-[0.2em] text-brand-yellow">
+        <div className="panel-brand mt-10 p-4 sm:p-6">
+          <h2 className="font-display text-base uppercase tracking-[0.2em] text-brand-yellow sm:text-lg">
             Mi información
           </h2>
           <form onSubmit={(e) => void handleSubmit(e)} className="mt-6 space-y-4">
@@ -256,8 +256,8 @@ export default function PerfilPage() {
           </form>
         </div>
 
-        <div className="panel-brand mt-8 p-6">
-          <h2 className="font-display text-lg uppercase tracking-[0.2em] text-brand-yellow">
+        <div className="panel-brand mt-8 p-4 sm:p-6">
+          <h2 className="font-display text-base uppercase tracking-[0.2em] text-brand-yellow sm:text-lg">
             Seguridad
           </h2>
           <p className="mt-4 text-sm text-zinc-400">

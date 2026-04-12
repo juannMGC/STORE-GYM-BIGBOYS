@@ -295,8 +295,8 @@ export default function CheckoutPage() {
     <div
       className={
         step === 2
-          ? "mx-auto max-w-5xl px-4 py-10"
-          : "mx-auto max-w-lg px-4 py-10"
+          ? "checkout-page-wrap mx-auto max-w-[1100px] px-4 py-10"
+          : "checkout-page-wrap mx-auto max-w-lg px-4 py-10 md:max-w-[1100px]"
       }
     >
       <h1 className="font-display text-5xl uppercase tracking-wide text-white">Checkout</h1>
@@ -484,8 +484,8 @@ export default function CheckoutPage() {
             pedido queda en borrador hasta que el pago sea aprobado.
           </p>
 
-          <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
-            <div className="panel-brand p-6">
+          <div className="checkout-grid mt-6 grid grid-cols-1 gap-8 md:grid-cols-2 md:items-start">
+            <div className="checkout-summary order-1 panel-brand p-6 md:order-2">
               <p className="font-display text-lg uppercase tracking-wide text-brand-yellow">
                 Resumen del pedido
               </p>
@@ -579,7 +579,7 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <div className="panel-brand p-6">
+            <div className="checkout-form order-2 panel-brand p-6 md:order-1">
               <p className="font-display text-lg uppercase tracking-wide text-brand-yellow">
                 Método de pago
               </p>

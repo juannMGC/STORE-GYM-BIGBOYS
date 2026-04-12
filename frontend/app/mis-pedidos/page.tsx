@@ -118,8 +118,10 @@ export default function MisPedidosPage() {
   const list = orders ?? [];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="font-display text-4xl uppercase tracking-wide text-white">Mis pedidos</h1>
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
+      <h1 className="font-display text-3xl uppercase tracking-wide text-white sm:text-4xl">
+        Mis pedidos
+      </h1>
       <p className="mt-2 text-sm text-zinc-500">
         Historial de compras (el carrito en borrador no se muestra acá).
       </p>
@@ -137,7 +139,7 @@ export default function MisPedidosPage() {
             const { label, color } = statusDisplay(o.status);
             const total = orderTotal(o);
             return (
-              <li key={o.id} className="panel-brand p-6">
+              <li key={o.id} className="panel-brand p-4 sm:p-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -225,6 +227,7 @@ export default function MisPedidosPage() {
                         )}
                         <div style={{ flex: 1 }}>
                           <p
+                            className="break-words"
                             style={{
                               color: "#f7e047",
                               fontWeight: 600,

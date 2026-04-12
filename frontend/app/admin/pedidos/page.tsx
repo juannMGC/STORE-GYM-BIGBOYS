@@ -131,8 +131,8 @@ function AdminPedidosInner() {
           <PedidosListSkeleton />
         </div>
       ) : (
-        <div className="panel-brand mt-6 overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
+        <div className="admin-table-scroll panel-brand mt-6 overflow-x-auto">
+          <table className="min-w-[600px] w-full text-left text-sm">
             <thead className="border-b-2 border-brand-border bg-brand-black text-zinc-400">
               <tr>
                 <th className="px-4 py-3 font-medium">ID</th>

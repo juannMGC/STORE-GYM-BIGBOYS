@@ -690,11 +690,11 @@ export default function AdminPedidoDetailPage() {
 
       {addOpen ? (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4"
+          className="admin-modal-overlay fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-black/70 p-4 sm:items-center"
           role="dialog"
           aria-modal="true"
         >
-          <div className="panel-brand max-h-[90vh] w-full max-w-md overflow-y-auto p-6">
+          <div className="admin-modal-container panel-brand max-h-[90vh] w-full max-w-md overflow-y-auto p-6">
             <h2 className="font-display text-xl uppercase text-white">Agregar producto</h2>
             {catalogLoading ? (
               <p className="mt-4 text-zinc-500">Cargando…</p>

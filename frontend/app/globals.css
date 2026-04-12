@@ -72,3 +72,39 @@ body::before {
 .select-brand {
   @apply w-full border-2 border-brand-border bg-brand-black px-3 py-2.5 text-zinc-100 focus:border-brand-red focus:outline-none;
 }
+
+/* —— Responsive: móvil < 768px —— */
+@media (min-width: 768px) {
+  .header-hamburger-btn {
+    display: none !important;
+  }
+  .header-mobile-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .header-desktop-nav {
+    display: none !important;
+  }
+}
+
+.admin-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767px) {
+  .admin-modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .admin-modal-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+}

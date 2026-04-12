@@ -128,37 +128,37 @@ export default function CarritoPage() {
   );
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="font-display text-5xl uppercase tracking-wide text-white">Carrito</h1>
+    <div className="mx-auto max-w-3xl px-4 pb-32 pt-10 md:pb-10">
+      <h1 className="font-display text-4xl uppercase tracking-wide text-white sm:text-5xl">Carrito</h1>
       {displayName ? (
         <p className="mt-1 text-sm text-zinc-500">Comprando como {displayName}</p>
       ) : null}
       <ul className="panel-brand mt-8 divide-y divide-brand-border">
         {order.items.map((line) => (
-          <li
-            key={line.id}
-            className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center"
-          >
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden border-2 border-brand-border bg-brand-black">
-              {line.product.images[0] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={line.product.images[0].url}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              ) : null}
+          <li key={line.id} className="flex flex-col gap-3 p-4 md:flex-row md:items-center">
+            <div className="flex min-w-0 flex-1 gap-3">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden border-2 border-brand-border bg-brand-black md:h-20 md:w-20">
+                {line.product.images[0] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={line.product.images[0].url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : null}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-zinc-100">{line.product.title}</p>
+                {line.size && (
+                  <p className="text-sm text-zinc-500">Talla: {line.size.name}</p>
+                )}
+                <p className="text-sm text-zinc-400">${line.priceSnapshot.toFixed(2)} c/u</p>
+                <p className="mt-1 font-display text-lg text-brand-yellow md:hidden">
+                  ${(line.priceSnapshot * line.quantity).toFixed(2)}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-medium text-zinc-100">{line.product.title}</p>
-              {line.size && (
-                <p className="text-sm text-zinc-500">Talla: {line.size.name}</p>
-              )}
-              <p className="text-sm text-zinc-400">
-                ${line.priceSnapshot.toFixed(2)} c/u
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 md:justify-end">
               <input
                 type="number"
                 min={0}
@@ -177,19 +177,40 @@ export default function CarritoPage() {
                 Quitar
               </button>
             </div>
-            <div className="font-display text-xl text-brand-yellow">
+            <div className="hidden shrink-0 font-display text-xl text-brand-yellow md:block md:text-right">
               ${(line.priceSnapshot * line.quantity).toFixed(2)}
             </div>
           </li>
         ))}
       </ul>
-      <div className="mt-6 flex items-center justify-between border-t-2 border-brand-border pt-6">
+      <div className="mt-6 hidden items-center justify-between border-t-2 border-brand-border pt-6 md:flex">
         <span className="font-display text-xl uppercase text-zinc-400">Subtotal</span>
         <span className="font-display text-3xl text-brand-yellow">${subtotal.toFixed(2)}</span>
       </div>
-      <Link href="/checkout" className="btn-brand mt-8 inline-flex w-full sm:w-auto">
+      <Link
+        href="/checkout"
+        className="btn-brand mt-8 hidden w-full text-center md:inline-flex md:w-auto"
+      >
         Continuar al checkout
       </Link>
+
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 border-t-2 border-brand-red bg-[#111111] p-4 md:hidden"
+        style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
+      >
+        <div className="mb-3 flex justify-between">
+          <span style={{ color: "#a1a1aa" }}>Total</span>
+          <span
+            className="font-display text-xl"
+            style={{ color: "#f7e047" }}
+          >
+            ${subtotal.toLocaleString("es-CO", { maximumFractionDigits: 0 })}
+          </span>
+        </div>
+        <Link href="/checkout" className="btn-brand block w-full text-center">
+          Ir al checkout →
+        </Link>
+      </div>
     </div>
   );
 }
