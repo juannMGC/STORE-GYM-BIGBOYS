@@ -46,6 +46,7 @@ const orderInclude = {
   },
 } as const;
 
+/** Incluye envío y pago para plantillas HTML (MailService). */
 const orderIncludeMail = {
   user: { select: { email: true, name: true } },
   items: {
@@ -631,7 +632,10 @@ export class OrdersService {
       });
       const forMail = await this.loadOrderForMail(order.id);
       if (forMail) {
-        void this.mailService.sendPedidoConfirmado(forMail).catch((err: unknown) => {
+        void Promise.all([
+          this.mailService.sendOrderConfirmation(forMail),
+          this.mailService.sendNewOrderToAdmin(forMail),
+        ]).catch((err: unknown) => {
           this.logger.error(`Email pedido confirmado (Wompi): ${String(err)}`);
         });
       }
@@ -677,7 +681,7 @@ export class OrdersService {
       );
     }
     assertClientConfirm(order.status as OrderStatusValue);
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       await this.deductStockForItemsTx(tx, order.items);
       return tx.order.update({
         where: { id: orderId },
@@ -685,6 +689,16 @@ export class OrdersService {
         include: orderInclude,
       });
     });
+    const mailPayload = await this.loadOrderForMail(orderId);
+    if (mailPayload) {
+      void Promise.all([
+        this.mailService.sendOrderConfirmation(mailPayload),
+        this.mailService.sendNewOrderToAdmin(mailPayload),
+      ]).catch((err: unknown) =>
+        this.logger.error(`Error enviando emails de confirmación: ${String(err)}`),
+      );
+    }
+    return updated;
   }
 
   async confirmCart(userId: string) {
@@ -838,16 +852,8 @@ export class OrdersService {
       });
     });
 
-    if (to === OrderStatus.PAID && from === OrderStatus.PENDING) {
-      const forMail = await this.loadOrderForMail(id);
-      if (forMail) {
-        void this.mailService.sendPedidoConfirmado(forMail).catch((err: unknown) => {
-          this.logger.error(`Email pedido confirmado (admin → PAID): ${String(err)}`);
-        });
-      }
-    }
-
     if (
+      to === OrderStatus.PAID ||
       to === OrderStatus.SHIPPED ||
       to === OrderStatus.DELIVERED ||
       to === OrderStatus.CANCELLED
@@ -855,12 +861,9 @@ export class OrdersService {
       const forMail = await this.loadOrderForMail(id);
       if (forMail) {
         void this.mailService
-          .sendEstadoActualizadoCliente(
-            forMail,
-            to as 'SHIPPED' | 'DELIVERED' | 'CANCELLED',
-          )
+          .sendStatusUpdate(forMail, to)
           .catch((err: unknown) => {
-            this.logger.error(`Email estado pedido: ${String(err)}`);
+            this.logger.error(`Error email estado: ${String(err)}`);
           });
       }
     }

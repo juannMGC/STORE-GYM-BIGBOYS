@@ -1,13 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import { Injectable, Logger } from '@nestjs/common';
 import type { Transporter } from 'nodemailer';
 import type { Order, OrderItem, Product, Size, User } from '@prisma/client';
 
-const BRAND_RED = '#d91920';
-const BRAND_YELLOW = '#f7e047';
-const BG = '#050505';
-const TEXT = '#e4e4e7';
-
+/** Pedido cargado para plantillas (include de `orderIncludeMail` en orders.service). */
 export type OrderMailPayload = Order & {
   user: Pick<User, 'email' | 'name'>;
   items: (OrderItem & {
@@ -16,37 +12,25 @@ export type OrderMailPayload = Order & {
   })[];
 };
 
-type SmtpError = Error & { code?: string; command?: string; responseCode?: number };
-
 @Injectable()
 export class MailService {
+  private transporter: Transporter | null = null;
   private readonly logger = new Logger(MailService.name);
-  private readonly transporter: Transporter | undefined;
 
   constructor() {
     const user = process.env.MAIL_USER?.trim();
     const pass = process.env.MAIL_PASS?.trim();
-    const host = process.env.MAIL_HOST?.trim() ?? 'smtp.gmail.com';
-    const port = Number(process.env.MAIL_PORT ?? 587);
-
-    this.logger.log(
-      `[MailService] Configuración: ${JSON.stringify({
-        host,
-        port,
-        user: user ? `${user.slice(0, 5)}...` : 'NO DEFINIDO',
-        pass: pass ? `${pass.length} chars` : 'NO DEFINIDO',
-        from: process.env.MAIL_FROM?.trim() ?? 'NO DEFINIDO',
-      })}`,
-    );
 
     if (!user || !pass) {
-      this.logger.warn('[MailService] Sin credenciales, emails deshabilitados');
+      this.logger.warn(
+        'MAIL_USER o MAIL_PASS no configurados. Emails deshabilitados.',
+      );
       return;
     }
 
     this.transporter = nodemailer.createTransport({
-      host,
-      port,
+      host: process.env.MAIL_HOST?.trim() ?? 'smtp.gmail.com',
+      port: Number(process.env.MAIL_PORT ?? 587),
       secure: false,
       requireTLS: true,
       auth: { user, pass },
@@ -54,249 +38,382 @@ export class MailService {
         rejectUnauthorized: false,
         minVersion: 'TLSv1.2',
       },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
     });
 
     void this.transporter
       .verify()
-      .then(() => this.logger.log('[MailService] Conexión SMTP OK ✓'))
+      .then(() => this.logger.log('✅ SMTP Gmail conectado'))
       .catch((err: Error) =>
-        this.logger.error(`[MailService] Error de conexión SMTP: ${err.message}`),
+        this.logger.error(`❌ SMTP error: ${err.message}`),
       );
   }
 
-  /**
-   * Envío SMTP unificado. Si throwOnFailure es false, solo registra el error (emails opcionales).
-   */
-  private async deliverMail(
-    to: string,
-    subject: string,
-    html: string,
-    throwOnFailure: boolean,
-  ): Promise<void> {
+  private async send(options: {
+    to: string;
+    subject: string;
+    html: string;
+  }): Promise<boolean> {
     if (!this.transporter) {
-      const msg =
-        'Transporter no inicializado. Verificar MAIL_USER y MAIL_PASS en Render.';
-      this.logger.warn(`[MailService] ${msg}`);
-      if (throwOnFailure) {
-        throw new BadRequestException(msg);
-      }
-      return;
+      this.logger.warn('Transporter no inicializado');
+      return false;
     }
-    const from = process.env.MAIL_FROM?.trim();
-    if (!from) {
-      const msg = 'MAIL_FROM no definido';
-      if (throwOnFailure) {
-        throw new BadRequestException(`Envío de correo no configurado (${msg})`);
-      }
-      this.logger.warn(`[MailService] ${msg}; email omitido.`);
-      return;
-    }
+    const from =
+      process.env.MAIL_FROM?.trim() ??
+      'Big Boys Gym <bigboysdevs@gmail.com>';
     try {
-      const result = await this.transporter.sendMail({ from, to, subject, html });
-      this.logger.log(`[MailService] Email enviado: ${result.messageId ?? '(sin id)'}`);
-    } catch (e: unknown) {
-      const err = e as SmtpError;
-      this.logger.error(
-        `[MailService] Error al enviar: ${JSON.stringify({
-          message: err.message,
-          code: err.code,
-          command: err.command,
-          responseCode: err.responseCode,
-        })}`,
-      );
-      if (throwOnFailure) {
-        throw new BadRequestException(`Error SMTP: ${err.message ?? String(e)}`);
-      }
+      const result = await this.transporter.sendMail({
+        from,
+        ...options,
+      });
+      this.logger.log(`Email enviado a ${options.to}: ${result.messageId}`);
+      return true;
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error al enviar email a ${options.to}: ${msg}`);
+      return false;
     }
   }
 
-  private wrapHtml(inner: string): string {
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width"/></head>
-<body style="margin:0;padding:0;background:${BG};font-family:system-ui,Segoe UI,sans-serif;color:${TEXT};">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${BG};padding:24px 12px;">
-<tr><td align="center">
-<table width="560" cellspacing="0" cellpadding="0" style="max-width:560px;border:2px solid ${BRAND_RED};background:#0a0a0a;">
-<tr><td style="padding:20px 24px;border-bottom:4px solid ${BRAND_RED};">
-<span style="font-size:20px;font-weight:800;letter-spacing:0.06em;color:${BRAND_YELLOW};text-transform:uppercase;">BIG BOYS GYM</span>
-</td></tr>
-<tr><td style="padding:24px;">${inner}</td></tr>
-<tr><td style="padding:16px 24px;border-top:1px solid #27272a;font-size:12px;color:#71717a;">
-Tienda oficial · Este es un mensaje automático, no respondas a este correo.
-</td></tr>
-</table>
-</td></tr></table></body></html>`;
-  }
-
-  private formatCop(n: number): string {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      maximumFractionDigits: 0,
-    }).format(n);
-  }
-
-  private orderTotal(order: OrderMailPayload): number {
-    return order.items.reduce((s, i) => s + i.priceSnapshot * i.quantity, 0);
-  }
-
-  private itemsTable(order: OrderMailPayload): string {
-    const rows = order.items
-      .map((line) => {
-        const size = line.size ? ` · ${line.size.name}` : '';
-        const lineTotal = line.priceSnapshot * line.quantity;
-        return `<tr>
-<td style="padding:10px 8px;border-bottom:1px solid #27272a;">${this.escape(line.product.title)}${size}</td>
-<td style="padding:10px 8px;border-bottom:1px solid #27272a;text-align:center;">${line.quantity}</td>
-<td style="padding:10px 8px;border-bottom:1px solid #27272a;text-align:right;">${this.formatCop(lineTotal)}</td>
-</tr>`;
-      })
-      .join('');
-    return `<table width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;">
-<tr style="color:#a1a1aa;font-size:11px;text-transform:uppercase;">
-<th align="left" style="padding:8px;">Producto</th><th style="padding:8px;">Cant.</th><th align="right" style="padding:8px;">Subtotal</th></tr>
-${rows}
-</table>`;
-  }
-
-  private escape(s: string): string {
-    return s
+  private escapeHtml(s: string): string {
+    return String(s)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
 
-  private paymentLabel(method: string | null): string {
-    const m = method ?? '';
-    if (m === 'CASH') return 'Efectivo';
-    if (m === 'BANK_TRANSFER') return 'Transferencia bancaria';
-    if (m === 'CARD') return 'Tarjeta';
-    return m || '—';
+  private shortOrderId(orderId: string): string {
+    return orderId.replace(/-/g, '').slice(0, 8).toUpperCase();
   }
 
-  private frontendBase(): string {
-    const raw =
-      process.env.FRONTEND_URL?.trim() ||
-      process.env.CORS_ORIGIN?.trim()?.split(',')[0]?.trim() ||
-      'http://localhost:3000';
-    return raw.replace(/\/$/, '');
+  private formatCOP(valor: number): string {
+    return `$${valor.toLocaleString('es-CO')} COP`;
   }
 
-  /**
-   * @param requireConfigured si true, propaga BadRequestException con mensaje SMTP (p. ej. factura).
-   */
-  private async sendHtml(
-    to: string,
-    subject: string,
-    html: string,
-    requireConfigured = false,
-  ): Promise<void> {
-    await this.deliverMail(to, subject, html, requireConfigured);
+  private formatFecha(fecha: Date | string): string {
+    return new Date(fecha).toLocaleDateString('es-CO', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   }
 
-  /** Pedido confirmado / pagado (PAID): cliente + admin. */
-  async sendPedidoConfirmado(order: OrderMailPayload): Promise<void> {
-    const idShort = order.id.slice(0, 8);
-    const total = this.orderTotal(order);
-    const clientEmail = order.user.email;
-    if (!clientEmail) {
-      this.logger.warn(`Pedido ${order.id}: usuario sin email`);
-      return;
+  private itemUnitPrice(item: {
+    unitPrice?: number;
+    priceSnapshot: number;
+  }): number {
+    if (typeof item.unitPrice === 'number' && Number.isFinite(item.unitPrice)) {
+      return item.unitPrice;
     }
+    return item.priceSnapshot;
+  }
 
-    const clientInner = `
-<p style="margin:0 0 16px;font-size:18px;font-weight:700;color:${BRAND_YELLOW};">¡Tu pedido está confirmado! 💪</p>
-<p style="margin:0 0 12px;line-height:1.5;">Hola${order.user.name ? ` <strong>${this.escape(order.user.name)}</strong>` : ''}, recibimos tu pedido <strong style="color:${BRAND_YELLOW};">#${idShort}</strong>.</p>
-${this.itemsTable(order)}
-<p style="margin:16px 0 0;font-size:18px;font-weight:700;color:${BRAND_YELLOW};">Total: ${this.formatCop(total)}</p>
-<p style="margin:16px 0 0;line-height:1.5;color:#a1a1aa;">Próximos pasos: revisamos el pago y preparamos tu envío. Te avisaremos cuando el pedido salga o si necesitamos algún dato extra.</p>
-`;
-
-    await this.sendHtml(
-      clientEmail,
-      `¡Tu pedido #${idShort} está confirmado! 💪`,
-      this.wrapHtml(clientInner),
-      false,
-    );
-
-    const adminTo =
-      process.env.MAIL_ADMIN_TO?.trim() ||
-      process.env.MAIL_USER?.trim() ||
-      process.env.ADMIN_EMAIL?.trim() ||
-      process.env.ADMIN_ORDER_EMAIL?.trim();
-    if (!adminTo) {
-      this.logger.warn('MAIL_ADMIN_TO / MAIL_USER / ADMIN_EMAIL no definido; email admin omitido.');
-      return;
-    }
-
-    const adminUrl = `${this.frontendBase()}/admin/pedidos/${encodeURIComponent(order.id)}`;
-    const adminInner = `
-<p style="margin:0 0 16px;font-size:18px;font-weight:700;color:${BRAND_YELLOW};">Nuevo pedido #${idShort}</p>
-<p style="margin:0 0 8px;"><strong>Cliente:</strong> ${this.escape(order.user.email)}${order.user.name ? ` · ${this.escape(order.user.name)}` : ''}</p>
-<p style="margin:0 0 16px;"><strong>Método de pago:</strong> ${this.escape(this.paymentLabel(order.paymentMethod))}</p>
-<p style="margin:0 0 8px;font-size:12px;color:#a1a1aa;">ID: ${this.escape(order.id)}</p>
-${this.itemsTable(order)}
-<p style="margin:16px 0 0;font-size:16px;font-weight:700;">Total: ${this.formatCop(total)}</p>
-<p style="margin:20px 0 0;"><a href="${this.escape(adminUrl)}" style="display:inline-block;padding:12px 24px;background:${BRAND_RED};color:#fff;text-decoration:none;font-weight:700;border-radius:4px;">Ver pedido en admin →</a></p>
-`;
-
-    await this.sendHtml(
-      adminTo,
-      `Nuevo pedido #${idShort} — Big Boys Gym`,
-      this.wrapHtml(adminInner),
-      false,
+  private calcularTotal(
+    items: Array<{
+      unitPrice?: number;
+      priceSnapshot: number;
+      quantity: number;
+    }>,
+  ): number {
+    return (
+      items?.reduce(
+        (sum, item) => sum + this.itemUnitPrice(item) * item.quantity,
+        0,
+      ) ?? 0
     );
   }
 
-  /** Admin o sistema actualiza estado: enviado, entregado o cancelado. */
-  async sendEstadoActualizadoCliente(
+  private productLineLabel(item: {
+    product?: { title?: string; name?: string };
+  }): string {
+    const p = item.product as { title?: string; name?: string } | undefined;
+    return p?.title ?? p?.name ?? 'Producto';
+  }
+
+  private buildItemsTable(
+    items: OrderMailPayload['items'],
+  ): string {
+    const filas =
+      items
+        ?.map((item) => {
+          const unit = this.itemUnitPrice(item);
+          const name = this.escapeHtml(this.productLineLabel(item));
+          const sizeName = item.size?.name
+            ? this.escapeHtml(item.size.name)
+            : '';
+          return `
+      <tr>
+        <td style="padding:10px 14px;border-bottom:1px solid #2a2a2a;color:#e4e4e7">
+          <strong>${name}</strong>
+          ${
+            sizeName
+              ? `<br/><span style="color:#71717a;font-size:12px">Talla: ${sizeName}</span>`
+              : ''
+          }
+        </td>
+        <td style="padding:10px 14px;border-bottom:1px solid #2a2a2a;color:#a1a1aa;text-align:center">
+          ${item.quantity}
+        </td>
+        <td style="padding:10px 14px;border-bottom:1px solid #2a2a2a;color:#a1a1aa;text-align:right">
+          ${this.formatCOP(unit)}
+        </td>
+        <td style="padding:10px 14px;border-bottom:1px solid #2a2a2a;color:#f7e047;text-align:right;font-weight:bold">
+          ${this.formatCOP(unit * item.quantity)}
+        </td>
+      </tr>`;
+        })
+        .join('') ?? '';
+
+    return `
+      <table style="width:100%;border-collapse:collapse;margin:20px 0">
+        <thead>
+          <tr style="background:#1a1a1a">
+            <th style="padding:10px 14px;text-align:left;color:#f7e047;font-size:11px;letter-spacing:2px;text-transform:uppercase">Producto</th>
+            <th style="padding:10px 14px;text-align:center;color:#f7e047;font-size:11px;letter-spacing:2px;text-transform:uppercase">Cant.</th>
+            <th style="padding:10px 14px;text-align:right;color:#f7e047;font-size:11px;letter-spacing:2px;text-transform:uppercase">P. Unit.</th>
+            <th style="padding:10px 14px;text-align:right;color:#f7e047;font-size:11px;letter-spacing:2px;text-transform:uppercase">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>${filas}</tbody>
+      </table>
+    `;
+  }
+
+  private baseTemplate(contenido: string): string {
+    return `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width,initial-scale=1"/>
+      </head>
+      <body style="margin:0;padding:0;background:#0a0a0a;font-family:sans-serif">
+        <div style="max-width:600px;margin:0 auto;background:#111111;border:1px solid #2a2a2a">
+          <div style="background:#050505;padding:24px 32px;border-bottom:3px solid #d91920">
+            <h1 style="margin:0;font-size:24px;color:#f7e047;letter-spacing:6px;text-transform:uppercase;font-weight:900">BIG BOYS GYM</h1>
+            <p style="margin:4px 0 0;font-size:11px;color:#52525b;letter-spacing:3px;text-transform:uppercase">TIENDA OFICIAL · MANIZALES, COLOMBIA</p>
+          </div>
+          <div style="padding:32px">${contenido}</div>
+          <div style="background:#050505;padding:20px 32px;border-top:1px solid #2a2a2a;text-align:center">
+            <p style="margin:0;font-size:11px;color:#3f3f46;letter-spacing:2px;text-transform:uppercase">BIG BOYS GYM · Manizales, Colombia</p>
+            <p style="margin:8px 0 0;font-size:11px;color:#27272a">Este es un mensaje automático, no respondas este correo.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private frontendUrl(): string {
+    return (
+      process.env.FRONTEND_URL?.trim() ??
+      'https://store-gym-bigboys.vercel.app'
+    ).replace(/\/$/, '');
+  }
+
+  async sendOrderConfirmation(order: OrderMailPayload): Promise<void> {
+    const emailDestino =
+      order.shippingEmail?.trim() || order.user?.email?.trim();
+    if (!emailDestino) return;
+
+    const total = this.calcularTotal(order.items);
+    const base = this.frontendUrl();
+    const sid = this.shortOrderId(order.id);
+    const nombre = this.escapeHtml(order.user?.name ?? 'cliente');
+
+    const contenido = `
+      <h2 style="color:#ffffff;margin:0 0 8px;font-size:20px">¡Tu pedido está confirmado! 💪</h2>
+      <p style="color:#a1a1aa;margin:0 0 24px;font-size:14px">Hola ${nombre}, recibimos tu pedido y lo estamos procesando.</p>
+      <div style="background:#1a1a1a;border-left:3px solid #d91920;padding:12px 16px;margin-bottom:24px">
+        <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Número de pedido</p>
+        <p style="margin:4px 0 0;font-size:18px;color:#f7e047;font-weight:bold;letter-spacing:2px">#${sid}</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#52525b">${this.formatFecha(order.createdAt)}</p>
+      </div>
+      ${this.buildItemsTable(order.items)}
+      <div style="text-align:right;background:#1a1a1a;padding:16px;border-top:2px solid #d91920">
+        <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Total a pagar</p>
+        <p style="margin:4px 0 0;font-size:24px;color:#f7e047;font-weight:bold;letter-spacing:2px">${this.formatCOP(total)}</p>
+      </div>
+      <div style="margin-top:24px;padding:16px;background:#1a1a1a;border:1px solid #2a2a2a">
+        <p style="margin:0 0 8px;font-size:11px;color:#f7e047;letter-spacing:2px;text-transform:uppercase;font-weight:bold">Próximos pasos</p>
+        <p style="margin:0;font-size:13px;color:#a1a1aa;line-height:1.6">Nos contactaremos pronto para coordinar la entrega. Si tenés dudas escribinos.</p>
+      </div>
+      <div style="text-align:center;margin-top:28px">
+        <a href="${this.escapeHtml(base)}/mis-pedidos" style="display:inline-block;background:#d91920;color:#ffffff;padding:14px 32px;text-decoration:none;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase">VER MIS PEDIDOS →</a>
+      </div>
+    `;
+
+    await this.send({
+      to: emailDestino,
+      subject: `✅ Pedido #${sid} confirmado · Big Boys Gym`,
+      html: this.baseTemplate(contenido),
+    });
+  }
+
+  async sendNewOrderToAdmin(order: OrderMailPayload): Promise<void> {
+    const adminEmail =
+      process.env.MAIL_ADMIN_TO?.trim() ??
+      process.env.MAIL_USER?.trim() ??
+      process.env.ADMIN_EMAIL?.trim();
+    if (!adminEmail) {
+      this.logger.warn('MAIL_ADMIN_TO / MAIL_USER no definido; email admin omitido.');
+      return;
+    }
+
+    const total = this.calcularTotal(order.items);
+    const base = this.frontendUrl();
+    const sid = this.shortOrderId(order.id);
+    const shipRow = order.shippingCity?.trim()
+      ? `<tr>
+        <td style="padding:6px 0;color:#71717a;font-size:12px">Envío a:</td>
+        <td style="padding:6px 0;color:#e4e4e7;font-size:13px">
+          ${this.escapeHtml(order.shippingAddress?.trim() ?? '—')}, ${this.escapeHtml(order.shippingCity.trim())}
+        </td>
+      </tr>`
+      : '';
+
+    const contenido = `
+      <h2 style="color:#ffffff;margin:0 0 8px;font-size:20px">🛒 Nuevo pedido recibido</h2>
+      <p style="color:#a1a1aa;margin:0 0 24px;font-size:14px">Se acaba de confirmar un nuevo pedido en la tienda.</p>
+      <div style="background:#1a1a1a;border:1px solid #2a2a2a;padding:16px;margin-bottom:20px">
+        <p style="margin:0 0 12px;font-size:11px;color:#f7e047;letter-spacing:2px;text-transform:uppercase;font-weight:bold">Datos del cliente</p>
+        <table style="width:100%;border-collapse:collapse">
+          <tr>
+            <td style="padding:6px 0;color:#71717a;font-size:12px;width:120px">Nombre:</td>
+            <td style="padding:6px 0;color:#e4e4e7;font-size:13px">${this.escapeHtml(order.user?.name ?? '—')}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;color:#71717a;font-size:12px">Email:</td>
+            <td style="padding:6px 0;color:#e4e4e7;font-size:13px">${this.escapeHtml(order.user?.email ?? '—')}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;color:#71717a;font-size:12px">Pedido:</td>
+            <td style="padding:6px 0;color:#f7e047;font-size:13px;font-weight:bold">#${sid}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;color:#71717a;font-size:12px">Total:</td>
+            <td style="padding:6px 0;color:#f7e047;font-size:16px;font-weight:bold">${this.formatCOP(total)}</td>
+          </tr>
+          ${shipRow}
+        </table>
+      </div>
+      ${this.buildItemsTable(order.items)}
+      <div style="text-align:center;margin-top:24px">
+        <a href="${this.escapeHtml(base)}/admin/pedidos/${this.escapeHtml(order.id)}" style="display:inline-block;background:#d91920;color:#ffffff;padding:14px 32px;text-decoration:none;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase">VER PEDIDO EN ADMIN →</a>
+      </div>
+    `;
+
+    await this.send({
+      to: adminEmail,
+      subject: `🛒 Nuevo pedido #${sid} · $${total.toLocaleString('es-CO')}`,
+      html: this.baseTemplate(contenido),
+    });
+  }
+
+  async sendStatusUpdate(
     order: OrderMailPayload,
-    status: 'SHIPPED' | 'DELIVERED' | 'CANCELLED',
+    newStatus: string,
   ): Promise<void> {
-    const clientEmail = order.user.email;
-    if (!clientEmail) return;
+    const emailDestino =
+      order.shippingEmail?.trim() || order.user?.email?.trim();
+    if (!emailDestino) return;
 
-    const idShort = order.id.slice(0, 8);
-    const base = this.frontendBase();
-    const misPedidosUrl = `${base}/mis-pedidos`;
+    const statusConfig: Record<
+      string,
+      { emoji: string; titulo: string; mensaje: string; color: string }
+    > = {
+      PAID: {
+        emoji: '✅',
+        titulo: '¡Pedido confirmado!',
+        mensaje:
+          'Tu pedido fue confirmado y está siendo preparado. Pronto nos contactamos para coordinar la entrega.',
+        color: '#22c55e',
+      },
+      SHIPPED: {
+        emoji: '🚚',
+        titulo: '¡Tu pedido va en camino!',
+        mensaje:
+          'Tu pedido fue despachado y está en camino. Pronto lo recibirás.',
+        color: '#f97316',
+      },
+      DELIVERED: {
+        emoji: '📦',
+        titulo: '¡Pedido entregado!',
+        mensaje:
+          '¡Tu pedido fue entregado exitosamente! Esperamos que disfrutes tus productos. 💪',
+        color: '#22c55e',
+      },
+      CANCELLED: {
+        emoji: '❌',
+        titulo: 'Pedido cancelado',
+        mensaje:
+          'Tu pedido fue cancelado. Si tenés dudas o necesitás ayuda, contactanos.',
+        color: '#d91920',
+      },
+    };
 
-    if (status === 'CANCELLED') {
-      const inner = `
-<p style="margin:0 0 16px;font-size:18px;font-weight:700;color:${BRAND_RED};">Tu pedido fue cancelado</p>
-<p style="margin:0 0 12px;line-height:1.5;">Hola${order.user.name ? ` ${this.escape(order.user.name)}` : ''},</p>
-<p style="margin:0 0 12px;line-height:1.5;">El pedido <strong style="color:${BRAND_YELLOW};">#${idShort}</strong> quedó registrado como <strong>cancelado</strong>. Si no reconocés esta acción, contactanos.</p>
-<p style="margin:0;font-size:13px;color:#a1a1aa;">Total referido: ${this.formatCop(this.orderTotal(order))}</p>
-<p style="margin:20px 0 0;"><a href="${this.escape(misPedidosUrl)}" style="display:inline-block;padding:12px 24px;background:${BRAND_RED};color:#fff;text-decoration:none;font-weight:700;border-radius:4px;">Ver mis pedidos →</a></p>
-`;
-      await this.sendHtml(
-        clientEmail,
-        `Pedido #${idShort} cancelado — Big Boys Gym`,
-        this.wrapHtml(inner),
-        false,
-      );
-      return;
-    }
+    const config = statusConfig[newStatus];
+    if (!config) return;
 
-    const isShipped = status === 'SHIPPED';
-    const subject = isShipped
-      ? `Tu pedido #${idShort} fue enviado 📦`
-      : `Tu pedido #${idShort} fue entregado ✅`;
-    const title = isShipped ? 'Tu pedido va en camino' : 'Tu pedido fue entregado';
-    const body = isShipped
-      ? 'Ya despachamos tu pedido. Pronto deberías recibirlo según el método de envío acordado.'
-      : 'Registramos la entrega de tu pedido. ¡Gracias por comprar en Big Boys Gym!';
+    const total = this.calcularTotal(order.items);
+    const base = this.frontendUrl();
+    const sid = this.shortOrderId(order.id);
+    const items = order.items ?? [];
+    const head = items.slice(0, 3);
+    const rest = items.length > 3 ? items.length - 3 : 0;
 
-    const inner = `
-<p style="margin:0 0 16px;font-size:18px;font-weight:700;color:${BRAND_YELLOW};">${this.escape(title)}</p>
-<p style="margin:0 0 12px;line-height:1.5;">Hola${order.user.name ? ` ${this.escape(order.user.name)}` : ''},</p>
-<p style="margin:0 0 12px;line-height:1.5;">${this.escape(body)}</p>
-<p style="margin:0;font-size:13px;color:#a1a1aa;">Pedido <strong style="color:${BRAND_YELLOW};">#${idShort}</strong> · Total ${this.formatCop(this.orderTotal(order))}</p>
-<p style="margin:20px 0 0;"><a href="${this.escape(misPedidosUrl)}" style="display:inline-block;padding:12px 24px;background:${BRAND_RED};color:#fff;text-decoration:none;font-weight:700;border-radius:4px;">Ver mis pedidos →</a></p>
-`;
+    const lines =
+      head
+        .map((item) => {
+          const unit = this.itemUnitPrice(item);
+          const pl = this.escapeHtml(this.productLineLabel(item));
+          const sz = item.size?.name
+            ? ` · Talla ${this.escapeHtml(item.size.name)}`
+            : '';
+          return `
+          <div style="padding:10px 0;border-bottom:1px solid #1a1a1a">
+            <p style="margin:0;font-size:13px;color:#e4e4e7">${pl}</p>
+            <p style="margin:2px 0 0;font-size:11px;color:#52525b">× ${item.quantity}${sz}</p>
+            <p style="margin:4px 0 0;font-size:13px;color:#f7e047;font-weight:bold;text-align:right">${this.formatCOP(unit * item.quantity)}</p>
+          </div>`;
+        })
+        .join('') ?? '';
+    const more =
+      rest > 0
+        ? `<p style="margin:8px 0 0;font-size:12px;color:#52525b;text-align:center">+ ${rest} producto(s) más</p>`
+        : '';
 
-    await this.sendHtml(clientEmail, subject, this.wrapHtml(inner), false);
+    const contenido = `
+      <div style="text-align:center;margin-bottom:28px">
+        <div style="font-size:48px;margin-bottom:12px">${config.emoji}</div>
+        <h2 style="color:#ffffff;margin:0 0 8px;font-size:22px">${this.escapeHtml(config.titulo)}</h2>
+        <p style="color:#a1a1aa;margin:0;font-size:14px;line-height:1.6;max-width:400px;margin-left:auto;margin-right:auto">${this.escapeHtml(config.mensaje)}</p>
+      </div>
+      <div style="background:#1a1a1a;border-left:3px solid ${config.color};padding:16px;margin-bottom:24px">
+        <table style="width:100%;border-collapse:collapse"><tr>
+          <td style="vertical-align:top">
+            <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Pedido</p>
+            <p style="margin:4px 0 0;font-size:16px;color:#f7e047;font-weight:bold;letter-spacing:2px">#${sid}</p>
+          </td>
+          <td style="vertical-align:top;text-align:right">
+            <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Total</p>
+            <p style="margin:4px 0 0;font-size:16px;color:#f7e047;font-weight:bold">${this.formatCOP(total)}</p>
+          </td>
+        </tr></table>
+      </div>
+      <div style="margin-bottom:24px">${lines}${more}</div>
+      <div style="text-align:center">
+        <a href="${this.escapeHtml(base)}/mis-pedidos" style="display:inline-block;background:#d91920;color:#ffffff;padding:14px 32px;text-decoration:none;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase">VER MIS PEDIDOS →</a>
+      </div>
+    `;
+
+    await this.send({
+      to: emailDestino,
+      subject: `${config.emoji} Pedido #${sid} · ${config.titulo} · Big Boys Gym`,
+      html: this.baseTemplate(contenido),
+    });
   }
 }
