@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { apiFetch } from "@/lib/api-client";
 
 const LINKS = [
   { href: "/admin", label: "📊 Resumen" },
@@ -12,12 +13,36 @@ const LINKS = [
   { href: "/admin/tallas", label: "📏 Tallas" },
   { href: "/admin/productos", label: "🛍️ Productos" },
   { href: "/admin/cupones", label: "🏷️ Cupones" },
+  { href: "/admin/resenas", label: "⭐ Reseñas", badgePending: true },
 ] as const;
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pendingReviews, setPendingReviews] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (user?.role !== "ADMIN") return;
+    let cancelled = false;
+    const loadPending = () => {
+      void (async () => {
+        try {
+          const list = await apiFetch<{ id: string }[]>("/reviews/admin/pending");
+          if (!cancelled) setPendingReviews(Array.isArray(list) ? list.length : 0);
+        } catch {
+          if (!cancelled) setPendingReviews(null);
+        }
+      })();
+    };
+    loadPending();
+    const ev = "bbg:reviews-pending-changed";
+    window.addEventListener(ev, loadPending);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(ev, loadPending);
+    };
+  }, [user?.role, pathname]);
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -73,9 +98,20 @@ export function AdminShell({ children }: { children: ReactNode }) {
               key={link.href}
               href={link.href}
               onClick={() => setSidebarOpen(false)}
-              className="block border-b border-[#1a1a1a] px-5 py-3 text-sm text-zinc-200 transition hover:bg-[#1a1a1a]"
+              className="flex items-center justify-between gap-2 border-b border-[#1a1a1a] px-5 py-3 text-sm text-zinc-200 transition hover:bg-[#1a1a1a]"
             >
-              {link.label}
+              <span>{link.label}</span>
+              {"badgePending" in link &&
+              link.badgePending &&
+              pendingReviews != null &&
+              pendingReviews > 0 ? (
+                <span
+                  className="min-w-[22px] rounded-full bg-brand-red px-2 py-0.5 text-center text-[11px] font-semibold text-white"
+                  aria-label={`${pendingReviews} reseñas pendientes`}
+                >
+                  {pendingReviews > 99 ? "99+" : pendingReviews}
+                </span>
+              ) : null}
             </Link>
           ))}
         </nav>

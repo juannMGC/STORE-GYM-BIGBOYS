@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { BackButton } from "@/components/back-button";
+import { ProductReviewsSection } from "@/components/product-reviews-section";
 import { notFound } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from "react";
 import { ApiError, apiFetch, formatShopApiError, isSessionExpiredError } from "@/lib/api-client";
@@ -762,6 +763,8 @@ export function ProductDetailView({ apiPath }: Props) {
           )}
         </section>
       )}
+
+      <ProductReviewsSection productId={product.id} loginHref={loginHref} />
     </div>
   );
 }

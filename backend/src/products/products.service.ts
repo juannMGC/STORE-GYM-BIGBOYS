@@ -85,7 +85,7 @@ export class ProductsService {
         break;
     }
 
-    return this.prisma.product.findMany({
+    const products = await this.prisma.product.findMany({
       where,
       orderBy,
       include: {
@@ -96,6 +96,38 @@ export class ProductsService {
         },
         sizes: { include: { size: { select: { id: true, name: true, code: true } } } },
       },
+    });
+
+    const productIds = products.map((p) => p.id);
+    if (productIds.length === 0) return [];
+
+    const reviewAgg = await this.prisma.review.groupBy({
+      by: ['productId'],
+      where: {
+        productId: { in: productIds },
+        status: 'APPROVED',
+      },
+      _avg: { rating: true },
+      _count: { _all: true },
+    });
+
+    const ratingByProduct = new Map(
+      reviewAgg.map((row) => [
+        row.productId,
+        {
+          avgRating: row._avg.rating ?? 0,
+          reviewCount: row._count._all,
+        },
+      ]),
+    );
+
+    return products.map((prod) => {
+      const r = ratingByProduct.get(prod.id);
+      return {
+        ...prod,
+        avgRating: r?.avgRating ?? 0,
+        reviewCount: r?.reviewCount ?? 0,
+      };
     });
   }
 

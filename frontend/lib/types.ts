@@ -50,6 +50,9 @@ export type ProductListItem = {
   category: { id: string; name: string; slug: string | null };
   images: { id: string; url: string; sortOrder: number }[];
   sizes: { size: Size }[];
+  /** Reseñas aprobadas (API catálogo). */
+  avgRating?: number;
+  reviewCount?: number;
 };
 
 export type ProductDetail = ProductListItem & {

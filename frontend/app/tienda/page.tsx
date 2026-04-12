@@ -763,6 +763,22 @@ export default function TiendaPage() {
                           maximumFractionDigits: 0,
                         })}
                       </span>
+                      {(p.reviewCount ?? 0) > 0 ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            marginTop: "8px",
+                          }}
+                        >
+                          <span style={{ color: "#f7e047", fontSize: "12px", letterSpacing: "1px" }}>
+                            {"★".repeat(Math.round(p.avgRating ?? 0))}
+                            {"☆".repeat(5 - Math.round(p.avgRating ?? 0))}
+                          </span>
+                          <span style={{ color: "#52525b", fontSize: "11px" }}>({p.reviewCount})</span>
+                        </div>
+                      ) : null}
                     </div>
                   </Link>
                 </li>
