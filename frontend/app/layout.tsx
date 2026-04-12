@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { SiteHeader } from "@/components/site-header";
 import { ConditionalSiteFooter } from "@/components/conditional-site-footer";
+import { WhatsAppButton } from "@/components/whatsapp-button";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -86,6 +87,7 @@ export default function RootLayout({
           <SiteHeader />
           <div className="relative z-10 flex flex-1 flex-col">{children}</div>
           <ConditionalSiteFooter />
+          <WhatsAppButton />
         </Providers>
       </body>
     </html>
