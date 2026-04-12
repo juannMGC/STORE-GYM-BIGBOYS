@@ -9,6 +9,7 @@ import {
   type CSSProperties,
 } from "react";
 import Link from "next/link";
+import { BackButton } from "@/components/back-button";
 import { AdminTableSkeleton } from "@/components/admin/table-skeleton";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { PRODUCT_SLUG_PATTERN, slugifyTitle } from "@/lib/slugify";
@@ -383,6 +384,9 @@ export default function AdminProductosPage() {
 
   return (
     <div>
+      <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+        <BackButton href="/admin" label="← Dashboard" />
+      </div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-4xl uppercase tracking-wide text-white">

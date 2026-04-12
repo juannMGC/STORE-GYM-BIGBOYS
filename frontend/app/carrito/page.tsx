@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BackButton } from "@/components/back-button";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch, formatShopApiError } from "@/lib/api-client";
@@ -99,6 +100,9 @@ export default function CarritoPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
+        <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+          <BackButton href="/tienda" label="← Seguir comprando" />
+        </div>
         <h1 className="font-display text-3xl uppercase text-white">Carrito</h1>
         <p className="mt-4 text-brand-red">{error}</p>
         <a href={auth0LoginHref(pathname, "login")} className="btn-brand-outline mt-6 inline-block">
@@ -111,6 +115,12 @@ export default function CarritoPage() {
   if (!order || order.items.length === 0) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <div
+          style={{ padding: "16px 0 8px", marginBottom: "8px" }}
+          className="text-left"
+        >
+          <BackButton href="/tienda" label="← Seguir comprando" />
+        </div>
         <h1 className="font-display text-4xl uppercase text-white">Tu carrito está vacío</h1>
         {displayName ? (
           <p className="mt-2 text-sm text-zinc-500">Hola, {displayName}</p>
@@ -129,6 +139,9 @@ export default function CarritoPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-32 pt-10 md:pb-10">
+      <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+        <BackButton href="/tienda" label="← Seguir comprando" />
+      </div>
       <h1 className="font-display text-4xl uppercase tracking-wide text-white sm:text-5xl">Carrito</h1>
       {displayName ? (
         <p className="mt-1 text-sm text-zinc-500">Comprando como {displayName}</p>

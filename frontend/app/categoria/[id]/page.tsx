@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BackButton } from "@/components/back-button";
 import { notFound, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
@@ -69,6 +70,9 @@ export default function CategoriaPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
+      <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+        <BackButton href="/tienda" label="← Tienda" />
+      </div>
       <nav className="text-sm text-zinc-500">
         <Link href="/tienda" className="hover:text-brand-yellow">
           Tienda

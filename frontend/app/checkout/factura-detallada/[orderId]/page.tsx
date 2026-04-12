@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { BackButton } from "@/components/back-button";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -173,6 +174,12 @@ export default function FacturaDetalladaPage() {
   if (!isLoggedIn) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center">
+        <div
+          style={{ padding: "16px 0 8px", marginBottom: "8px" }}
+          className="text-left"
+        >
+          <BackButton href="/mis-pedidos" label="← Mis pedidos" />
+        </div>
         <h1 className="font-display text-3xl uppercase text-white">Factura</h1>
         <p className="mt-4 text-zinc-400">Necesitás una sesión activa para ver esta factura.</p>
         <a href={loginHref} className="btn-brand mt-8 inline-flex">
@@ -199,10 +206,8 @@ export default function FacturaDetalladaPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <div className="no-print mb-6 flex flex-wrap items-center gap-3">
-        <Link href="/mis-pedidos" className="text-sm font-medium text-brand-yellow hover:underline">
-          ← Mis pedidos
-        </Link>
+      <div className="no-print mb-6" style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+        <BackButton href="/mis-pedidos" label="← Mis pedidos" />
       </div>
 
       <div className="no-print mb-4 flex flex-wrap items-center gap-3">

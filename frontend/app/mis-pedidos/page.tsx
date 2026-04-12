@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BackButton } from "@/components/back-button";
 import { useEffect, useState } from "react";
 import { apiFetch, formatShopApiError } from "@/lib/api-client";
 
@@ -119,6 +120,9 @@ export default function MisPedidosPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10">
+        <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+          <BackButton href="/" label="← Inicio" />
+        </div>
         <h1 className="font-display text-4xl uppercase tracking-wide text-white">Mis pedidos</h1>
         <p className="mt-4 text-brand-red">{error}</p>
         <Link href="/tienda" className="btn-brand mt-8 inline-flex">
@@ -132,6 +136,9 @@ export default function MisPedidosPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
+      <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+        <BackButton href="/" label="← Inicio" />
+      </div>
       <h1 className="font-display text-3xl uppercase tracking-wide text-white sm:text-4xl">
         Mis pedidos
       </h1>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BackButton } from "@/components/back-button";
 import { apiFetch } from "@/lib/api-client";
 import type { Category, ProductListItem, Size } from "@/lib/types";
 
@@ -440,6 +441,9 @@ export default function TiendaPage() {
 
   return (
     <div className="tienda-page mx-auto max-w-6xl px-4 py-12">
+      <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+        <BackButton href="/" label="← Inicio" />
+      </div>
       <h1 className="font-display text-5xl uppercase tracking-wide text-white md:text-6xl">Tienda</h1>
       <p className="mt-3 max-w-xl text-zinc-400">
         Filtrá por precio, talla y disponibilidad, o buscá por nombre.

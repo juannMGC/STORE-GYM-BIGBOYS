@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BackButton } from "@/components/back-button";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiError, apiFetch } from "@/lib/api-client";
@@ -360,6 +361,9 @@ export default function AdminPedidoDetailPage() {
   if (!isAdmin) {
     return (
       <div>
+        <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+          <BackButton href="/admin/pedidos" label="← Pedidos" />
+        </div>
         <p className="text-brand-red">No tenés permisos para ver esta página.</p>
         <Link href="/admin/pedidos" className="mt-4 inline-block text-brand-yellow hover:underline">
           Volver a pedidos
@@ -379,6 +383,9 @@ export default function AdminPedidoDetailPage() {
   if (error || !order?.user || !order.items) {
     return (
       <div className="p-8" style={{ color: "#e4e4e7" }}>
+        <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+          <BackButton href="/admin/pedidos" label="← Pedidos" />
+        </div>
         <p className="text-brand-red">
           {error ?? "Error al cargar el pedido."}
         </p>
@@ -396,12 +403,9 @@ export default function AdminPedidoDetailPage() {
 
   return (
     <div>
-      <Link
-        href="/admin/pedidos"
-        className="text-sm font-medium text-brand-yellow hover:underline"
-      >
-        ← Volver a pedidos
-      </Link>
+      <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+        <BackButton href="/admin/pedidos" label="← Pedidos" />
+      </div>
 
       <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
         <div className="space-y-6">

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BackButton } from "@/components/back-button";
 import { notFound } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from "react";
 import { ApiError, apiFetch, formatShopApiError, isSessionExpiredError } from "@/lib/api-client";
@@ -173,8 +174,15 @@ export function ProductDetailView({ apiPath }: Props) {
   const loginHref = auth0LoginHref(productUrl, "login");
   const signupHref = auth0SignupHref(productUrl);
 
+  const backToCategoryHref = product.category?.id
+    ? `/categoria/${product.category.id}`
+    : "/tienda";
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
+      <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+        <BackButton href={backToCategoryHref} label="← Volver a categoría" />
+      </div>
       <nav className="text-sm text-zinc-500">
         <Link href="/tienda" className="hover:text-brand-yellow">
           Tienda

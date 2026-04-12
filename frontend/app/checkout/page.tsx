@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BackButton } from "@/components/back-button";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch, formatShopApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
@@ -318,6 +319,12 @@ export default function CheckoutPage() {
     const loginHref = auth0LoginHref("/checkout", "login");
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <div
+          style={{ padding: "16px 0 8px", marginBottom: "8px" }}
+          className="text-left"
+        >
+          <BackButton href="/carrito" label="← Volver al carrito" />
+        </div>
         <h1 className="font-display text-3xl uppercase text-white">Checkout</h1>
         <p className="mt-4 text-zinc-400">
           Iniciá sesión para completar el pago.
@@ -338,6 +345,12 @@ export default function CheckoutPage() {
   if (!order || order.items.length === 0) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <div
+          style={{ padding: "16px 0 8px", marginBottom: "8px" }}
+          className="text-left"
+        >
+          <BackButton href="/carrito" label="← Volver al carrito" />
+        </div>
         <p className="text-zinc-400">No hay productos para pagar.</p>
         <Link href="/tienda" className="mt-4 inline-block text-brand-yellow hover:underline">
           Ir a la tienda
@@ -378,6 +391,9 @@ export default function CheckoutPage() {
           : "checkout-page-wrap mx-auto max-w-lg px-4 py-10 md:max-w-[1100px]"
       }
     >
+      <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+        <BackButton href="/carrito" label="← Volver al carrito" />
+      </div>
       <h1 className="font-display text-5xl uppercase tracking-wide text-white">Checkout</h1>
       {displayName ? (
         <p className="mt-1 text-sm text-zinc-500">Pedido de {displayName}</p>

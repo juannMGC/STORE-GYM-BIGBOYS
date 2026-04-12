@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BackButton } from "@/components/back-button";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -184,6 +185,9 @@ function AdminPedidosInner() {
 
   return (
     <div>
+      <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+        <BackButton href="/admin" label="← Dashboard" />
+      </div>
       <h1 className="font-display text-4xl uppercase tracking-wide text-white">Pedidos</h1>
       <p className="mt-1 text-sm text-zinc-400">
         Pedidos en curso y finalizados. Eliminá solo entregados o cancelados; quedan archivados.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent } from "react";
+import { BackButton } from "@/components/back-button";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import type { AuthUser } from "@/lib/types";
@@ -160,7 +161,13 @@ export default function PerfilPage() {
   return (
     <div className="min-h-[60vh] bg-[#050505] px-4 py-8 sm:py-10">
       <div className="mx-auto w-full max-w-[520px]">
-        <div className="flex flex-col items-center">
+        <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
+          <BackButton href="/" label="← Inicio" />
+        </div>
+        <h1 className="font-display text-3xl uppercase tracking-wide text-white sm:text-4xl">
+          Mi perfil
+        </h1>
+        <div className="mt-8 flex flex-col items-center">
           <div
             style={{
               width: "120px",
