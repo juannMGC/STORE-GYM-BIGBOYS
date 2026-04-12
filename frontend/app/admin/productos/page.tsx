@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { AdminTableSkeleton } from "@/components/admin/table-skeleton";
 import { apiFetch, ApiError } from "@/lib/api-client";
@@ -31,6 +31,21 @@ export default function AdminProductosPage() {
   const [imageBroken, setImageBroken] = useState(false);
   const [categoryId, setCategoryId] = useState("");
   const [selectedSizeIds, setSelectedSizeIds] = useState<string[]>([]);
+  const [stockAdjustingId, setStockAdjustingId] = useState<string | null>(null);
+
+  const stockBtnStyle: CSSProperties = {
+    width: "28px",
+    height: "28px",
+    padding: 0,
+    borderRadius: "4px",
+    border: "1px solid #2a2a2a",
+    background: "#111",
+    color: "#f7e047",
+    fontWeight: 700,
+    cursor: "pointer",
+    fontFamily: "var(--font-display)",
+    lineHeight: 1,
+  };
 
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.name.localeCompare(b.name)),
@@ -213,6 +228,28 @@ export default function AdminProductosPage() {
     }
   }
 
+  const ajustarStock = useCallback(
+    async (productId: string, delta: number) => {
+      const producto = products.find((p) => p.id === productId);
+      if (!producto) return;
+      const nuevoStock = Math.max(0, (producto.stock ?? 0) + delta);
+      setStockAdjustingId(productId);
+      try {
+        await apiFetch<ProductListItem>(`/admin/products/${productId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ stock: nuevoStock }),
+        });
+        await loadProducts();
+      } catch (e) {
+        const msg = e instanceof ApiError ? e.message : "No se pudo ajustar el stock";
+        showToast({ type: "err", text: msg });
+      } finally {
+        setStockAdjustingId(null);
+      }
+    },
+    [products, loadProducts, showToast],
+  );
+
   async function handleDelete(p: ProductListItem) {
     const ok = window.confirm(
       `¿Eliminar “${p.title}”? No se puede si figura en pedidos.`,
@@ -272,7 +309,7 @@ export default function AdminProductosPage() {
         </div>
       ) : (
         <div className="panel-brand mt-8 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[820px] text-left text-sm">
             <thead>
               <tr className="border-b-2 border-brand-border text-xs uppercase tracking-wide text-zinc-500">
                 <th className="p-4 font-medium">Imagen</th>
@@ -314,7 +351,61 @@ export default function AdminProductosPage() {
                       <td className="p-4 font-medium text-zinc-100">{p.title}</td>
                       <td className="p-4 text-zinc-400">{p.category.name}</td>
                       <td className="p-4 text-brand-yellow">${p.price.toFixed(2)}</td>
-                      <td className="p-4 text-zinc-300">{p.stock ?? 0}</td>
+                      <td className="p-4">
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            aria-label="Menos una unidad"
+                            disabled={(p.stock ?? 0) === 0 || stockAdjustingId === p.id}
+                            style={{
+                              ...stockBtnStyle,
+                              opacity: (p.stock ?? 0) === 0 || stockAdjustingId === p.id ? 0.4 : 1,
+                              cursor:
+                                (p.stock ?? 0) === 0 || stockAdjustingId === p.id
+                                  ? "not-allowed"
+                                  : "pointer",
+                            }}
+                            onClick={() => void ajustarStock(p.id, -1)}
+                          >
+                            −
+                          </button>
+                          <span
+                            style={{
+                              minWidth: "40px",
+                              textAlign: "center",
+                              fontSize: "13px",
+                              fontWeight: 600,
+                              color:
+                                (p.stock ?? 0) === 0
+                                  ? "#d91920"
+                                  : (p.stock ?? 0) <= 10
+                                    ? "#f7e047"
+                                    : "#22c55e",
+                            }}
+                          >
+                            {(p.stock ?? 0) === 0 ? "AGOTADO" : p.stock ?? 0}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Más una unidad"
+                            disabled={stockAdjustingId === p.id}
+                            style={{
+                              ...stockBtnStyle,
+                              opacity: stockAdjustingId === p.id ? 0.4 : 1,
+                              cursor: stockAdjustingId === p.id ? "not-allowed" : "pointer",
+                            }}
+                            onClick={() => void ajustarStock(p.id, 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </td>
                       <td className="p-4 text-right">
                         <button
                           type="button"
@@ -452,10 +543,29 @@ export default function AdminProductosPage() {
                     type="number"
                     min={0}
                     step={1}
+                    inputMode="numeric"
                     className="input-brand mt-1 w-full"
                     value={stock}
-                    onChange={(e) => setStock(e.target.value)}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === "") {
+                        setStock("");
+                        return;
+                      }
+                      const n = Number.parseInt(raw, 10);
+                      if (!Number.isNaN(n) && n >= 0) {
+                        setStock(String(n));
+                      }
+                    }}
                   />
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Stock actual:{" "}
+                    {(() => {
+                      const n = Math.floor(Number(stock));
+                      return Number.isFinite(n) && n >= 0 ? n : 0;
+                    })()}{" "}
+                    unidades
+                  </p>
                 </div>
               </div>
               <div>

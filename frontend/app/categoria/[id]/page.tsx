@@ -87,6 +87,25 @@ export default function CategoriaPage() {
                     Sin foto
                   </div>
                 )}
+                {(p.stock ?? 0) === 0 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "8px",
+                      right: "8px",
+                      background: "#d91920",
+                      color: "white",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      padding: "3px 8px",
+                      fontFamily: "var(--font-display)",
+                      letterSpacing: "1px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    AGOTADO
+                  </div>
+                )}
               </div>
               <div className="border-t-2 border-brand-border p-4">
                 <span className="font-display text-xl uppercase leading-tight text-white">

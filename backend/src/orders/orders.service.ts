@@ -24,6 +24,7 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { Role } from '../common/constants/roles';
 import { verifyWompiEventChecksum } from '../wompi/wompi-event-verify';
 import { MailService, type OrderMailPayload } from '../mail/mail.service';
+import type { OrderItem, Prisma } from '@prisma/client';
 
 export function orderTotalAmountInCents(order: {
   items: { priceSnapshot: number; quantity: number }[];
@@ -126,6 +127,48 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
   ) {}
+
+  /** Suma cantidades del mismo producto en el pedido (todas las tallas). */
+  private async totalQuantityForProductInOrder(
+    orderId: string,
+    productId: string,
+  ): Promise<number> {
+    const rows = await this.prisma.orderItem.findMany({
+      where: { orderId, productId },
+      select: { quantity: true },
+    });
+    return rows.reduce((s, r) => s + r.quantity, 0);
+  }
+
+  private async deductStockForItemsTx(
+    tx: Prisma.TransactionClient,
+    items: Pick<OrderItem, 'productId' | 'quantity'>[],
+  ): Promise<void> {
+    for (const item of items) {
+      const result = await tx.product.updateMany({
+        where: { id: item.productId, stock: { gte: item.quantity } },
+        data: { stock: { decrement: item.quantity } },
+      });
+      if (result.count !== 1) {
+        const p = await tx.product.findUnique({ where: { id: item.productId } });
+        throw new BadRequestException(
+          `Stock insuficiente para "${p?.title ?? 'el producto'}". Disponible: ${p?.stock ?? 0}`,
+        );
+      }
+    }
+  }
+
+  private async restoreStockForItemsTx(
+    tx: Prisma.TransactionClient,
+    items: Pick<OrderItem, 'productId' | 'quantity'>[],
+  ): Promise<void> {
+    for (const item of items) {
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { stock: { increment: item.quantity } },
+      });
+    }
+  }
 
   private mapToOrderDetailDto(order: {
     id: string;
@@ -267,6 +310,9 @@ export class OrdersService {
       include: { sizes: true },
     });
     if (!product) throw new NotFoundException('Producto no encontrado');
+    if (product.stock <= 0) {
+      throw new BadRequestException('Este producto está agotado');
+    }
     const hasSizes = product.sizes.length > 0;
     if (hasSizes && !dto.sizeId) {
       throw new BadRequestException('Debe elegir una talla para este producto');
@@ -290,6 +336,17 @@ export class OrdersService {
         sizeId: sizeKey,
       },
     });
+
+    const qtyTotalSameProduct = await this.totalQuantityForProductInOrder(
+      order.id,
+      dto.productId,
+    );
+    const qtyAfter = qtyTotalSameProduct + dto.quantity;
+    if (qtyAfter > product.stock) {
+      throw new BadRequestException(
+        `Stock insuficiente. Solo quedan ${product.stock} unidades.`,
+      );
+    }
 
     const priceSnapshot = product.price;
     if (existing) {
@@ -326,6 +383,23 @@ export class OrdersService {
     if (dto.quantity === 0) {
       await this.prisma.orderItem.delete({ where: { id: itemId } });
       return this.findActiveDraftOrder(userId)!;
+    }
+    const product = await this.prisma.product.findUnique({
+      where: { id: item.productId },
+    });
+    if (!product) throw new NotFoundException('Producto no encontrado');
+    if (product.stock <= 0) {
+      throw new BadRequestException('Este producto está agotado');
+    }
+    const totalSameProduct = await this.totalQuantityForProductInOrder(
+      item.orderId,
+      item.productId,
+    );
+    const qtyAfter = totalSameProduct - item.quantity + dto.quantity;
+    if (qtyAfter > product.stock) {
+      throw new BadRequestException(
+        `Stock insuficiente. Solo quedan ${product.stock} unidades.`,
+      );
     }
     await this.prisma.orderItem.update({
       where: { id: itemId },
@@ -548,9 +622,12 @@ export class OrdersService {
         return { ok: true, detail: 'already_final' };
       }
       // PAID = pago confirmado (UI “Confirmado”; el admin también acepta CONFIRMED→PAID en PATCH).
-      await this.prisma.order.update({
-        where: { id: order.id },
-        data: { status: OrderStatus.PAID },
+      await this.prisma.$transaction(async (tx) => {
+        await this.deductStockForItemsTx(tx, order.items);
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: OrderStatus.PAID },
+        });
       });
       const forMail = await this.loadOrderForMail(order.id);
       if (forMail) {
@@ -600,10 +677,13 @@ export class OrdersService {
       );
     }
     assertClientConfirm(order.status as OrderStatusValue);
-    return this.prisma.order.update({
-      where: { id: orderId },
-      data: { status: OrderStatus.PENDING },
-      include: orderInclude,
+    return this.prisma.$transaction(async (tx) => {
+      await this.deductStockForItemsTx(tx, order.items);
+      return tx.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.PENDING },
+        include: orderInclude,
+      });
     });
   }
 
@@ -733,17 +813,29 @@ export class OrdersService {
   }
 
   async updateStatus(id: string, dto: UpdateOrderStatusDto) {
-    const order = await this.prisma.order.findUnique({ where: { id } });
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: { items: true },
+    });
     if (!order) {
       throw new NotFoundException('Pedido no encontrado');
     }
     const from = order.status as OrderStatusValue;
     const to = this.normalizePatchStatusToPrisma(dto.status);
     assertPatchOrderStatusTransition(from, to);
-    await this.prisma.order.update({
-      where: { id },
-      data: { status: to },
-      include: orderAdminDetailInclude,
+    await this.prisma.$transaction(async (tx) => {
+      if (
+        to === OrderStatus.CANCELLED &&
+        from !== OrderStatus.DRAFT &&
+        from !== OrderStatus.CANCELLED
+      ) {
+        await this.restoreStockForItemsTx(tx, order.items);
+      }
+      await tx.order.update({
+        where: { id },
+        data: { status: to },
+        include: orderAdminDetailInclude,
+      });
     });
 
     if (to === OrderStatus.PAID && from === OrderStatus.PENDING) {

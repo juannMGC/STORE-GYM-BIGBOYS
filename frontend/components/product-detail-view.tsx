@@ -99,9 +99,10 @@ export function ProductDetailView({ apiPath }: Props) {
     );
   }
 
+  const stock = product.stock ?? 0;
   const canBuy = !authLoading && isLoggedIn;
   const sizeOk = !needsSize || Boolean(sizeId);
-  const canClickAdd = canBuy && sizeOk && !adding;
+  const canClickAdd = canBuy && sizeOk && !adding && stock > 0;
   const productUrl =
     product.slug != null && product.slug !== ""
       ? `/tienda/productos/${product.slug}`
@@ -157,6 +158,37 @@ export function ProductDetailView({ apiPath }: Props) {
               maximumFractionDigits: 0,
             })}
           </p>
+          {stock > 10 ? null : stock > 0 && stock <= 10 ? (
+            <p className="mt-3">
+              <span
+                style={{
+                  color: "#f7e047",
+                  fontSize: "13px",
+                  background: "#1a1a1a",
+                  border: "1px solid #f7e047",
+                  padding: "2px 8px",
+                  borderRadius: "2px",
+                }}
+              >
+                ⚠️ Solo quedan {stock} unidades
+              </span>
+            </p>
+          ) : (
+            <p className="mt-3">
+              <span
+                style={{
+                  color: "#d91920",
+                  fontSize: "13px",
+                  background: "#1a1a1a",
+                  border: "1px solid #d91920",
+                  padding: "2px 8px",
+                  borderRadius: "2px",
+                }}
+              >
+                ❌ Agotado
+              </span>
+            </p>
+          )}
           {product.description && (
             <p className="mt-6 whitespace-pre-wrap leading-relaxed text-zinc-400">
               {product.description}
@@ -186,17 +218,23 @@ export function ProductDetailView({ apiPath }: Props) {
           <div className="mt-8 flex flex-col gap-4">
             <button
               type="button"
-              disabled={!canClickAdd}
+              disabled={stock === 0 || !canClickAdd}
               onClick={() => void addToCart()}
-              className="btn-brand w-full disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+              className="btn-brand w-full disabled:cursor-not-allowed sm:w-auto"
+              style={{
+                opacity: stock === 0 || !canClickAdd ? 0.5 : 1,
+                cursor: stock === 0 ? "not-allowed" : "pointer",
+              }}
             >
               {authLoading
                 ? "Cargando…"
-                : !isLoggedIn
-                  ? "Iniciá sesión para comprar"
-                  : adding
-                    ? "Añadiendo…"
-                    : "Añadir al carrito"}
+                : stock === 0
+                  ? "Agotado"
+                  : !isLoggedIn
+                    ? "Iniciá sesión para comprar"
+                    : adding
+                      ? "Añadiendo…"
+                      : "Añadir al carrito"}
             </button>
             {!authLoading && !isLoggedIn && (
               <p className="text-sm text-zinc-500">
