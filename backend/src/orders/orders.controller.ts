@@ -178,16 +178,6 @@ export class OrdersController {
     return this.ordersService.getInvoiceDetail(id, user.userId, user.role);
   }
 
-  /** Envía factura HTML al email del cliente (dueño o ADMIN). */
-  @Post(':id/send-invoice')
-  @HttpCode(200)
-  sendInvoice(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: RequestUser,
-  ) {
-    return this.ordersService.sendInvoiceEmail(id, user.userId, user.role);
-  }
-
   /** Detalle: dueño del pedido o ADMIN (misma forma JSON). */
   @Get(':orderId')
   getOne(

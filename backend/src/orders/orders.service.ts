@@ -23,7 +23,7 @@ import { UpdateShippingDto } from './dto/update-shipping.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { Role } from '../common/constants/roles';
 import { verifyWompiEventChecksum } from '../wompi/wompi-event-verify';
-import { MailService, type InvoiceMailOrder, type OrderMailPayload } from '../mail/mail.service';
+import { MailService, type OrderMailPayload } from '../mail/mail.service';
 
 export function orderTotalAmountInCents(order: {
   items: { priceSnapshot: number; quantity: number }[];
@@ -830,45 +830,5 @@ export class OrdersService {
       items,
       total,
     };
-  }
-
-  /** Envía factura por email al cliente (dueño o ADMIN). */
-  async sendInvoiceEmail(
-    orderId: string,
-    requesterUserId: string,
-    requesterRole: string,
-  ): Promise<{ ok: true; email: string; sentTo: string }> {
-    const detail = await this.getInvoiceDetail(
-      orderId,
-      requesterUserId,
-      requesterRole,
-    );
-    const emailDest =
-      detail.user.email?.trim() || detail.shippingEmail?.trim() || '';
-    if (!emailDest) {
-      throw new BadRequestException('El pedido no tiene email destino');
-    }
-    const payload: InvoiceMailOrder = {
-      id: detail.id,
-      status: detail.status,
-      createdAt: new Date(detail.createdAt),
-      paymentMethod: detail.paymentMethod,
-      user: {
-        name: detail.user.name,
-        email: emailDest,
-      },
-      items: detail.items.map((i) => ({
-        quantity: i.quantity,
-        unitPrice: i.unitPrice,
-        product: {
-          name: i.product.name,
-          imageUrl: i.product.imageUrl,
-        },
-        size: i.size,
-      })),
-      total: detail.total,
-    };
-    await this.mailService.sendInvoice(payload);
-    return { ok: true, email: emailDest, sentTo: emailDest };
   }
 }

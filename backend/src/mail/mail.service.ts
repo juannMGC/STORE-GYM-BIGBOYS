@@ -16,21 +16,6 @@ export type OrderMailPayload = Order & {
   })[];
 };
 
-export type InvoiceMailOrder = {
-  id: string;
-  status: string;
-  createdAt: Date;
-  paymentMethod: string | null;
-  user: { name: string | null; email: string };
-  items: {
-    quantity: number;
-    unitPrice: number;
-    product: { name: string; imageUrl: string | null };
-    size: { name: string } | null;
-  }[];
-  total: number;
-};
-
 type SmtpError = Error & { code?: string; command?: string; responseCode?: number };
 
 @Injectable()
@@ -184,60 +169,6 @@ ${rows}
       .replace(/"/g, '&quot;');
   }
 
-  private safeHttpUrl(url: string | null | undefined): url is string {
-    if (!url || !url.trim()) return false;
-    try {
-      const u = new URL(url.trim());
-      return u.protocol === 'http:' || u.protocol === 'https:';
-    } catch {
-      return false;
-    }
-  }
-
-  private invoiceStatusLabel(status: string): string {
-    const m: Record<string, string> = {
-      DRAFT: 'Borrador',
-      PENDING: 'Pendiente',
-      PAID: 'Confirmado',
-      SHIPPED: 'Enviado',
-      DELIVERED: 'Entregado',
-      CANCELLED: 'Cancelado',
-    };
-    return m[status] ?? status;
-  }
-
-  private invoiceItemsTable(order: InvoiceMailOrder): string {
-    const rows = order.items
-      .map((line) => {
-        const sub = line.unitPrice * line.quantity;
-        const sizeCell = line.size ? this.escape(line.size.name) : '—';
-        const imgCell = this.safeHttpUrl(line.product.imageUrl)
-          ? `<img src="${this.escape(line.product.imageUrl!)}" width="56" height="56" alt="" style="display:block;border-radius:4px;object-fit:cover;border:1px solid #27272a;"/>`
-          : `<div style="width:56px;height:56px;background:#1a1a1a;border:1px solid #27272a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:${BRAND_RED};font-weight:800;font-size:20px;">${this.escape((line.product.name.charAt(0) || '?').toUpperCase())}</div>`;
-        return `<tr>
-<td style="padding:12px 8px;border-bottom:1px solid #27272a;vertical-align:middle;width:64px;">${imgCell}</td>
-<td style="padding:12px 8px;border-bottom:1px solid #27272a;vertical-align:middle;">
-  <div style="font-weight:700;color:${BRAND_YELLOW};font-size:15px;">${this.escape(line.product.name)}</div>
-  <div style="font-size:12px;color:#a1a1aa;margin-top:4px;">Talla: ${sizeCell}</div>
-</td>
-<td style="padding:12px 8px;border-bottom:1px solid #27272a;vertical-align:middle;text-align:center;">${line.quantity}</td>
-<td style="padding:12px 8px;border-bottom:1px solid #27272a;vertical-align:middle;text-align:right;white-space:nowrap;">${this.formatCop(line.unitPrice)}</td>
-<td style="padding:12px 8px;border-bottom:1px solid #27272a;vertical-align:middle;text-align:right;white-space:nowrap;font-weight:700;color:${BRAND_YELLOW};">${this.formatCop(sub)}</td>
-</tr>`;
-      })
-      .join('');
-    return `<table width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;">
-<tr style="color:#a1a1aa;font-size:11px;text-transform:uppercase;">
-<th align="left" style="padding:8px;border-bottom:2px solid ${BRAND_RED};"></th>
-<th align="left" style="padding:8px;border-bottom:2px solid ${BRAND_RED};">Producto</th>
-<th style="padding:8px;border-bottom:2px solid ${BRAND_RED};">Cant.</th>
-<th align="right" style="padding:8px;border-bottom:2px solid ${BRAND_RED};">P. unit.</th>
-<th align="right" style="padding:8px;border-bottom:2px solid ${BRAND_RED};">Subtotal</th>
-</tr>
-${rows}
-</table>`;
-  }
-
   private paymentLabel(method: string | null): string {
     const m = method ?? '';
     if (m === 'CASH') return 'Efectivo';
@@ -367,38 +298,5 @@ ${this.itemsTable(order)}
 `;
 
     await this.sendHtml(clientEmail, subject, this.wrapHtml(inner), false);
-  }
-
-  /** Factura detallada al correo del cliente (to = user.email del payload, ya resuelto en OrdersService). */
-  async sendInvoice(order: InvoiceMailOrder): Promise<void> {
-    const clientEmail = order.user.email?.trim();
-    if (!clientEmail) {
-      throw new BadRequestException('El pedido no tiene email destino');
-    }
-
-    const idShort = order.id.replace(/-/g, '').slice(0, 8);
-    const subject = `Factura de tu pedido #${idShort} - Big Boys Gym`;
-    const fecha = new Intl.DateTimeFormat('es-CO', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }).format(order.createdAt);
-
-    const inner = `
-<p style="margin:0 0 8px;font-size:22px;font-weight:800;letter-spacing:0.08em;color:${BRAND_YELLOW};text-transform:uppercase;">FACTURA</p>
-<p style="margin:0 0 20px;font-size:13px;color:#a1a1aa;">Tienda oficial · Manizales</p>
-<p style="margin:0 0 6px;"><strong style="color:${BRAND_YELLOW};">Pedido:</strong> <span style="color:${TEXT};">#${this.escape(idShort)}</span></p>
-<p style="margin:0 0 6px;"><strong style="color:${BRAND_YELLOW};">Fecha:</strong> <span style="color:${TEXT};">${this.escape(fecha)}</span></p>
-<p style="margin:0 0 6px;"><strong style="color:${BRAND_YELLOW};">Estado:</strong> <span style="color:${TEXT};">${this.escape(this.invoiceStatusLabel(order.status))}</span></p>
-<p style="margin:0 0 6px;"><strong style="color:${BRAND_YELLOW};">Cliente:</strong> <span style="color:${TEXT};">${this.escape(order.user.name || '—')}</span></p>
-<p style="margin:0 0 20px;"><strong style="color:${BRAND_YELLOW};">Email:</strong> <span style="color:${TEXT};">${this.escape(clientEmail)}</span></p>
-<p style="margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:0.12em;color:${BRAND_YELLOW};">Productos</p>
-${this.invoiceItemsTable(order)}
-<p style="margin:20px 0 0;font-size:16px;font-weight:700;color:${BRAND_YELLOW};text-align:right;">Total: ${this.formatCop(order.total)}</p>
-<p style="margin:12px 0 0;font-size:13px;color:#a1a1aa;text-align:right;">Método de pago: ${this.escape(this.paymentLabel(order.paymentMethod))}</p>
-`;
-
-    const html = this.wrapHtml(inner);
-    await this.sendHtml(clientEmail, subject, html, true);
   }
 }

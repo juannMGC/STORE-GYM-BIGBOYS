@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, apiFetch, formatShopApiError } from "@/lib/api-client";
+import { apiFetch, formatShopApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { auth0LoginHref } from "@/lib/auth-routes";
 
@@ -98,9 +98,6 @@ export default function FacturaDetalladaPage() {
   const [data, setData] = useState<InvoiceDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [emailMsg, setEmailMsg] = useState<string | null>(null);
-  const [emailErr, setEmailErr] = useState<string | null>(null);
-  const [emailSending, setEmailSending] = useState(false);
 
   const load = useCallback(async () => {
     if (!orderId) return;
@@ -126,26 +123,6 @@ export default function FacturaDetalladaPage() {
     }
     void load();
   }, [authLoading, isLoggedIn, load]);
-
-  async function sendInvoiceEmail() {
-    if (!orderId) return;
-    setEmailSending(true);
-    setEmailMsg(null);
-    setEmailErr(null);
-    try {
-      const res = await apiFetch<{ ok: boolean; email: string }>(
-        `/orders/${orderId}/send-invoice`,
-        { method: "POST", body: "{}" },
-      );
-      setEmailMsg(`Factura enviada a ${res.email} ✓`);
-    } catch (e) {
-      const msg =
-        e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Error al enviar";
-      setEmailErr(msg);
-    } finally {
-      setEmailSending(false);
-    }
-  }
 
   function handlePrint() {
     window.print();
@@ -203,23 +180,9 @@ export default function FacturaDetalladaPage() {
 
       <div className="no-print mb-4 flex flex-wrap gap-3">
         <button type="button" onClick={handlePrint} className="btn-brand">
-          Descargar PDF
-        </button>
-        <button
-          type="button"
-          onClick={() => void sendInvoiceEmail()}
-          disabled={emailSending}
-          className="btn-brand-outline disabled:opacity-50"
-        >
-          {emailSending ? "Enviando…" : "Enviar por email"}
+          📄 Descargar PDF
         </button>
       </div>
-      {emailMsg ? (
-        <p className="no-print mb-4 text-sm text-green-400">{emailMsg}</p>
-      ) : null}
-      {emailErr ? (
-        <p className="no-print mb-4 text-sm text-brand-red">{emailErr}</p>
-      ) : null}
 
       <div className="factura-print-area panel-brand border-2 border-brand-border p-6 sm:p-8">
         <div className="flex flex-col gap-2 border-b border-brand-border pb-4 sm:flex-row sm:items-start sm:justify-between factura-row-line">
