@@ -919,20 +919,20 @@ export class OrdersService {
       });
     });
 
-    const estadosConEmail: OrderStatusValue[] = [
-      OrderStatus.PAID,
+    const estadosNotificacionEstado: OrderStatusValue[] = [
       OrderStatus.SHIPPED,
       OrderStatus.DELIVERED,
       OrderStatus.CANCELLED,
     ];
-    if (estadosConEmail.includes(to)) {
+    if (estadosNotificacionEstado.includes(to)) {
       const forMail = await this.loadOrderForMail(id);
       if (forMail) {
-        void this.mailService
-          .sendStatusUpdate(forMail, to)
-          .catch((err: unknown) => {
-            this.logger.error(`Error email estado: ${String(err)}`);
-          });
+        void Promise.all([
+          this.mailService.sendStatusUpdateToClient(forMail, to),
+          this.mailService.sendStatusUpdateToAdmin(forMail, to),
+        ]).catch((err: unknown) => {
+          this.logger.error(`Error emails estado: ${String(err)}`);
+        });
       }
     }
 

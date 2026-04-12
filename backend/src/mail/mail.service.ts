@@ -208,8 +208,8 @@ export class MailService {
     const nombre = this.escapeHtml(order.user?.name ?? 'cliente');
 
     const contenido = `
-      <h2 style="color:#ffffff;margin:0 0 8px;font-size:20px">¡Tu pago fue confirmado! 💪</h2>
-      <p style="color:#a1a1aa;margin:0 0 24px;font-size:14px">Hola ${nombre}, recibimos tu pago y estamos preparando tu pedido para el envío.</p>
+      <h2 style="color:#ffffff;margin:0 0 8px;font-size:20px">¡Tu pedido está pagado! ✅</h2>
+      <p style="color:#a1a1aa;margin:0 0 24px;font-size:14px">Hola ${nombre}, recibimos tu pago exitosamente. Estamos preparando tu pedido.</p>
       <div style="background:#1a1a1a;border-left:3px solid #d91920;padding:12px 16px;margin-bottom:24px">
         <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Número de pedido</p>
         <p style="margin:4px 0 0;font-size:18px;color:#f7e047;font-weight:bold;letter-spacing:2px">#${sid}</p>
@@ -231,7 +231,7 @@ export class MailService {
 
     await this.send({
       to: emailDestino,
-      subject: `✅ Pedido #${sid} confirmado · Big Boys Gym`,
+      subject: `✅ Pedido Pagado · #${sid} · Big Boys Gym`,
       html: this.baseTemplate(contenido),
     });
   }
@@ -287,73 +287,195 @@ export class MailService {
     });
   }
 
-  async sendStatusUpdate(
+  /** Cliente: cambios SHIPPED, DELIVERED, CANCELLED (PAID usa sendOrderConfirmation). */
+  async sendStatusUpdateToClient(
     order: OrderMailPayload,
     newStatus: string,
   ): Promise<void> {
     const emailDestino =
-      order.shippingEmail?.trim() || order.user?.email?.trim();
+      order.user?.email?.trim() || order.shippingEmail?.trim();
     if (!emailDestino) return;
 
     const statusConfig: Record<
       string,
       { emoji: string; titulo: string; mensaje: string }
     > = {
-      PAID: {
-        emoji: '✅',
-        titulo: '¡Pago confirmado!',
-        mensaje:
-          'Recibimos tu pago exitosamente. Tu pedido está siendo preparado para el envío. Pronto te contactamos.',
-      },
       SHIPPED: {
         emoji: '🚚',
         titulo: '¡Tu pedido va en camino!',
         mensaje:
-          'Tu pedido fue despachado y está en camino. Pronto lo recibirás en la dirección indicada.',
+          'Tu pedido fue despachado y está en camino a tu dirección. Pronto lo recibirás.',
       },
       DELIVERED: {
         emoji: '📦',
         titulo: '¡Pedido entregado!',
         mensaje:
-          '¡Tu pedido fue entregado exitosamente! Esperamos que disfrutes tus productos. 💪 Entrená fuerte.',
+          '¡Tu pedido fue entregado exitosamente! Esperamos que disfrutes tus productos. 💪 Entrená fuerte con Big Boys Gym.',
       },
       CANCELLED: {
         emoji: '❌',
         titulo: 'Pedido cancelado',
         mensaje:
-          'Tu pedido fue cancelado. Si tenés dudas o necesitás ayuda, contactanos directamente.',
+          'Tu pedido fue cancelado. Si tenés dudas o querés hacer otro pedido, visitá nuestra tienda.',
       },
     };
 
     const config = statusConfig[newStatus];
     if (!config) {
       this.logger.warn(
-        `Estado ${newStatus} no tiene template de email (sendStatusUpdate)`,
+        `Estado ${newStatus} sin plantilla cliente (sendStatusUpdateToClient)`,
       );
       return;
     }
 
     const total = this.calcularTotal(order.items);
     const sid = this.shortOrderId(order.id);
+    const nombre = this.escapeHtml(order.user?.name ?? 'cliente');
 
     const contenido = `
       <div style="text-align:center;margin-bottom:28px">
-        <div style="font-size:48px;margin-bottom:12px">${config.emoji}</div>
+        <div style="font-size:52px;margin-bottom:12px">${config.emoji}</div>
         <h2 style="color:#ffffff;margin:0 0 8px;font-size:22px">${this.escapeHtml(config.titulo)}</h2>
-        <p style="color:#a1a1aa;margin:0;font-size:14px;line-height:1.6">${this.escapeHtml(config.mensaje)}</p>
+        <p style="color:#a1a1aa;margin:0;font-size:14px;line-height:1.6;max-width:400px;margin-left:auto;margin-right:auto">
+          Hola ${nombre}, ${this.escapeHtml(config.mensaje)}
+        </p>
       </div>
       <div style="background:#1a1a1a;border-left:3px solid #d91920;padding:16px;margin-bottom:24px">
-        <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Pedido</p>
-        <p style="margin:4px 0 0;font-size:16px;color:#f7e047;font-weight:bold">#${sid} · ${this.formatCOP(total)}</p>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Pedido</p>
+            <p style="margin:4px 0 0;font-size:16px;color:#f7e047;font-weight:bold;letter-spacing:2px">#${sid}</p>
+          </div>
+          <div style="text-align:right">
+            <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Total pagado</p>
+            <p style="margin:4px 0 0;font-size:16px;color:#f7e047;font-weight:bold">${this.formatCOP(total)}</p>
+          </div>
+        </div>
       </div>
-      <div style="text-align:center">
+      ${this.buildItemsTable(order.items)}
+      <div style="text-align:center;margin-top:24px">
         <a href="${this.escapeHtml(this.frontendUrl)}/mis-pedidos" style="display:inline-block;background:#d91920;color:#ffffff;padding:14px 32px;text-decoration:none;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase">VER MIS PEDIDOS →</a>
       </div>
     `;
 
+    const subjectMap: Record<string, string> = {
+      SHIPPED: '🚚 Tu pedido va en camino',
+      DELIVERED: '📦 Pedido entregado',
+      CANCELLED: '❌ Pedido cancelado',
+    };
+    const subj = subjectMap[newStatus] ?? config.titulo;
+
     await this.send({
       to: emailDestino,
-      subject: `${config.emoji} ${config.titulo} · Pedido #${sid} · Big Boys Gym`,
+      subject: `${subj} · Pedido #${sid} · Big Boys Gym`,
+      html: this.baseTemplate(contenido),
+    });
+  }
+
+  /** Admin: mismo cambio SHIPPED / DELIVERED / CANCELLED. */
+  async sendStatusUpdateToAdmin(
+    order: OrderMailPayload,
+    newStatus: string,
+  ): Promise<void> {
+    const adminEmail =
+      process.env.MAIL_ADMIN_TO?.trim() ??
+      process.env.MAIL_USER?.trim() ??
+      process.env.ADMIN_EMAIL?.trim() ??
+      'bigboysdevs@gmail.com';
+
+    const statusConfig: Record<
+      string,
+      { emoji: string; titulo: string; color: string }
+    > = {
+      SHIPPED: {
+        emoji: '🚚',
+        titulo: 'Pedido marcado como ENVIADO',
+        color: '#f97316',
+      },
+      DELIVERED: {
+        emoji: '📦',
+        titulo: 'Pedido marcado como ENTREGADO',
+        color: '#22c55e',
+      },
+      CANCELLED: {
+        emoji: '❌',
+        titulo: 'Pedido CANCELADO',
+        color: '#d91920',
+      },
+    };
+
+    const config = statusConfig[newStatus];
+    if (!config) {
+      this.logger.warn(
+        `Estado ${newStatus} sin plantilla admin (sendStatusUpdateToAdmin)`,
+      );
+      return;
+    }
+
+    const total = this.calcularTotal(order.items);
+    const sid = this.shortOrderId(order.id);
+    const shipAddr = order.shippingAddress?.trim();
+    const shipComp = order.shippingComplement?.trim();
+    const shipCity = order.shippingCity?.trim();
+    const direccionFila =
+      shipAddr || shipComp || shipCity
+        ? `
+        <tr>
+          <td style="padding:6px 0;color:#71717a;font-size:12px">Dirección envío:</td>
+          <td style="padding:6px 0;color:#e4e4e7;font-size:13px">
+            ${this.escapeHtml(shipAddr ?? '—')}
+            ${shipComp ? `, ${this.escapeHtml(shipComp)}` : ''}
+            ${shipCity ? ` · ${this.escapeHtml(shipCity)}` : ''}
+          </td>
+        </tr>`
+        : '';
+
+    const contenido = `
+      <h2 style="color:#ffffff;margin:0 0 8px;font-size:20px">${config.emoji} ${this.escapeHtml(config.titulo)}</h2>
+      <p style="color:#a1a1aa;margin:0 0 24px;font-size:14px">El estado del pedido fue actualizado.</p>
+      <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:4px solid ${config.color};padding:16px;margin-bottom:20px">
+        <table style="width:100%;border-collapse:collapse">
+          <tr>
+            <td style="padding:6px 0;color:#71717a;font-size:12px;width:140px">Pedido:</td>
+            <td style="padding:6px 0;color:#f7e047;font-size:14px;font-weight:bold;letter-spacing:2px">#${sid}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;color:#71717a;font-size:12px">Cliente:</td>
+            <td style="padding:6px 0;color:#e4e4e7;font-size:13px">${this.escapeHtml(order.user?.name ?? '—')}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;color:#71717a;font-size:12px">Email cliente:</td>
+            <td style="padding:6px 0;color:#e4e4e7;font-size:13px">${this.escapeHtml(order.user?.email ?? '—')}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;color:#71717a;font-size:12px">Nuevo estado:</td>
+            <td style="padding:6px 0">
+              <span style="background:${config.color};color:white;padding:3px 10px;font-size:11px;font-weight:bold;letter-spacing:2px;text-transform:uppercase">${this.escapeHtml(newStatus)}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;color:#71717a;font-size:12px">Total:</td>
+            <td style="padding:6px 0;color:#f7e047;font-size:14px;font-weight:bold">${this.formatCOP(total)}</td>
+          </tr>
+          ${direccionFila}
+        </table>
+      </div>
+      ${this.buildItemsTable(order.items)}
+      <div style="text-align:center;margin-top:24px">
+        <a href="${this.escapeHtml(this.frontendUrl)}/admin/pedidos/${this.escapeHtml(order.id)}" style="display:inline-block;background:#d91920;color:#ffffff;padding:14px 32px;text-decoration:none;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase">VER PEDIDO EN ADMIN →</a>
+      </div>
+    `;
+
+    const subjectMap: Record<string, string> = {
+      SHIPPED: '🚚 Pedido enviado',
+      DELIVERED: '📦 Pedido entregado',
+      CANCELLED: '❌ Pedido cancelado',
+    };
+    const subj = subjectMap[newStatus] ?? 'Estado de pedido';
+
+    await this.send({
+      to: adminEmail,
+      subject: `${subj} · #${sid} · Big Boys Gym Admin`,
       html: this.baseTemplate(contenido),
     });
   }
