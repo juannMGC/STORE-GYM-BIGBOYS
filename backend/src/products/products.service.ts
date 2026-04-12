@@ -22,15 +22,22 @@ export class ProductsService {
   async findManyPublic(filters?: {
     search?: string;
     categoryId?: string;
+    sizeId?: string;
     minPrice?: number;
     maxPrice?: number;
     inStock?: boolean;
+    orderBy?: string;
   }) {
     const where: Prisma.ProductWhereInput = {};
 
     const catId = filters?.categoryId?.trim();
     if (catId) {
       where.categoryId = catId;
+    }
+
+    const sizeId = filters?.sizeId?.trim();
+    if (sizeId) {
+      where.sizes = { some: { sizeId } };
     }
 
     const q = filters?.search?.trim();
@@ -57,9 +64,29 @@ export class ProductsService {
       where.stock = { gt: 0 };
     }
 
+    let orderBy: Prisma.ProductOrderByWithRelationInput = {
+      createdAt: 'desc',
+    };
+    switch (filters?.orderBy) {
+      case 'price_asc':
+        orderBy = { price: 'asc' };
+        break;
+      case 'price_desc':
+        orderBy = { price: 'desc' };
+        break;
+      case 'newest':
+        orderBy = { createdAt: 'desc' };
+        break;
+      case 'name_asc':
+        orderBy = { title: 'asc' };
+        break;
+      default:
+        break;
+    }
+
     return this.prisma.product.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       include: {
         category: { select: { id: true, name: true, slug: true } },
         images: {
@@ -69,6 +96,19 @@ export class ProductsService {
         sizes: { include: { size: { select: { id: true, name: true, code: true } } } },
       },
     });
+  }
+
+  async getPriceRange(): Promise<{ min: number; max: number }> {
+    const result = await this.prisma.product.aggregate({
+      _min: { price: true },
+      _max: { price: true },
+    });
+    const min = result._min.price ?? 0;
+    const max = result._max.price ?? 1_000_000;
+    if (min > max) {
+      return { min: 0, max: 1_000_000 };
+    }
+    return { min, max };
   }
 
   async findOnePublic(id: string) {

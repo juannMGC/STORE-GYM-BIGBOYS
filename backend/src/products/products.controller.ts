@@ -10,9 +10,11 @@ export class ProductsController {
   findMany(
     @Query('search') search?: string,
     @Query('categoryId') categoryId?: string,
+    @Query('sizeId') sizeId?: string,
     @Query('minPrice') minPrice?: string,
     @Query('maxPrice') maxPrice?: string,
     @Query('inStock') inStock?: string,
+    @Query('orderBy') orderBy?: string,
   ) {
     const parseNum = (v?: string): number | undefined => {
       if (v === undefined || v === '') return undefined;
@@ -22,10 +24,18 @@ export class ProductsController {
     return this.productsService.findManyPublic({
       search,
       categoryId,
+      sizeId: sizeId?.trim() || undefined,
       minPrice: parseNum(minPrice),
       maxPrice: parseNum(maxPrice),
       inStock: inStock === 'true',
+      orderBy: orderBy?.trim() || undefined,
     });
+  }
+
+  /** Rango de precios del catálogo (sliders en tienda). */
+  @Get('price-range')
+  getPriceRange() {
+    return this.productsService.getPriceRange();
   }
 
   /** Detalle público por slug (URL amigable), p. ej. /tienda/productos/proteina-premium */

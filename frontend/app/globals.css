@@ -122,3 +122,62 @@ body::before {
 .tienda-skeleton-pulse {
   animation: pulse 1.5s ease-in-out infinite;
 }
+
+/* /tienda — sidebar filtros vs botón móvil */
+.filtros-sidebar {
+  display: none;
+}
+
+.filtros-mobile-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .filtros-sidebar {
+    display: block !important;
+  }
+
+  .filtros-mobile-btn {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .filtros-sidebar {
+    display: none !important;
+  }
+
+  .filtros-mobile-btn {
+    display: inline-flex !important;
+  }
+}
+
+/* Sliders en panel de filtros tienda */
+.tienda-filtros input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #2a2a2a;
+  border-radius: 2px;
+  outline: none;
+}
+
+.tienda-filtros input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #d91920;
+  cursor: pointer;
+}
+
+.tienda-filtros input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #d91920;
+  cursor: pointer;
+  border: none;
+}
