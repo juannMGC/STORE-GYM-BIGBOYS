@@ -34,13 +34,16 @@ type WompiSigResponse = {
   redirectUrl: string;
 };
 
-function formatCop(value: number): string {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+const toNum = (val: unknown): number => {
+  const n = Number(val);
+  return isNaN(n) ? 0 : n;
+};
+
+/** Precios del resumen (API puede enviar números como string). */
+const formatCOP = (val: unknown): string => {
+  const n = toNum(val);
+  return `$${n.toLocaleString("es-CO")}`;
+};
 
 function isValidEmail(s: string): boolean {
   const t = s.trim();
@@ -343,10 +346,12 @@ export default function CheckoutPage() {
     );
   }
 
-  const subtotal = order.items.reduce(
-    (s, i) => s + i.priceSnapshot * i.quantity,
-    0,
-  );
+  const subtotal = order.items.reduce((sum, item) => {
+    const unit = toNum(
+      (item as { unitPrice?: unknown }).unitPrice ?? item.priceSnapshot,
+    );
+    return sum + unit * toNum(item.quantity);
+  }, 0);
 
   const shipCity = order.shippingCity?.trim() || shippingCity.trim();
   const shipDept = order.shippingDepartment?.trim() || shippingDepartment.trim();
@@ -644,9 +649,17 @@ export default function CheckoutPage() {
               <ul className="mt-4 space-y-4">
                 {order.items.map((item) => {
                   const imgUrl = cartLineImageUrl(item);
-                  const title = item.product?.title ?? "";
+                  const title =
+                    item.product?.title ??
+                    (item.product as { name?: string } | undefined)?.name ??
+                    "Producto";
                   const initial = (title.charAt(0) || "?").toUpperCase();
-                  const lineSub = item.priceSnapshot * item.quantity;
+                  const unitPrice = toNum(
+                    (item as { unitPrice?: unknown }).unitPrice ??
+                      item.priceSnapshot,
+                  );
+                  const qty = toNum(item.quantity);
+                  const lineSub = unitPrice * qty;
                   return (
                     <li
                       key={item.id}
@@ -695,10 +708,10 @@ export default function CheckoutPage() {
                           Talla: {item.size?.name ?? "—"}
                         </p>
                         <p className="mt-1 text-zinc-400">
-                          Cantidad: {item.quantity} · Unit. {formatCop(item.priceSnapshot)}
+                          Cantidad: {qty} · Unit. {formatCOP(unitPrice)}
                         </p>
                         <p className="mt-1 font-display text-base" style={{ color: "#f7e047" }}>
-                          Subtotal {formatCop(lineSub)}
+                          Subtotal {formatCOP(lineSub)}
                         </p>
                       </div>
                     </li>
@@ -708,7 +721,7 @@ export default function CheckoutPage() {
               <div className="mt-6 border-t border-brand-border pt-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Total</p>
                 <p className="font-display text-4xl" style={{ color: "#f7e047" }}>
-                  {formatCop(subtotal)}
+                  {formatCOP(subtotal)}
                 </p>
               </div>
               <div className="mt-6 space-y-2 border-t border-brand-border pt-4 text-sm text-zinc-300">
