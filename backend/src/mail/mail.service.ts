@@ -42,7 +42,7 @@ export class MailService {
     const user = process.env.MAIL_USER?.trim();
     const pass = process.env.MAIL_PASS?.trim();
     const host = process.env.MAIL_HOST?.trim() ?? 'smtp.gmail.com';
-    const port = Number(process.env.MAIL_PORT ?? 465);
+    const port = Number(process.env.MAIL_PORT ?? 587);
 
     this.logger.log(
       `[MailService] Configuración: ${JSON.stringify({
@@ -62,11 +62,16 @@ export class MailService {
     this.transporter = nodemailer.createTransport({
       host,
       port,
-      secure: port === 465,
+      secure: false,
+      requireTLS: true,
       auth: { user, pass },
       tls: {
         rejectUnauthorized: false,
+        minVersion: 'TLSv1.2',
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
 
     void this.transporter
