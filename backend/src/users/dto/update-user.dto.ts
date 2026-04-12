@@ -10,9 +10,4 @@ export class UpdateUserDto {
   @IsString()
   @MaxLength(40)
   phone?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  address?: string;
 }

@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '../common/constants/roles';
+import { UpdateAvatarDto } from './dto/update-avatar.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 export type SafeUser = Omit<User, 'passwordHash'>;
@@ -23,6 +24,7 @@ export class UsersService {
       name: string | null;
       phone: string | null;
       address: string | null;
+      avatarUrl: string | null;
       createdAt: string;
     };
   } {
@@ -34,6 +36,7 @@ export class UsersService {
         name: user.name,
         phone: user.phone,
         address: user.address,
+        avatarUrl: user.avatarUrl,
         createdAt: user.createdAt.toISOString(),
       },
     };
@@ -133,7 +136,6 @@ export class UsersService {
     const data: {
       name?: string | null;
       phone?: string | null;
-      address?: string | null;
     } = {};
     if (dto.name !== undefined) {
       data.name = dto.name.trim() || null;
@@ -141,15 +143,27 @@ export class UsersService {
     if (dto.phone !== undefined) {
       data.phone = dto.phone.trim() || null;
     }
-    if (dto.address !== undefined) {
-      data.address = dto.address.trim() || null;
-    }
     if (Object.keys(data).length === 0) {
       return existing;
     }
     return this.prisma.user.update({
       where: { id: userId },
       data,
+    });
+  }
+
+  async updateAvatar(userId: string, dto: UpdateAvatarDto): Promise<User> {
+    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!existing) {
+      throw new NotFoundException();
+    }
+    const trimmed = dto.avatarUrl.trim();
+    if (!trimmed) {
+      throw new BadRequestException('avatarUrl vacío');
+    }
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: trimmed },
     });
   }
 

@@ -18,6 +18,7 @@ model User {
   name         String?
   phone        String?
   address      String?
+  avatarUrl    String?
   role         String   @default("CLIENT")
   createdAt    DateTime @default(now())
   orders       Order[]

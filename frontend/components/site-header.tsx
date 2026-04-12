@@ -3,8 +3,29 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { auth0LoginHref, auth0SignupHref } from "@/lib/auth-routes";
+
+function initials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+const dropdownLinkStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  padding: "10px 16px",
+  color: "#e4e4e7",
+  textDecoration: "none",
+  fontSize: "14px",
+  transition: "background 0.15s",
+};
 
 /**
  * Auth en nav: usa `useAuth` (no `useUser` de Auth0).
@@ -15,12 +36,29 @@ export function SiteHeader() {
   const returnTo = pathname || "/";
   const entrarHref = auth0LoginHref(returnTo, "login");
   const registroHref = auth0SignupHref(returnTo);
-  const { user, displayName, isLoggedIn, isLoading } = useAuth();
+  const { user, auth0User, displayName, isLoggedIn, isLoading } = useAuth();
   const isAdmin = user?.role === "ADMIN";
   const showGuestNav = !isLoggedIn && !isLoading;
-  const greet =
-    displayName.trim() ||
-    (isLoggedIn ? "Sesión activa" : "");
+
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const labelForInitials =
+    user?.name?.trim() ||
+    user?.email?.trim() ||
+    (auth0User as { email?: string; name?: string } | undefined)?.name?.trim() ||
+    (auth0User as { email?: string } | undefined)?.email?.trim() ||
+    "U";
 
   return (
     <header className="sticky top-0 z-[100] border-b-4 border-brand-red bg-brand-black/95 shadow-[0_4px_24px_rgba(0,0,0,0.6)] backdrop-blur-sm">
@@ -58,18 +96,10 @@ export function SiteHeader() {
           >
             Tienda
           </Link>
-          {isLoggedIn && greet && (
-            <span
-              className="inline max-w-[10rem] truncate text-xs font-medium text-brand-yellow/90 sm:max-w-[14rem]"
-              title={greet}
-            >
-              Hola, {greet}
-            </span>
-          )}
           {isLoading && !isLoggedIn && (
             <span className="text-xs text-zinc-500">Cargando…</span>
           )}
-          {isLoggedIn ? (
+          {isLoggedIn && (
             <>
               <Link
                 href="/carrito"
@@ -77,30 +107,188 @@ export function SiteHeader() {
               >
                 Carrito
               </Link>
-              {user?.role === "CLIENT" && (
-                <Link
-                  href="/mis-pedidos"
-                  className="rounded-sm px-2 py-1.5 font-medium uppercase tracking-wide text-zinc-300 hover:bg-brand-steel hover:text-brand-yellow"
+              <div style={{ position: "relative" }} ref={dropdownRef}>
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  aria-haspopup="menu"
+                  onClick={() => setOpen((v) => !v)}
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "50%",
+                    border: "2px solid #d91920",
+                    overflow: "hidden",
+                    cursor: "pointer",
+                    background: "#1a1a1a",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 0,
+                    transition: "border-color 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#f7e047";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "#d91920";
+                  }}
                 >
-                  Mis pedidos
-                </Link>
-              )}
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="rounded-sm border border-brand-yellow/40 px-2 py-1.5 font-semibold uppercase tracking-wide text-brand-yellow hover:bg-brand-yellow/10"
-                >
-                  Admin
-                </Link>
-              )}
-              <a
-                href="/auth/logout"
-                className="rounded-sm px-2 py-1.5 text-xs uppercase text-zinc-500 hover:text-zinc-300"
-              >
-                Salir
-              </a>
+                  {user?.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.name ?? "Avatar"}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <span
+                      style={{
+                        color: "#f7e047",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        fontFamily: "var(--font-display)",
+                        letterSpacing: "1px",
+                      }}
+                    >
+                      {initials(labelForInitials)}
+                    </span>
+                  )}
+                </button>
+
+                {open ? (
+                  <div
+                    role="menu"
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 12px)",
+                      right: 0,
+                      width: "min(240px, calc(100vw - 32px))",
+                      background: "#111111",
+                      border: "1px solid #2a2a2a",
+                      boxShadow: "4px 4px 0px #d91920",
+                      zIndex: 200,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "16px",
+                        borderBottom: "1px solid #2a2a2a",
+                        background: "#1a1a1a",
+                      }}
+                    >
+                      <p
+                        style={{
+                          color: "#f7e047",
+                          fontFamily: "var(--font-display)",
+                          fontSize: "16px",
+                          textTransform: "uppercase",
+                          letterSpacing: "2px",
+                          margin: 0,
+                        }}
+                      >
+                        {user?.name?.trim() || displayName.trim() || "Mi cuenta"}
+                      </p>
+                      <p
+                        style={{
+                          color: "#52525b",
+                          fontSize: "12px",
+                          margin: "4px 0 0",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {user?.email ?? (auth0User as { email?: string })?.email ?? ""}
+                      </p>
+                    </div>
+
+                    <nav style={{ padding: "8px 0" }}>
+                      <Link
+                        href="/perfil"
+                        role="menuitem"
+                        style={dropdownLinkStyle}
+                        onClick={() => setOpen(false)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#1a1a1a";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        👤 Mi perfil
+                      </Link>
+                      {user?.role === "CLIENT" && (
+                        <Link
+                          href="/mis-pedidos"
+                          role="menuitem"
+                          style={dropdownLinkStyle}
+                          onClick={() => setOpen(false)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#1a1a1a";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          📦 Mis pedidos
+                        </Link>
+                      )}
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          role="menuitem"
+                          style={dropdownLinkStyle}
+                          onClick={() => setOpen(false)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#1a1a1a";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          ⚙️ Panel admin
+                        </Link>
+                      )}
+                      <div
+                        style={{
+                          height: "1px",
+                          background: "#2a2a2a",
+                          margin: "8px 0",
+                        }}
+                      />
+                      <a
+                        href="/auth/logout"
+                        role="menuitem"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          padding: "10px 16px",
+                          color: "#d91920",
+                          textDecoration: "none",
+                          fontSize: "14px",
+                          transition: "background 0.15s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#1a1a1a";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        🚪 Cerrar sesión
+                      </a>
+                    </nav>
+                  </div>
+                ) : null}
+              </div>
             </>
-          ) : showGuestNav ? (
+          )}
+          {showGuestNav ? (
             <>
               <a
                 href={entrarHref}

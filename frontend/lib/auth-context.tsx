@@ -39,7 +39,7 @@ type AuthContextValue = {
   login: (returnTo?: string) => void;
   signup: (returnTo?: string) => void;
   logout: () => void;
-  refreshUser: () => void;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -74,7 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [meUser, setMeUser] = useState<AuthUser | null>(null);
   const [meLoading, setMeLoading] = useState(true);
-  const [syncNonce, setSyncNonce] = useState(0);
 
   const runIdRef = useRef(0);
   const profile401RetriedRef = useRef(false);
@@ -162,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [auth0Loading, auth0Sub, syncNonce]);
+  }, [auth0Loading, auth0Sub]);
 
   const login = useCallback((returnTo = "/") => {
     window.location.assign(auth0LoginHref(returnTo, "login"));
@@ -177,9 +176,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.assign("/auth/logout");
   }, []);
 
-  const refreshUser = useCallback(() => {
-    setSyncNonce((n) => n + 1);
-  }, []);
+  const refreshUser = useCallback(async () => {
+    if (!auth0Sub) return;
+    try {
+      const token = await fetchAccessTokenOnceOrBriefRetry();
+      if (!token) return;
+      const me = await apiFetch<MeResponse>("/auth/me");
+      setMeUser(me.user);
+    } catch {
+      /* mantiene el usuario anterior */
+    }
+  }, [auth0Sub]);
 
   const loading = auth0Loading || (!!auth0Sub && meLoading);
   const isLoggedIn = Boolean(auth0Sub);
