@@ -1,5 +1,6 @@
 import * as nodemailer from 'nodemailer';
 import { Injectable, Logger } from '@nestjs/common';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import type { Transporter } from 'nodemailer';
 import type { Order, OrderItem, Product, Size, User } from '@prisma/client';
 
@@ -28,7 +29,7 @@ export class MailService {
       return;
     }
 
-    this.transporter = nodemailer.createTransport({
+    const smtpOptions: SMTPTransport.Options & { family?: number } = {
       host: process.env.MAIL_HOST?.trim() ?? 'smtp.gmail.com',
       port: Number(process.env.MAIL_PORT ?? 587),
       secure: false,
@@ -38,10 +39,13 @@ export class MailService {
         rejectUnauthorized: false,
         minVersion: 'TLSv1.2',
       },
+      /** Render (plan gratuito) no enruta IPv6; Gmail puede resolver a IPv6. */
+      family: 4,
       connectionTimeout: 15000,
       greetingTimeout: 15000,
       socketTimeout: 20000,
-    });
+    };
+    this.transporter = nodemailer.createTransport(smtpOptions);
 
     void this.transporter
       .verify()
