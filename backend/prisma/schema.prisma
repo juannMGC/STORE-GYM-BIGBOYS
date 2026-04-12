@@ -8,6 +8,20 @@ datasource db {
 }
 
 // Valores: CLIENT | ADMIN (ver src/common/constants/roles.ts)
+model Coupon {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  type        String // PERCENT | FIXED
+  value       Float
+  minPurchase Float     @default(0)
+  maxUses     Int?
+  usedCount   Int       @default(0)
+  active      Boolean   @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  orders      Order[]
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -98,6 +112,9 @@ model Order {
   shippingNeighborhood String?
   shippingAddress      String?
   shippingComplement   String?
+  couponId             String?
+  discountAmount       Float       @default(0)
+  coupon               Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
   items                OrderItem[]
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt

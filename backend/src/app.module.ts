@@ -16,6 +16,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { MailModule } from './mail/mail.module';
 import { AdminModule } from './admin/admin.module';
 import { UploadModule } from './upload/upload.module';
+import { CouponsModule } from './coupons/coupons.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { UploadModule } from './upload/upload.module';
     AdminModule,
     WebhooksModule,
     UploadModule,
+    CouponsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -28,13 +28,16 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { Role } from '../common/constants/roles';
 import { verifyWompiEventChecksum } from '../wompi/wompi-event-verify';
 import { MailService, type OrderMailPayload } from '../mail/mail.service';
+import { CouponsService } from '../coupons/coupons.service';
 import type { OrderItem, Prisma } from '@prisma/client';
 
 export function orderTotalAmountInCents(order: {
   items: { priceSnapshot: number; quantity: number }[];
+  discountAmount?: number | null;
 }): number {
-  const total = order.items.reduce((s, i) => s + i.priceSnapshot * i.quantity, 0);
-  return Math.round(total * 100);
+  const gross = order.items.reduce((s, i) => s + i.priceSnapshot * i.quantity, 0);
+  const disc = Math.max(0, Number(order.discountAmount ?? 0));
+  return Math.round(Math.max(0, gross - disc) * 100);
 }
 
 const orderInclude = {
@@ -48,6 +51,7 @@ const orderInclude = {
       size: true,
     },
   },
+  coupon: { select: { id: true, code: true, type: true, value: true } },
 } as const;
 
 /** Incluye envío y pago para plantillas HTML (MailService). */
@@ -142,6 +146,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
+    private readonly couponsService: CouponsService,
   ) {}
 
   /** Suma cantidades del mismo producto en el pedido (todas las tallas). */
@@ -542,7 +547,7 @@ export class OrdersService {
   }> {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { items: true },
+      include: { items: true, coupon: { select: { code: true } } },
     });
     if (!order) {
       throw new NotFoundException('Pedido no encontrado');
@@ -555,6 +560,15 @@ export class OrdersService {
     }
     if (order.items.length === 0) {
       throw new BadRequestException('El pedido no tiene ítems');
+    }
+    if (order.couponId && order.coupon) {
+      const gross = order.items.reduce((s, i) => s + i.priceSnapshot * i.quantity, 0);
+      const v = await this.couponsService.validateCoupon(order.coupon.code, gross);
+      if (v.discountAmount !== Math.round(order.discountAmount ?? 0)) {
+        throw new BadRequestException(
+          'El descuento no coincide con el total actual. Volvé a aplicar el cupón.',
+        );
+      }
     }
     const amountInCents = orderTotalAmountInCents(order);
     if (amountInCents < 1) {
@@ -624,10 +638,17 @@ export class OrdersService {
   ): Promise<{ ok: boolean; detail?: string }> {
     const order = await this.prisma.order.findUnique({
       where: { id: reference },
-      include: { items: true },
+      include: { items: true, coupon: { select: { code: true } } },
     });
     if (!order) {
       return { ok: false, detail: 'order_not_found' };
+    }
+    if (order.couponId && order.coupon) {
+      const gross = order.items.reduce((s, i) => s + i.priceSnapshot * i.quantity, 0);
+      const v = await this.couponsService.validateCoupon(order.coupon.code, gross);
+      if (v.discountAmount !== Math.round(order.discountAmount ?? 0)) {
+        return { ok: false, detail: 'amount_mismatch' };
+      }
     }
     const expected = orderTotalAmountInCents(order);
     if (amountInCents !== expected) {
@@ -644,6 +665,12 @@ export class OrdersService {
           where: { id: order.id },
           data: { status: OrderStatus.PAID },
         });
+        if (order.couponId) {
+          await tx.coupon.update({
+            where: { id: order.couponId },
+            data: { usedCount: { increment: 1 } },
+          });
+        }
       });
       const forMail = await this.loadOrderForMail(order.id);
       if (forMail) {
@@ -676,7 +703,7 @@ export class OrdersService {
   async confirmOrderById(orderId: string, userId: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { items: true },
+      include: { items: true, coupon: { select: { code: true } } },
     });
     if (!order) {
       throw new NotFoundException('Pedido no encontrado');
@@ -696,13 +723,29 @@ export class OrdersService {
       );
     }
     assertClientConfirm(order.status as OrderStatusValue);
+    if (order.couponId && order.coupon) {
+      const gross = order.items.reduce((s, i) => s + i.priceSnapshot * i.quantity, 0);
+      const v = await this.couponsService.validateCoupon(order.coupon.code, gross);
+      if (v.discountAmount !== Math.round(order.discountAmount ?? 0)) {
+        throw new BadRequestException(
+          'El descuento no coincide con el total actual. Volvé a aplicar el cupón.',
+        );
+      }
+    }
     const updated = await this.prisma.$transaction(async (tx) => {
       await this.deductStockForItemsTx(tx, order.items);
-      return tx.order.update({
+      const row = await tx.order.update({
         where: { id: orderId },
         data: { status: OrderStatus.PAID },
         include: orderInclude,
       });
+      if (order.couponId) {
+        await tx.coupon.update({
+          where: { id: order.couponId },
+          data: { usedCount: { increment: 1 } },
+        });
+      }
+      return row;
     });
     const mailPayload = await this.loadOrderForMail(orderId);
     if (mailPayload) {

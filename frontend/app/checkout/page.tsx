@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { BackButton } from "@/components/back-button";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiFetch, formatShopApiError } from "@/lib/api-client";
+import { apiFetch, formatShopApiError, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { auth0LoginHref } from "@/lib/auth-routes";
 import type { CartGetResponse, CartOrder } from "@/lib/types";
@@ -71,6 +71,12 @@ function normAddr(s: string | null | undefined): string {
   return (s ?? "").trim();
 }
 
+function couponDescriptionLine(c: { type: string; value: number }): string {
+  return c.type === "PERCENT"
+    ? `${c.value}% de descuento`
+    : `$${Number(c.value).toLocaleString("es-CO")} de descuento`;
+}
+
 export default function CheckoutPage() {
   const { isLoggedIn, isLoading, displayName, user, refreshUser } = useAuth();
   const [order, setOrder] = useState<CartOrder | null>(null);
@@ -90,6 +96,10 @@ export default function CheckoutPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [dismissSaveAddressOffer, setDismissSaveAddressOffer] = useState(false);
   const [savingProfileAddress, setSavingProfileAddress] = useState(false);
+
+  const [codigoCupon, setCodigoCupon] = useState("");
+  const [aplicandoCupon, setAplicandoCupon] = useState(false);
+  const [cuponError, setCuponError] = useState("");
 
   const skipShippingCompleteStep = useRef(false);
 
@@ -273,6 +283,46 @@ export default function CheckoutPage() {
     }
   }
 
+  async function handleAplicarCupon() {
+    if (!order?.id || !codigoCupon.trim()) return;
+    setCuponError("");
+    setAplicandoCupon(true);
+    try {
+      const data = await apiFetch<{
+        description: string;
+        discountAmount: number;
+        finalTotal: number;
+        code: string;
+        order: CartOrder;
+      }>("/coupons/apply", {
+        method: "POST",
+        body: JSON.stringify({
+          orderId: order.id,
+          code: codigoCupon.trim(),
+        }),
+      });
+      setOrder(data.order);
+      setCodigoCupon("");
+    } catch (err: unknown) {
+      setCuponError(err instanceof ApiError ? err.message : "Cupón inválido");
+    } finally {
+      setAplicandoCupon(false);
+    }
+  }
+
+  async function handleRemoverCupon() {
+    if (!order?.id) return;
+    setCuponError("");
+    try {
+      await apiFetch<CartOrder>(`/coupons/remove/${order.id}`, {
+        method: "DELETE",
+      });
+      await load();
+    } catch {
+      setCuponError("Error al remover el cupón");
+    }
+  }
+
   async function payWithWompi() {
     if (!order?.items.length) return;
     setSaving(true);
@@ -365,6 +415,10 @@ export default function CheckoutPage() {
     );
     return sum + unit * toNum(item.quantity);
   }, 0);
+
+  const discountAmt = Math.max(0, toNum(order.discountAmount));
+  const totalConCupon = Math.max(0, subtotal - discountAmt);
+  const cuponActivo = Boolean(order.coupon && discountAmt > 0);
 
   const shipCity = order.shippingCity?.trim() || shippingCity.trim();
   const shipDept = order.shippingDepartment?.trim() || shippingDepartment.trim();
@@ -734,11 +788,186 @@ export default function CheckoutPage() {
                   );
                 })}
               </ul>
-              <div className="mt-6 border-t border-brand-border pt-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Total</p>
-                <p className="font-display text-4xl" style={{ color: "#f7e047" }}>
-                  {formatCOP(subtotal)}
+
+              <div
+                style={{
+                  marginTop: "20px",
+                  marginBottom: "20px",
+                  padding: "16px",
+                  background: "#111111",
+                  border: "1px solid #2a2a2a",
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    color: "#f7e047",
+                    fontSize: "11px",
+                    letterSpacing: "3px",
+                    textTransform: "uppercase",
+                    marginBottom: "12px",
+                  }}
+                >
+                  🏷️ Cupón de descuento
                 </p>
+
+                {cuponActivo && order.coupon ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "10px 14px",
+                      background: "rgba(34,197,94,0.1)",
+                      border: "1px solid #22c55e",
+                      gap: "8px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <p
+                        style={{
+                          color: "#22c55e",
+                          fontSize: "13px",
+                          fontFamily: "var(--font-display)",
+                          letterSpacing: "2px",
+                          margin: "0 0 2px",
+                        }}
+                      >
+                        ✓ {order.coupon.code}
+                      </p>
+                      <p style={{ color: "#a1a1aa", fontSize: "12px", margin: 0 }}>
+                        {couponDescriptionLine(order.coupon)}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <p
+                        style={{
+                          color: "#22c55e",
+                          fontFamily: "var(--font-display)",
+                          fontSize: "14px",
+                          margin: "0 0 4px",
+                        }}
+                      >
+                        -{formatCOP(discountAmt)}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void handleRemoverCupon()}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#d91920",
+                          cursor: "pointer",
+                          fontSize: "11px",
+                          fontFamily: "var(--font-display)",
+                          letterSpacing: "1px",
+                          padding: 0,
+                        }}
+                      >
+                        × Remover
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <input
+                        type="text"
+                        value={codigoCupon}
+                        onChange={(e) => {
+                          setCodigoCupon(e.target.value.toUpperCase());
+                          setCuponError("");
+                        }}
+                        placeholder="BIGBOYS10"
+                        className="input-brand"
+                        style={{
+                          flex: 1,
+                          fontFamily: "var(--font-display)",
+                          letterSpacing: "2px",
+                          textTransform: "uppercase",
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void handleAplicarCupon();
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void handleAplicarCupon()}
+                        disabled={!codigoCupon.trim() || aplicandoCupon}
+                        className="btn-brand"
+                        style={{ flexShrink: 0, padding: "0 16px" }}
+                      >
+                        {aplicandoCupon ? "…" : "Aplicar"}
+                      </button>
+                    </div>
+                    {cuponError ? (
+                      <p style={{ color: "#d91920", fontSize: "12px", marginTop: "6px" }}>
+                        ⚠️ {cuponError}
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop: "16px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "8px 0",
+                    borderBottom: "1px solid #2a2a2a",
+                  }}
+                >
+                  <span style={{ color: "#a1a1aa" }}>Subtotal</span>
+                  <span style={{ color: "#e4e4e7" }}>${subtotal.toLocaleString("es-CO")}</span>
+                </div>
+
+                {cuponActivo && order.coupon ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: "8px 0",
+                      borderBottom: "1px solid #2a2a2a",
+                    }}
+                  >
+                    <span style={{ color: "#22c55e" }}>Descuento ({order.coupon.code})</span>
+                    <span style={{ color: "#22c55e" }}>-${discountAmt.toLocaleString("es-CO")}</span>
+                  </div>
+                ) : null}
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "12px",
+                    background: "#1a1a1a",
+                    marginTop: "4px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      color: "#f7e047",
+                      fontSize: "14px",
+                      letterSpacing: "2px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    TOTAL
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      color: "#f7e047",
+                      fontSize: "20px",
+                      letterSpacing: "2px",
+                    }}
+                  >
+                    ${totalConCupon.toLocaleString("es-CO")}
+                  </span>
+                </div>
               </div>
               <div className="mt-6 space-y-2 border-t border-brand-border pt-4 text-sm text-zinc-300">
                 <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
