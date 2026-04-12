@@ -382,7 +382,7 @@ export class OrdersService {
       return t === '' ? null : t;
     };
 
-    return this.prisma.order.update({
+    await this.prisma.order.update({
       where: { id: orderId },
       data: {
         ...(dto.shippingEmail !== undefined
@@ -404,8 +404,8 @@ export class OrdersService {
           ? { shippingComplement: trimOrNull(dto.shippingComplement) }
           : {}),
       },
-      include: orderInclude,
     });
+    return this.getOrderDetailDtoById(orderId);
   }
 
   /** Pedidos del usuario (excluye carrito DRAFT), más recientes primero. */

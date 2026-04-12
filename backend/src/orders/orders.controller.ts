@@ -138,6 +138,17 @@ export class OrdersController {
     return this.ordersService.adminRemoveOrderItem(id, itemId);
   }
 
+  /** Solo ADMIN. Actualizar método de pago de un pedido. */
+  @Patch(':id/payment')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  adminPatchOrderPayment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PatchPaymentDto,
+  ) {
+    return this.ordersService.adminUpdatePayment(id, dto);
+  }
+
   /** Solo ADMIN. Un CLIENT recibe 403 Forbidden. */
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)

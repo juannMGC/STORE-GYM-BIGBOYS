@@ -17,13 +17,13 @@ type OrderDetail = {
   shippingNeighborhood: string | null;
   shippingAddress: string | null;
   shippingComplement: string | null;
-  user: { id: string; name: string | null; email: string };
-  items: {
+  user?: { id: string; name: string | null; email: string };
+  items?: {
     id: string;
     quantity: number;
     unitPrice: number;
-    product: { id: string; name: string; imageUrl: string | null; price: number };
-    size: { id: string; name: string } | null;
+    product?: { id: string; name?: string; imageUrl?: string | null; price?: number };
+    size?: { id: string; name: string } | null;
   }[];
 };
 
@@ -62,8 +62,11 @@ function formatCop(value: number): string {
 }
 
 function orderTotal(d: OrderDetail | null): number {
-  if (!d) return 0;
-  return d.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  if (!d?.items?.length) return 0;
+  return d.items.reduce(
+    (s, i) => s + (i.unitPrice ?? 0) * (i.quantity ?? 1),
+    0,
+  );
 }
 
 function formatDateLong(iso: string): string {
@@ -74,7 +77,7 @@ function formatDateLong(iso: string): string {
   });
 }
 
-function lineImageUrl(line: OrderDetail["items"][number]): string | undefined {
+function lineImageUrl(line: NonNullable<OrderDetail["items"]>[number]): string | undefined {
   const u = line.product?.imageUrl?.trim();
   return u || undefined;
 }
@@ -123,6 +126,9 @@ export default function AdminPedidoDetailPage() {
   const [addErr, setAddErr] = useState<string | null>(null);
 
   const applyOrder = useCallback((d: OrderDetail) => {
+    if (!d.user || !Array.isArray(d.items)) {
+      return;
+    }
     setOrder(d);
     setSelectedStatus(d.status);
     setPayMethod(d.paymentMethod || "BANK_TRANSFER");
@@ -133,7 +139,7 @@ export default function AdminPedidoDetailPage() {
     setShipAddr(d.shippingAddress ?? "");
     setShipComp(d.shippingComplement ?? "");
     const q: Record<string, string> = {};
-    for (const it of d.items) q[it.id] = String(it.quantity);
+    for (const it of d.items) q[it.id] = String(it.quantity ?? 1);
     setQtyDraft(q);
   }, []);
 
@@ -193,7 +199,7 @@ export default function AdminPedidoDetailPage() {
     setShipOk(null);
     setShipErr(null);
     try {
-      const d = await apiFetch<OrderDetail>(`/orders/${order.id}/shipping`, {
+      await apiFetch(`/orders/${order.id}/shipping`, {
         method: "PATCH",
         body: JSON.stringify({
           shippingEmail: shipEmail.trim() || undefined,
@@ -204,10 +210,10 @@ export default function AdminPedidoDetailPage() {
           shippingComplement: shipComp.trim() || undefined,
         }),
       });
-      applyOrder(d);
-      setShipOk("Datos de envío guardados");
+      await load();
+      setShipOk("Datos de envío guardados ✓");
     } catch (e) {
-      setShipErr(e instanceof ApiError ? e.message : "No se pudo guardar");
+      setShipErr(e instanceof ApiError ? e.message : "Error al guardar datos de envío");
     } finally {
       setShipSaving(false);
     }
@@ -346,14 +352,23 @@ export default function AdminPedidoDetailPage() {
   }
 
   if (loading) {
-    return <p className="text-zinc-500">Cargando pedido…</p>;
+    return (
+      <div className="p-8" style={{ color: "#e4e4e7" }}>
+        Cargando pedido…
+      </div>
+    );
   }
 
-  if (error || !order) {
+  if (error || !order?.user || !order.items) {
     return (
-      <div>
-        <p className="text-brand-red">{error ?? "Pedido no encontrado"}</p>
-        <Link href="/admin/pedidos" className="btn-brand-outline mt-6 inline-flex">
+      <div className="p-8" style={{ color: "#e4e4e7" }}>
+        <p className="text-brand-red">
+          {error ?? "Error al cargar el pedido."}
+        </p>
+        <Link
+          href="/admin/pedidos"
+          className="btn-brand mt-4 inline-block"
+        >
           ← Volver a pedidos
         </Link>
       </div>
@@ -383,8 +398,8 @@ export default function AdminPedidoDetailPage() {
 
           <div className="panel-brand p-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Cliente</p>
-            <p className="mt-2 text-zinc-100">{order.user.name ?? "—"}</p>
-            <p className="text-sm text-zinc-400">{order.user.email}</p>
+            <p className="mt-2 text-zinc-100">{order.user?.name ?? "Cliente"}</p>
+            <p className="text-sm text-zinc-400">{order.user?.email ?? "—"}</p>
           </div>
 
           <div className="panel-brand p-6">
@@ -570,12 +585,12 @@ export default function AdminPedidoDetailPage() {
             </p>
           ) : null}
           <ul className="mt-4 space-y-4">
-            {order.items.map((line) => {
+            {(order.items ?? []).map((line) => {
               const imgUrl = lineImageUrl(line);
-              const title = line.product?.name ?? "";
+              const title = line.product?.name ?? "Producto";
               const initial = (title.charAt(0) || "?").toUpperCase();
               const busy = itemBusy === line.id;
-              const lineSub = line.unitPrice * line.quantity;
+              const lineSub = (line.unitPrice ?? 0) * (line.quantity ?? 1);
               return (
                 <li
                   key={line.id}
@@ -613,10 +628,12 @@ export default function AdminPedidoDetailPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-zinc-100">{title}</p>
-                      <p className="text-xs text-zinc-500">Talla: {line.size?.name ?? "—"}</p>
+                      <p className="text-xs text-zinc-500">
+                        Talla: {line.size?.name ?? "Sin talla"}
+                      </p>
                       <p className="mt-1 text-sm text-zinc-400">
-                        {formatCop(line.unitPrice)}
-                        {line.quantity > 1 ? ` c/u` : ""}
+                        {formatCop(line.unitPrice ?? 0)}
+                        {(line.quantity ?? 1) > 1 ? ` c/u` : ""}
                       </p>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className="text-xs text-zinc-500">Cantidad:</span>
