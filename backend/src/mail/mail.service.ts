@@ -208,8 +208,8 @@ export class MailService {
     const nombre = this.escapeHtml(order.user?.name ?? 'cliente');
 
     const contenido = `
-      <h2 style="color:#ffffff;margin:0 0 8px;font-size:20px">¡Tu pedido está confirmado! 💪</h2>
-      <p style="color:#a1a1aa;margin:0 0 24px;font-size:14px">Hola ${nombre}, recibimos tu pedido y lo estamos procesando.</p>
+      <h2 style="color:#ffffff;margin:0 0 8px;font-size:20px">¡Tu pago fue confirmado! 💪</h2>
+      <p style="color:#a1a1aa;margin:0 0 24px;font-size:14px">Hola ${nombre}, recibimos tu pago y estamos preparando tu pedido para el envío.</p>
       <div style="background:#1a1a1a;border-left:3px solid #d91920;padding:12px 16px;margin-bottom:24px">
         <p style="margin:0;font-size:11px;color:#71717a;letter-spacing:2px;text-transform:uppercase">Número de pedido</p>
         <p style="margin:4px 0 0;font-size:18px;color:#f7e047;font-weight:bold;letter-spacing:2px">#${sid}</p>
@@ -303,29 +303,35 @@ export class MailService {
         emoji: '✅',
         titulo: '¡Pago confirmado!',
         mensaje:
-          'Recibimos tu pago. Tu pedido está siendo preparado para el envío.',
+          'Recibimos tu pago exitosamente. Tu pedido está siendo preparado para el envío. Pronto te contactamos.',
       },
       SHIPPED: {
         emoji: '🚚',
         titulo: '¡Tu pedido va en camino!',
         mensaje:
-          'Tu pedido fue despachado. Pronto lo recibirás.',
+          'Tu pedido fue despachado y está en camino. Pronto lo recibirás en la dirección indicada.',
       },
       DELIVERED: {
         emoji: '📦',
         titulo: '¡Pedido entregado!',
         mensaje:
-          '¡Tu pedido fue entregado! Esperamos que disfrutes tus productos. 💪',
+          '¡Tu pedido fue entregado exitosamente! Esperamos que disfrutes tus productos. 💪 Entrená fuerte.',
       },
       CANCELLED: {
         emoji: '❌',
         titulo: 'Pedido cancelado',
-        mensaje: 'Tu pedido fue cancelado. Contactanos si tenés dudas.',
+        mensaje:
+          'Tu pedido fue cancelado. Si tenés dudas o necesitás ayuda, contactanos directamente.',
       },
     };
 
     const config = statusConfig[newStatus];
-    if (!config) return;
+    if (!config) {
+      this.logger.warn(
+        `Estado ${newStatus} no tiene template de email (sendStatusUpdate)`,
+      );
+      return;
+    }
 
     const total = this.calcularTotal(order.items);
     const sid = this.shortOrderId(order.id);

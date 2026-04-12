@@ -919,12 +919,13 @@ export class OrdersService {
       });
     });
 
-    if (
-      to === OrderStatus.PAID ||
-      to === OrderStatus.SHIPPED ||
-      to === OrderStatus.DELIVERED ||
-      to === OrderStatus.CANCELLED
-    ) {
+    const estadosConEmail: OrderStatusValue[] = [
+      OrderStatus.PAID,
+      OrderStatus.SHIPPED,
+      OrderStatus.DELIVERED,
+      OrderStatus.CANCELLED,
+    ];
+    if (estadosConEmail.includes(to)) {
       const forMail = await this.loadOrderForMail(id);
       if (forMail) {
         void this.mailService
