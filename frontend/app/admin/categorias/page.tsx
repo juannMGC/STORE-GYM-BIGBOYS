@@ -1,26 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 import Link from "next/link";
 import { BackButton } from "@/components/back-button";
-import { ImageUploader } from "@/components/image-uploader";
 import { AdminTableSkeleton } from "@/components/admin/table-skeleton";
 import { apiFetch, ApiError } from "@/lib/api-client";
+import { uploadImageFile } from "@/lib/upload-image";
 import type { Category } from "@/lib/types";
 
 type ModalMode = "create" | "edit" | null;
 
 type FormFeedback = { type: "ok" | "err"; text: string } | null;
-
-const labelStyle: CSSProperties = {
-  display: "block",
-  color: "#a1a1aa",
-  fontSize: "12px",
-  marginBottom: "6px",
-  fontFamily: "var(--font-display)",
-  letterSpacing: "1px",
-  textTransform: "uppercase",
-};
 
 function slugify(value: string): string {
   return value
@@ -45,7 +41,10 @@ export default function AdminCategoriasPage() {
   const [imageBroken, setImageBroken] = useState(false);
   const [slugManual, setSlugManual] = useState(false);
   const [formFeedback, setFormFeedback] = useState<FormFeedback>(null);
-  const [catUploadBusy, setCatUploadBusy] = useState(false);
+  /** Preview: blob local o URL (Cloudinary o pegada). */
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const categoriaBlobRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,7 +63,25 @@ export default function AdminCategoriasPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    return () => {
+      if (categoriaBlobRef.current) {
+        URL.revokeObjectURL(categoriaBlobRef.current);
+        categoriaBlobRef.current = null;
+      }
+    };
+  }, []);
+
+  function revokeCategoriaBlob() {
+    if (categoriaBlobRef.current) {
+      URL.revokeObjectURL(categoriaBlobRef.current);
+      categoriaBlobRef.current = null;
+    }
+  }
+
   function openCreate() {
+    revokeCategoriaBlob();
+    setImagePreview(null);
     setEditingId(null);
     setName("");
     setSlug("");
@@ -77,11 +94,14 @@ export default function AdminCategoriasPage() {
   }
 
   function openEdit(c: Category) {
+    revokeCategoriaBlob();
+    const u = c.imageUrl?.trim() ?? "";
+    setImageUrl(u);
+    setImagePreview(u || null);
     setEditingId(c.id);
     setName(c.name);
     setSlug(c.slug ?? "");
     setDescription(c.description ?? "");
-    setImageUrl(c.imageUrl?.trim() ?? "");
     setImageBroken(false);
     setSlugManual(true);
     setFormFeedback(null);
@@ -89,9 +109,48 @@ export default function AdminCategoriasPage() {
   }
 
   function closeModal() {
+    revokeCategoriaBlob();
+    setImagePreview(null);
     setModal(null);
     setEditingId(null);
     setFormFeedback(null);
+  }
+
+  async function handleImagenCategoria(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const urlBeforeUpload = imageUrl;
+    if (!file.type.startsWith("image/")) {
+      setFormFeedback({ type: "err", text: "Solo se permiten imágenes" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setFormFeedback({ type: "err", text: "La imagen debe pesar menos de 5MB" });
+      return;
+    }
+
+    revokeCategoriaBlob();
+    const localUrl = URL.createObjectURL(file);
+    categoriaBlobRef.current = localUrl;
+    setImagePreview(localUrl);
+    setFormFeedback(null);
+
+    try {
+      setSubiendo(true);
+      const cloudUrl = await uploadImageFile(file, "categories");
+      console.log("[categorias] imagen subida:", cloudUrl);
+      revokeCategoriaBlob();
+      setImageUrl(cloudUrl);
+      setImagePreview(cloudUrl);
+      setImageBroken(false);
+    } catch {
+      revokeCategoriaBlob();
+      setImagePreview(urlBeforeUpload.trim() || null);
+      setFormFeedback({ type: "err", text: "Error al subir imagen" });
+    } finally {
+      setSubiendo(false);
+    }
   }
 
   function onNameChange(v: string) {
@@ -340,37 +399,77 @@ export default function AdminCategoriasPage() {
                 <div
                   style={{
                     display: "flex",
-                    gap: "16px",
+                    gap: "12px",
                     alignItems: "flex-start",
                     marginTop: "8px",
                   }}
                 >
-                  <ImageUploader
-                    folder="categories"
-                    currentUrl={imageUrl.trim() || null}
-                    size="md"
-                    shape="square"
-                    placeholder="Imagen categoría"
-                    onUpload={(url) => {
-                      setImageUrl(url);
-                      setImageBroken(false);
-                      setFormFeedback(null);
+                  <div
+                    style={{
+                      width: "80px",
+                      height: "80px",
+                      border: "1px solid #2a2a2a",
+                      flexShrink: 0,
+                      overflow: "hidden",
+                      background: "#1a1a1a",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
-                    onError={(msg) => setFormFeedback({ type: "err", text: msg })}
-                  />
+                  >
+                    {imagePreview?.trim() || imageUrl.trim() ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={imagePreview ?? imageUrl}
+                        alt=""
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                        onError={() => setImageBroken(true)}
+                      />
+                    ) : (
+                      <span style={{ color: "#3f3f46", fontSize: "24px" }}>🖼️</span>
+                    )}
+                  </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <label style={labelStyle}>O pegá una URL</label>
                     <input
                       type="text"
                       className="input-brand w-full"
                       value={imageUrl}
                       onChange={(e) => {
-                        setImageUrl(e.target.value);
+                        const v = e.target.value;
+                        revokeCategoriaBlob();
+                        setImageUrl(v);
+                        setImagePreview(v || null);
                         setImageBroken(false);
+                        setFormFeedback(null);
                       }}
-                      placeholder="https://..."
+                      placeholder="https://... o subí desde dispositivo"
+                      style={{ width: "100%", marginBottom: "8px" }}
                     />
-                    {imageUrl.trim() ? (
+                    <label
+                      htmlFor="cat-img"
+                      className="btn-brand-outline"
+                      style={{
+                        display: "inline-block",
+                        cursor: subiendo ? "wait" : "pointer",
+                        fontSize: "12px",
+                        padding: "6px 12px",
+                      }}
+                    >
+                      {subiendo ? "⏳ Subiendo…" : "📷 Subir imagen"}
+                    </label>
+                    <input
+                      id="cat-img"
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={(e) => void handleImagenCategoria(e)}
+                      disabled={subiendo}
+                    />
+                    {imageUrl.trim() && !imageBroken ? (
                       <p
                         style={{
                           color: "#22c55e",

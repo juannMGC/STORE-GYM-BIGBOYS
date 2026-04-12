@@ -1,11 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type CSSProperties,
+} from "react";
 import Link from "next/link";
 import { BackButton } from "@/components/back-button";
-import { ImageUploader } from "@/components/image-uploader";
 import { AdminTableSkeleton } from "@/components/admin/table-skeleton";
 import { apiFetch, ApiError } from "@/lib/api-client";
+import { uploadImageFile } from "@/lib/upload-image";
 import { PRODUCT_SLUG_PATTERN, slugifyTitle } from "@/lib/slugify";
 import type { Category, ProductListItem, Size } from "@/lib/types";
 
@@ -37,6 +45,10 @@ export default function AdminProductosPage() {
   const [categoryId, setCategoryId] = useState("");
   const [selectedSizeIds, setSelectedSizeIds] = useState<string[]>([]);
   const [stockAdjustingId, setStockAdjustingId] = useState<string | null>(null);
+  /** Preview blob o URL Cloudinary mientras se sube / tras subir la imagen principal. */
+  const [principalPreview, setPrincipalPreview] = useState<string | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const principalBlobRef = useRef<string | null>(null);
 
   const stockBtnStyle: CSSProperties = {
     width: "28px",
@@ -110,7 +122,25 @@ export default function AdminProductosPage() {
     setSlug(t ? slugifyTitle(title) : "");
   }, [title, modal, slugDirty]);
 
+  useEffect(() => {
+    return () => {
+      if (principalBlobRef.current) {
+        URL.revokeObjectURL(principalBlobRef.current);
+        principalBlobRef.current = null;
+      }
+    };
+  }, []);
+
+  function revokePrincipalBlob() {
+    if (principalBlobRef.current) {
+      URL.revokeObjectURL(principalBlobRef.current);
+      principalBlobRef.current = null;
+    }
+  }
+
   function openCreate() {
+    revokePrincipalBlob();
+    setPrincipalPreview(null);
     setEditingId(null);
     setModal("create");
     setSlugDirty(false);
@@ -126,6 +156,8 @@ export default function AdminProductosPage() {
   }
 
   async function openEdit(p: ProductListItem) {
+    revokePrincipalBlob();
+    setPrincipalPreview(null);
     setEditingId(p.id);
     setModal("edit");
     setSlugDirty(true);
@@ -146,9 +178,100 @@ export default function AdminProductosPage() {
   }
 
   function closeModal() {
+    revokePrincipalBlob();
+    setPrincipalPreview(null);
     setModal(null);
     setEditingId(null);
     setNuevaImagenUrl("");
+  }
+
+  async function handleImagenPrincipal(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      showToast({ type: "err", text: "Solo se permiten imágenes" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast({ type: "err", text: "La imagen debe pesar menos de 5MB" });
+      return;
+    }
+
+    revokePrincipalBlob();
+    const localUrl = URL.createObjectURL(file);
+    principalBlobRef.current = localUrl;
+    setPrincipalPreview(localUrl);
+
+    try {
+      setSubiendo(true);
+      const cloudUrl = await uploadImageFile(file, "products");
+      console.log("[productos] imagen principal subida:", cloudUrl);
+      revokePrincipalBlob();
+      setPrincipalPreview(cloudUrl);
+      setImagenes((prev) => {
+        if (prev.length === 0) {
+          return [{ id: `local-${Date.now()}`, url: cloudUrl, sortOrder: 0 }];
+        }
+        const next = [...prev];
+        next[0] = { ...next[0], url: cloudUrl };
+        return next;
+      });
+    } catch {
+      revokePrincipalBlob();
+      setPrincipalPreview(null);
+      showToast({ type: "err", text: "Error al subir imagen. Intentá de nuevo." });
+    } finally {
+      setSubiendo(false);
+    }
+  }
+
+  async function handleGaleriaUpload(e: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (!files.length) return;
+
+    let ok = 0;
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        showToast({ type: "err", text: `${file.name}: no es una imagen` });
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showToast({ type: "err", text: `${file.name} supera 5MB` });
+        continue;
+      }
+      try {
+        setSubiendo(true);
+        const cloudUrl = await uploadImageFile(file, "products");
+        console.log("[galería] imagen subida:", cloudUrl);
+        if (modal === "edit" && editingId) {
+          await apiFetch(`/admin/products/${editingId}/images`, {
+            method: "POST",
+            body: JSON.stringify({ url: cloudUrl }),
+          });
+          ok += 1;
+        } else {
+          setImagenes((prev) => [
+            ...prev,
+            {
+              id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              url: cloudUrl,
+              sortOrder: prev.length,
+            },
+          ]);
+          ok += 1;
+        }
+      } catch {
+        showToast({ type: "err", text: `Error al subir ${file.name}` });
+      } finally {
+        setSubiendo(false);
+      }
+    }
+    if (modal === "edit" && editingId && ok > 0) {
+      await recargarImagenes(editingId);
+      showToast({ type: "ok", text: "Imágenes actualizadas." });
+    }
   }
 
   const recargarImagenes = useCallback(async (productId: string) => {
@@ -638,39 +761,51 @@ export default function AdminProductosPage() {
                 <div
                   style={{
                     display: "flex",
-                    gap: "16px",
+                    gap: "12px",
                     alignItems: "flex-start",
                     marginTop: "8px",
                     marginBottom: "8px",
                   }}
                 >
-                  <ImageUploader
-                    folder="products"
-                    currentUrl={imagenes[0]?.url ?? null}
-                    size="md"
-                    shape="square"
-                    placeholder="Imagen principal"
-                    onUpload={(url) => {
-                      setImagenes((prev) => {
-                        if (prev.length === 0) {
-                          return [{ id: `local-${Date.now()}`, url, sortOrder: 0 }];
-                        }
-                        const next = [...prev];
-                        next[0] = { ...next[0], url };
-                        return next;
-                      });
+                  <div
+                    style={{
+                      width: "80px",
+                      height: "80px",
+                      border: "1px solid #2a2a2a",
+                      flexShrink: 0,
+                      overflow: "hidden",
+                      background: "#1a1a1a",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
-                    onError={(msg) => showToast({ type: "err", text: msg })}
-                  />
+                  >
+                    {principalPreview?.trim() || imagenes[0]?.url?.trim() ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={principalPreview ?? imagenes[0]?.url ?? ""}
+                        alt=""
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                        onError={(ev) => {
+                          ev.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <span style={{ color: "#3f3f46", fontSize: "24px" }}>🖼️</span>
+                    )}
+                  </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      O pegá una URL de imagen
-                    </label>
                     <input
                       type="text"
-                      className="input-brand mt-1 w-full"
+                      className="input-brand w-full"
                       value={imagenes[0]?.url ?? ""}
                       onChange={(e) => {
+                        revokePrincipalBlob();
+                        setPrincipalPreview(null);
                         const v = e.target.value;
                         setImagenes((prev) => {
                           if (prev.length === 0) {
@@ -681,7 +816,28 @@ export default function AdminProductosPage() {
                           return next;
                         });
                       }}
-                      placeholder="https://..."
+                      placeholder="https://... o subí desde dispositivo"
+                      style={{ width: "100%", marginBottom: "8px" }}
+                    />
+                    <label
+                      htmlFor="prod-img-principal"
+                      className="btn-brand-outline"
+                      style={{
+                        display: "inline-block",
+                        cursor: subiendo ? "wait" : "pointer",
+                        fontSize: "12px",
+                        padding: "6px 12px",
+                      }}
+                    >
+                      {subiendo ? "⏳ Subiendo…" : "📷 Subir imagen"}
+                    </label>
+                    <input
+                      id="prod-img-principal"
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={(e) => void handleImagenPrincipal(e)}
+                      disabled={subiendo}
                     />
                   </div>
                 </div>
@@ -781,49 +937,6 @@ export default function AdminProductosPage() {
                       </button>
                     </div>
                   ))}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minHeight: "80px",
-                    }}
-                  >
-                    <ImageUploader
-                      key={`gallery-add-${editingId ?? "new"}`}
-                      folder="products"
-                      size="sm"
-                      shape="square"
-                      placeholder="+ foto"
-                      onUpload={async (url) => {
-                        if (modal === "edit" && editingId) {
-                          try {
-                            await apiFetch(`/admin/products/${editingId}/images`, {
-                              method: "POST",
-                              body: JSON.stringify({ url }),
-                            });
-                            await recargarImagenes(editingId);
-                            showToast({ type: "ok", text: "Imagen añadida." });
-                          } catch (e) {
-                            showToast({
-                              type: "err",
-                              text: e instanceof ApiError ? e.message : "Error al añadir imagen",
-                            });
-                          }
-                        } else {
-                          setImagenes((prev) => [
-                            ...prev,
-                            {
-                              id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-                              url,
-                              sortOrder: prev.length,
-                            },
-                          ]);
-                        }
-                      }}
-                      onError={(msg) => showToast({ type: "err", text: msg })}
-                    />
-                  </div>
                 </div>
                 <div
                   style={{
@@ -872,15 +985,39 @@ export default function AdminProductosPage() {
                     }}
                   />
                 ) : null}
-                <p
-                  style={{
-                    color: "#52525b",
-                    fontSize: "11px",
-                    marginTop: "8px",
-                  }}
-                >
-                  Usá &quot;+ foto&quot; en la grilla para subir a Cloudinary (máx. 5MB).
-                </p>
+                <div style={{ marginTop: "8px" }}>
+                  <label
+                    htmlFor="prod-galeria"
+                    className="btn-brand-outline"
+                    style={{
+                      display: "inline-block",
+                      cursor: subiendo ? "wait" : "pointer",
+                      fontSize: "12px",
+                    }}
+                  >
+                    {subiendo ? "⏳ Subiendo…" : "📷 Agregar fotos"}
+                  </label>
+                  <input
+                    id="prod-galeria"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    style={{ display: "none" }}
+                    onChange={(e) => void handleGaleriaUpload(e)}
+                    disabled={subiendo}
+                  />
+                  <p
+                    style={{
+                      color: "#52525b",
+                      fontSize: "11px",
+                      marginTop: "8px",
+                    }}
+                  >
+                    Cada archivo se sube a Cloudinary (POST /api/upload/image, carpeta{" "}
+                    <code className="text-[10px] text-brand-yellow">products</code>). Máx. 5MB
+                    por imagen.
+                  </p>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
