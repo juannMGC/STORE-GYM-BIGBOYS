@@ -1,11 +1,24 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch, formatShopApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { auth0LoginHref } from "@/lib/auth-routes";
+import { FacturaPDF, type FacturaOrderPdf } from "@/components/factura-pdf";
+
+const PDFDownloadLink = dynamic(
+  () =>
+    import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
+  { ssr: false },
+);
+
+const PDFViewer = dynamic(
+  () => import("@react-pdf/renderer").then((mod) => mod.PDFViewer),
+  { ssr: false },
+);
 
 type InvoiceItem = {
   id: string;
@@ -22,7 +35,13 @@ type InvoiceDetail = {
   paymentMethod: string | null;
   user: { name: string | null; email: string };
   items: InvoiceItem[];
-  total: number;
+  total?: number;
+  shippingEmail?: string | null;
+  shippingDepartment?: string | null;
+  shippingCity?: string | null;
+  shippingNeighborhood?: string | null;
+  shippingAddress?: string | null;
+  shippingComplement?: string | null;
 };
 
 function shortOrderId(id: string): string {
@@ -67,29 +86,36 @@ function formatDateLong(iso: string): string {
   });
 }
 
-const PRINT_CSS = `
-@media print {
-  header, footer { display: none !important; }
-  body { background: white !important; }
-  .no-print { display: none !important; }
-  .factura-print-area {
-    background: white !important;
-    color: #111 !important;
-    border: 1px solid #ccc !important;
-    box-shadow: none !important;
+function orderTotal(d: InvoiceDetail): number {
+  if (typeof d.total === "number" && Number.isFinite(d.total)) {
+    return d.total;
   }
-  .factura-print-area .factura-screen-accent,
-  .factura-print-area .factura-screen-yellow {
-    color: #111 !important;
-  }
-  .factura-print-area .factura-screen-muted {
-    color: #444 !important;
-  }
-  .factura-print-area .factura-row-line {
-    border-color: #ddd !important;
-  }
+  return d.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
 }
-`;
+
+function toFacturaPdfOrder(d: InvoiceDetail): FacturaOrderPdf {
+  return {
+    id: d.id,
+    status: d.status,
+    createdAt: d.createdAt,
+    paymentMethod: d.paymentMethod,
+    shippingEmail: d.shippingEmail ?? null,
+    shippingDepartment: d.shippingDepartment ?? null,
+    shippingCity: d.shippingCity ?? null,
+    shippingNeighborhood: d.shippingNeighborhood ?? null,
+    shippingAddress: d.shippingAddress ?? null,
+    shippingComplement: d.shippingComplement ?? null,
+    user: d.user,
+    items: d.items.map((i) => ({
+      id: i.id,
+      quantity: i.quantity,
+      unitPrice: i.unitPrice,
+      product: { name: i.product.name },
+      size: i.size ? { name: i.size.name } : null,
+    })),
+    total: orderTotal(d),
+  };
+}
 
 export default function FacturaDetalladaPage() {
   const params = useParams();
@@ -98,6 +124,7 @@ export default function FacturaDetalladaPage() {
   const [data, setData] = useState<InvoiceDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [verPDF, setVerPDF] = useState(false);
 
   const load = useCallback(async () => {
     if (!orderId) return;
@@ -124,9 +151,10 @@ export default function FacturaDetalladaPage() {
     void load();
   }, [authLoading, isLoggedIn, load]);
 
-  function handlePrint() {
-    window.print();
-  }
+  const pdfOrder = useMemo(
+    () => (data ? toFacturaPdfOrder(data) : null),
+    [data],
+  );
 
   const returnTo = `/checkout/factura-detallada/${orderId}`;
   const loginHref = auth0LoginHref(returnTo, "login");
@@ -154,7 +182,7 @@ export default function FacturaDetalladaPage() {
     );
   }
 
-  if (error || !data) {
+  if (error || !data || !pdfOrder) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12">
         <h1 className="font-display text-3xl uppercase text-white">Factura</h1>
@@ -166,23 +194,57 @@ export default function FacturaDetalladaPage() {
     );
   }
 
-  const subtotal = data.total;
+  const subtotal = orderTotal(data);
+  const fileStem = `factura-bigboys-${shortOrderId(data.id).toUpperCase()}`;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <style dangerouslySetInnerHTML={{ __html: PRINT_CSS }} />
-
       <div className="no-print mb-6 flex flex-wrap items-center gap-3">
         <Link href="/mis-pedidos" className="text-sm font-medium text-brand-yellow hover:underline">
           ← Mis pedidos
         </Link>
       </div>
 
-      <div className="no-print mb-4 flex flex-wrap gap-3">
-        <button type="button" onClick={handlePrint} className="btn-brand">
-          📄 Descargar PDF
+      <div className="no-print mb-4 flex flex-wrap items-center gap-3">
+        <PDFDownloadLink
+          document={<FacturaPDF order={pdfOrder} />}
+          fileName={`${fileStem}.pdf`}
+        >
+          {({ loading: pdfLoading }) => (
+            <button
+              type="button"
+              className="btn-brand"
+              disabled={pdfLoading}
+              style={{ padding: "12px 24px" }}
+            >
+              {pdfLoading ? "⏳ Generando PDF…" : "📄 Descargar PDF"}
+            </button>
+          )}
+        </PDFDownloadLink>
+        <button
+          type="button"
+          onClick={() => setVerPDF((v) => !v)}
+          className="btn-brand-outline"
+          style={{ padding: "12px 24px" }}
+        >
+          {verPDF ? "✕ Cerrar vista previa" : "👁️ Vista previa"}
         </button>
       </div>
+
+      {verPDF ? (
+        <div
+          className="no-print mb-6"
+          style={{
+            width: "100%",
+            height: "600px",
+            border: "1px solid #2a2a2a",
+          }}
+        >
+          <PDFViewer width="100%" height="100%" style={{ border: "none" }}>
+            <FacturaPDF order={pdfOrder} />
+          </PDFViewer>
+        </div>
+      ) : null}
 
       <div className="factura-print-area panel-brand border-2 border-brand-border p-6 sm:p-8">
         <div className="flex flex-col gap-2 border-b border-brand-border pb-4 sm:flex-row sm:items-start sm:justify-between factura-row-line">
@@ -282,7 +344,7 @@ export default function FacturaDetalladaPage() {
           </div>
           <div className="flex justify-between font-display text-xl text-brand-yellow factura-screen-yellow">
             <span>Total</span>
-            <span>{formatCop(data.total)}</span>
+            <span>{formatCop(subtotal)}</span>
           </div>
         </div>
 

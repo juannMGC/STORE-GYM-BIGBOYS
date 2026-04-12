@@ -1,4 +1,7 @@
+import path from "node:path";
 import type { NextConfig } from "next";
+
+const canvasStub = path.join(process.cwd(), "stubs", "canvas-stub.cjs");
 
 /**
  * Proxy de `/api/*` al backend Nest (mismo origen en el navegador).
@@ -10,6 +13,18 @@ const backend =
   "http://localhost:3001";
 
 const nextConfig: NextConfig = {
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      canvas: canvasStub,
+    };
+    return config;
+  },
+  turbopack: {
+    resolveAlias: {
+      canvas: canvasStub,
+    },
+  },
   images: {
     remotePatterns: [
       {
