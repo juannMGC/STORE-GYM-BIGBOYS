@@ -12,6 +12,7 @@ import { ProductsModule } from './products/products.module';
 import { OrdersModule } from './orders/orders.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { MailModule } from './mail/mail.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { MailModule } from './mail/mail.module';
     SizesModule,
     ProductsModule,
     OrdersModule,
+    AdminModule,
     WebhooksModule,
   ],
   controllers: [AppController],
