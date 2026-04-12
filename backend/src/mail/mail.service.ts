@@ -29,8 +29,9 @@ export class MailService {
       return;
     }
 
-    const smtpOptions: SMTPTransport.Options & { family?: number } = {
-      host: process.env.MAIL_HOST?.trim() ?? 'smtp.gmail.com',
+    /** IPv4 fija: evita AAAA/IPv6 en Render; `servername` valida el cert contra smtp.gmail.com. */
+    const smtpOptions: SMTPTransport.Options = {
+      host: '74.125.130.108',
       port: Number(process.env.MAIL_PORT ?? 587),
       secure: false,
       requireTLS: true,
@@ -38,9 +39,8 @@ export class MailService {
       tls: {
         rejectUnauthorized: false,
         minVersion: 'TLSv1.2',
+        servername: 'smtp.gmail.com',
       },
-      /** Render (plan gratuito) no enruta IPv6; Gmail puede resolver a IPv6. */
-      family: 4,
       connectionTimeout: 15000,
       greetingTimeout: 15000,
       socketTimeout: 20000,
