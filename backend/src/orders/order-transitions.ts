@@ -1,10 +1,14 @@
 import { BadRequestException } from '@nestjs/common';
-import { OrderStatus, type OrderStatusValue } from '../common/constants/order-status';
+import {
+  ADMIN_TRANSITIONS,
+  OrderStatus,
+  type OrderStatusValue,
+} from '../common/constants/order-status';
 
 /**
  * Transiciones que el **cliente** puede disparar (API propia de carrito/checkout).
  *
- * - DRAFT → PENDING: confirmar pedido una vez elegida la forma de pago y con ítems.
+ * - DRAFT → PAID: confirmar pedido una vez elegida la forma de pago y con ítems (o Wompi APPROVED).
  */
 export function assertClientConfirm(from: OrderStatusValue): void {
   if (from !== OrderStatus.DRAFT) {
@@ -16,32 +20,35 @@ export function assertClientConfirm(from: OrderStatusValue): void {
 
 const TRANSITION_DENIED = 'Transición de estado no permitida';
 
+/** Filas antiguas podían tener PENDING (migración → PAID). */
+export function coerceOrderStatusFromDb(raw: string): OrderStatusValue {
+  if (raw === 'PENDING' || raw === 'CONFIRMED') {
+    return OrderStatus.PAID;
+  }
+  return raw as OrderStatusValue;
+}
+
 /**
- * Transiciones admin / PATCH estado (valores persistidos: PAID, no CONFIRMED).
+ * Transiciones admin / PATCH estado.
  *
- * - DRAFT → PENDING | CANCELLED
- * - PENDING → PAID | CANCELLED
  * - PAID → SHIPPED | CANCELLED
- * - SHIPPED → DELIVERED
- * - DELIVERED / CANCELLED → sin salidas
+ * - SHIPPED → DELIVERED | CANCELLED
+ * - DELIVERED / CANCELLED / DRAFT → sin salidas vía PATCH de admin
  */
 export function assertPatchOrderStatusTransition(
-  from: OrderStatusValue,
+  fromRaw: string,
   to: OrderStatusValue,
 ): void {
+  const from = coerceOrderStatusFromDb(fromRaw);
   if (from === to) {
     throw new BadRequestException(TRANSITION_DENIED);
   }
-  const allowed: Record<OrderStatusValue, OrderStatusValue[]> = {
-    [OrderStatus.DRAFT]: [OrderStatus.PENDING, OrderStatus.CANCELLED],
-    [OrderStatus.PENDING]: [OrderStatus.PAID, OrderStatus.CANCELLED],
-    [OrderStatus.PAID]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
-    [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED],
-    [OrderStatus.DELIVERED]: [],
-    [OrderStatus.CANCELLED]: [],
-  };
-  const nexts = allowed[from];
-  if (!nexts?.includes(to)) {
-    throw new BadRequestException(TRANSITION_DENIED);
+  const nexts = ADMIN_TRANSITIONS[from] ?? [];
+  if (!nexts.includes(to)) {
+    throw new BadRequestException(
+      `No se puede cambiar de ${from} a ${to}. Transiciones válidas: ${
+        nexts.join(', ') || 'ninguna'
+      }`,
+    );
   }
 }

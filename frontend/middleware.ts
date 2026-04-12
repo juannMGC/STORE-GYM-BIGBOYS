@@ -64,6 +64,27 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(loginTarget, request.url));
     }
 
+    /** Carrito y checkout solo para CLIENT: ADMIN → panel admin */
+    if (pathname.startsWith("/carrito") || pathname.startsWith("/checkout")) {
+      try {
+        const { token } = await auth0.getAccessToken(request, authRes);
+        if (token) {
+          const meRes = await fetch(new URL("/api/auth/me", request.url), {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          });
+          if (meRes.ok) {
+            const meData = (await meRes.json()) as { user?: { role?: string } };
+            if (meData?.user?.role === "ADMIN") {
+              return NextResponse.redirect(new URL("/admin", request.url));
+            }
+          }
+        }
+      } catch {
+        /* no bloquear si falla el rol */
+      }
+    }
+
     return authRes;
   } catch (err) {
     console.error("[middleware] Auth0:", err);

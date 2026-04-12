@@ -59,8 +59,8 @@ function formatCop(value: number): string {
 function statusLabel(status: string): string {
   const m: Record<string, string> = {
     DRAFT: "Borrador",
-    PENDING: "Pendiente",
-    PAID: "Confirmado",
+    PENDING: "Pagado",
+    PAID: "Pagado",
     SHIPPED: "Enviado",
     DELIVERED: "Entregado",
     CANCELLED: "Cancelado",

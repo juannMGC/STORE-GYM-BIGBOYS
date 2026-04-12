@@ -39,18 +39,16 @@ type DashboardMetrics = {
 };
 
 const ESTADOS_BARRA: Record<string, { label: string; color: string }> = {
-  PENDING: { label: "Pendiente", color: "#f7e047" },
-  PAID: { label: "Confirmado", color: "#60a5fa" },
+  PAID: { label: "Pagado", color: "#22c55e" },
   SHIPPED: { label: "Enviado", color: "#f97316" },
-  DELIVERED: { label: "Entregado", color: "#22c55e" },
+  DELIVERED: { label: "Entregado", color: "#60a5fa" },
   CANCELLED: { label: "Cancelado", color: "#d91920" },
 };
 
 const ESTADOS_PEDIDO: Record<string, { label: string; color: string }> = {
-  PENDING: { label: "Pendiente", color: "#f7e047" },
-  PAID: { label: "Confirmado", color: "#60a5fa" },
+  PAID: { label: "Pagado", color: "#22c55e" },
   SHIPPED: { label: "Enviado", color: "#f97316" },
-  DELIVERED: { label: "Entregado", color: "#22c55e" },
+  DELIVERED: { label: "Entregado", color: "#60a5fa" },
   CANCELLED: { label: "Cancelado", color: "#d91920" },
 };
 
@@ -112,11 +110,11 @@ export default function AdminHomePage() {
       },
       {
         icono: "📦",
-        titulo: "Pedidos pendientes",
+        titulo: "Pedidos activos",
         valor: String(metricas.totalPedidosActivos),
-        subtitulo: "Requieren atención",
+        subtitulo: "Pagados o en envío",
         color: "#f7e047",
-        link: "/admin/pedidos?status=PENDING",
+        link: "/admin/pedidos",
       },
       {
         icono: "👥",

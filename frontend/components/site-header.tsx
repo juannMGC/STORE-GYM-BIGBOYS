@@ -129,7 +129,7 @@ export function SiteHeader() {
           {isLoading && !isLoggedIn && (
             <span className="text-xs text-zinc-500">Cargando…</span>
           )}
-          {isLoggedIn && (
+          {isLoggedIn && user?.role === "CLIENT" && (
             <Link
               href="/carrito"
               className="rounded-sm px-2 py-1.5 font-semibold uppercase tracking-wide text-brand-yellow hover:bg-brand-red/20"
@@ -272,20 +272,36 @@ export function SiteHeader() {
                       👤 Mi perfil
                     </Link>
                     {user?.role === "CLIENT" && (
-                      <Link
-                        href="/mis-pedidos"
-                        role="menuitem"
-                        style={dropdownLinkStyle}
-                        onClick={() => setOpen(false)}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#1a1a1a";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "transparent";
-                        }}
-                      >
-                        📦 Mis pedidos
-                      </Link>
+                      <>
+                        <Link
+                          href="/carrito"
+                          role="menuitem"
+                          style={dropdownLinkStyle}
+                          onClick={() => setOpen(false)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#1a1a1a";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          🛒 Carrito
+                        </Link>
+                        <Link
+                          href="/mis-pedidos"
+                          role="menuitem"
+                          style={dropdownLinkStyle}
+                          onClick={() => setOpen(false)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#1a1a1a";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          📦 Mis pedidos
+                        </Link>
+                      </>
                     )}
                     {isAdmin && (
                       <Link
@@ -395,13 +411,15 @@ export function SiteHeader() {
           {isLoggedIn && (
             <>
               <div style={mobileDivider} />
-              <Link href="/carrito" style={mobileNavLink} onClick={closeMobile}>
-                Carrito
-              </Link>
               {user?.role === "CLIENT" && (
-                <Link href="/mis-pedidos" style={mobileNavLink} onClick={closeMobile}>
-                  Mis pedidos
-                </Link>
+                <>
+                  <Link href="/carrito" style={mobileNavLink} onClick={closeMobile}>
+                    Carrito
+                  </Link>
+                  <Link href="/mis-pedidos" style={mobileNavLink} onClick={closeMobile}>
+                    Mis pedidos
+                  </Link>
+                </>
               )}
               <Link href="/perfil" style={mobileNavLink} onClick={closeMobile}>
                 Mi perfil

@@ -42,10 +42,17 @@ type OrderHistoryRow = {
   reason: string | null;
 };
 
+/** Activos: PAID + SHIPPED; historial: DELIVERED + CANCELLED */
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  PAID: { label: "Pagado", color: "#22c55e" },
+  SHIPPED: { label: "Enviado", color: "#f97316" },
+  DELIVERED: { label: "Entregado", color: "#60a5fa" },
+  CANCELLED: { label: "Cancelado", color: "#d91920" },
+};
+
 const ACTIVO_FILTERS = [
   { value: "" as const, label: "Todos" },
-  { value: "PENDING" as const, label: "Pendiente" },
-  { value: "PAID" as const, label: "Confirmado" },
+  { value: "PAID" as const, label: "Pagado" },
   { value: "SHIPPED" as const, label: "Enviado" },
 ];
 
@@ -84,28 +91,9 @@ function productsLabel(items: OrderItemRow[] | undefined): string {
   return `${titles.slice(0, 2).join(", ")}… (+${titles.length - 2})`;
 }
 
-function statusBadgeActivos(status: string): { label: string; color: string } {
-  switch (status) {
-    case "PENDING":
-      return { label: "Pendiente", color: "#f7e047" };
-    case "PAID":
-      return { label: "Confirmado", color: "#60a5fa" };
-    case "SHIPPED":
-      return { label: "Enviado", color: "#f97316" };
-    default:
-      return { label: status, color: "#a1a1aa" };
-  }
-}
-
-function statusBadgeHistorial(status: string): { label: string; color: string } {
-  switch (status) {
-    case "DELIVERED":
-      return { label: "Entregado", color: "#22c55e" };
-    case "CANCELLED":
-      return { label: "Cancelado", color: "#d91920" };
-    default:
-      return { label: status, color: "#a1a1aa" };
-  }
+function statusBadgeForAdmin(status: string): { label: string; color: string } {
+  const key = status === "PENDING" ? "PAID" : status;
+  return STATUS_CONFIG[key] ?? { label: status, color: "#a1a1aa" };
 }
 
 function PedidosListSkeleton() {
@@ -124,10 +112,10 @@ function AdminPedidosInner() {
   const [cargando, setCargando] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [filtroActivo, setFiltroActivo] = useState<"" | "PENDING" | "PAID" | "SHIPPED">("");
+  const [filtroActivo, setFiltroActivo] = useState<"" | "PAID" | "SHIPPED">("");
 
   const pedidosActivosBase = useMemo(
-    () => allOrders.filter((p) => ["PENDING", "PAID", "SHIPPED"].includes(p.status)),
+    () => allOrders.filter((p) => ["PAID", "SHIPPED"].includes(p.status)),
     [allOrders],
   );
 
@@ -314,7 +302,7 @@ function AdminPedidosInner() {
               </thead>
               <tbody>
                 {pedidosActivos.map((o) => {
-                  const { label, color } = statusBadgeActivos(o.status);
+                  const { label, color } = statusBadgeForAdmin(o.status);
                   const total = calcTotal(o.items);
                   return (
                     <tr
@@ -387,7 +375,7 @@ function AdminPedidosInner() {
                 </thead>
                 <tbody>
                   {historialLive.map((o) => {
-                    const { label, color } = statusBadgeHistorial(o.status);
+                    const { label, color } = statusBadgeForAdmin(o.status);
                     const total = calcTotal(o.items);
                     return (
                       <tr
@@ -490,7 +478,7 @@ function AdminPedidosInner() {
                         | undefined,
                     );
                     const prevStatus = snap.status ?? "—";
-                    const { label, color } = statusBadgeHistorial(prevStatus);
+                    const { label, color } = statusBadgeForAdmin(prevStatus);
                     return (
                       <tr
                         key={h.id}

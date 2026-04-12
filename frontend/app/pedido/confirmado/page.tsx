@@ -10,7 +10,7 @@ type OrderFetchShape = { id: string; status: string };
 
 const STATUS_LABEL: Record<string, string> = {
   DRAFT: "Borrador",
-  PENDING: "Pendiente",
+  PENDING: "Pagado",
   PAID: "Pagado",
   SHIPPED: "Enviado",
   DELIVERED: "Entregado",

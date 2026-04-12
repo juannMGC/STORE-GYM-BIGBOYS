@@ -45,23 +45,36 @@ function productImageUrl(item: MyOrderItem): string | undefined {
   return first?.url?.trim() || undefined;
 }
 
-/** PAID en API = “confirmado” (pago recibido). */
-function statusDisplay(status: string): { label: string; color: string } {
-  switch (status) {
-    case "PENDING":
-      return { label: "Pendiente", color: "#f7e047" };
-    case "PAID":
-      return { label: "Confirmado", color: "#60a5fa" };
-    case "SHIPPED":
-      return { label: "Enviado", color: "#fb923c" };
-    case "DELIVERED":
-      return { label: "Entregado", color: "#22c55e" };
-    case "CANCELLED":
-      return { label: "Cancelado", color: "#d91920" };
-    default:
-      return { label: status, color: "#a1a1aa" };
-  }
-}
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; bg: string }
+> = {
+  PAID: {
+    label: "Pagado ✓",
+    color: "#22c55e",
+    bg: "rgba(34,197,94,0.1)",
+  },
+  PENDING: {
+    label: "Pagado ✓",
+    color: "#22c55e",
+    bg: "rgba(34,197,94,0.1)",
+  },
+  SHIPPED: {
+    label: "En camino 🚚",
+    color: "#f97316",
+    bg: "rgba(249,115,22,0.1)",
+  },
+  DELIVERED: {
+    label: "Entregado 📦",
+    color: "#60a5fa",
+    bg: "rgba(96,165,250,0.1)",
+  },
+  CANCELLED: {
+    label: "Cancelado",
+    color: "#d91920",
+    bg: "rgba(217,25,32,0.1)",
+  },
+};
 
 function MisPedidosSkeleton() {
   return (
@@ -136,7 +149,8 @@ export default function MisPedidosPage() {
       ) : (
         <ul className="mt-8 space-y-6">
           {list.map((o) => {
-            const { label, color } = statusDisplay(o.status);
+            const key = o.status === "PENDING" ? "PAID" : o.status;
+            const config = STATUS_CONFIG[key];
             const total = orderTotal(o);
             return (
               <li key={o.id} className="panel-brand p-4 sm:p-6">
@@ -155,10 +169,20 @@ export default function MisPedidosPage() {
                       Estado
                     </p>
                     <span
-                      className="mt-1 inline-block rounded border-2 bg-brand-black/60 px-3 py-1.5 font-display text-sm uppercase tracking-wide"
-                      style={{ borderColor: color, color }}
+                      style={{
+                        display: "inline-block",
+                        marginTop: "4px",
+                        padding: "4px 12px",
+                        background: config?.bg ?? "transparent",
+                        color: config?.color ?? "#e4e4e7",
+                        border: `1px solid ${config?.color ?? "#2a2a2a"}`,
+                        fontSize: "12px",
+                        fontFamily: "var(--font-display)",
+                        letterSpacing: "1px",
+                        borderRadius: "2px",
+                      }}
                     >
-                      {label}
+                      {config?.label ?? o.status}
                     </span>
                     <p className="mt-2 font-display text-2xl text-brand-yellow">
                       {formatCop(total)}

@@ -84,7 +84,7 @@ model ProductSize {
   @@id([productId, sizeId])
 }
 
-// status: DRAFT | PENDING | PAID | SHIPPED | DELIVERED | CANCELLED
+// status: DRAFT | PAID | SHIPPED | DELIVERED | CANCELLED
 // paymentMethod: CASH | BANK_TRANSFER | CARD (opcional hasta checkout)
 model Order {
   id                   String      @id @default(uuid())

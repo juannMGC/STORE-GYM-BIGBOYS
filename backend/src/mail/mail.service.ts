@@ -301,14 +301,15 @@ export class MailService {
     > = {
       PAID: {
         emoji: '✅',
-        titulo: '¡Pedido confirmado!',
+        titulo: '¡Pago confirmado!',
         mensaje:
-          'Tu pedido fue confirmado y está siendo preparado.',
+          'Recibimos tu pago. Tu pedido está siendo preparado para el envío.',
       },
       SHIPPED: {
         emoji: '🚚',
         titulo: '¡Tu pedido va en camino!',
-        mensaje: 'Tu pedido fue despachado. Pronto lo recibirás.',
+        mensaje:
+          'Tu pedido fue despachado. Pronto lo recibirás.',
       },
       DELIVERED: {
         emoji: '📦',

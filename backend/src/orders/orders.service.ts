@@ -13,7 +13,11 @@ import {
   ORDER_STATUS_VALUES,
   type OrderStatusValue,
 } from '../common/constants/order-status';
-import { assertClientConfirm, assertPatchOrderStatusTransition } from './order-transitions';
+import {
+  assertClientConfirm,
+  assertPatchOrderStatusTransition,
+  coerceOrderStatusFromDb,
+} from './order-transitions';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { AddOrderItemDto } from './dto/add-order-item.dto';
 import { PatchCartItemDto } from './dto/patch-cart-item.dto';
@@ -696,7 +700,7 @@ export class OrdersService {
       await this.deductStockForItemsTx(tx, order.items);
       return tx.order.update({
         where: { id: orderId },
-        data: { status: OrderStatus.PENDING },
+        data: { status: OrderStatus.PAID },
         include: orderInclude,
       });
     });
@@ -875,13 +879,14 @@ export class OrdersService {
   }
 
   /**
-   * Normaliza el body del PATCH: CONFIRMED → PAID (valor en Prisma).
+   * Normaliza el body del PATCH: CONFIRMED / PENDING → PAID (valor en Prisma).
    */
   private normalizePatchStatusToPrisma(status: string): OrderStatusValue {
-    if (status === 'CONFIRMED') {
+    const s = status.trim();
+    if (s === 'CONFIRMED' || s === 'PENDING') {
       return OrderStatus.PAID;
     }
-    const v = status as OrderStatusValue;
+    const v = s as OrderStatusValue;
     if (!ORDER_STATUS_VALUES.includes(v)) {
       throw new BadRequestException('Estado inválido');
     }
@@ -896,14 +901,14 @@ export class OrdersService {
     if (!order) {
       throw new NotFoundException('Pedido no encontrado');
     }
-    const from = order.status as OrderStatusValue;
     const to = this.normalizePatchStatusToPrisma(dto.status);
-    assertPatchOrderStatusTransition(from, to);
+    assertPatchOrderStatusTransition(order.status, to);
+    const fromNorm = coerceOrderStatusFromDb(order.status);
     await this.prisma.$transaction(async (tx) => {
       if (
         to === OrderStatus.CANCELLED &&
-        from !== OrderStatus.DRAFT &&
-        from !== OrderStatus.CANCELLED
+        fromNorm !== OrderStatus.DRAFT &&
+        fromNorm !== OrderStatus.CANCELLED
       ) {
         await this.restoreStockForItemsTx(tx, order.items);
       }

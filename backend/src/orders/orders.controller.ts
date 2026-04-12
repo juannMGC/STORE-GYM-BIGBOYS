@@ -77,13 +77,13 @@ export class OrdersController {
     return this.ordersService.updateShipping(id, user.userId, user.role, dto);
   }
 
-  /** DRAFT → PENDING (requiere ítems + paymentMethod). */
+  /** DRAFT → PAID (requiere ítems + paymentMethod). */
   @Post('cart/confirm')
   confirm(@CurrentUser() user: RequestUser) {
     return this.ordersService.confirmCart(user.userId);
   }
 
-  /** DRAFT → PENDING para un pedido concreto (mismas reglas que cart/confirm). */
+  /** DRAFT → PAID para un pedido concreto (mismas reglas que cart/confirm). */
   @Post(':orderId/confirm')
   @HttpCode(200)
   confirmOrder(

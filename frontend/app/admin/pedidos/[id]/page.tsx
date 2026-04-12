@@ -40,14 +40,31 @@ const PAYMENT_METHODS = [
   { value: "CARD", label: "Tarjeta" },
 ] as const;
 
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: "DRAFT", label: "Borrador" },
-  { value: "PENDING", label: "Pendiente" },
-  { value: "PAID", label: "Confirmado" },
-  { value: "SHIPPED", label: "Enviado" },
-  { value: "DELIVERED", label: "Entregado" },
-  { value: "CANCELLED", label: "Cancelado" },
-];
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Borrador",
+  PAID: "Pagado",
+  PENDING: "Pagado (hist.)",
+  SHIPPED: "Enviado",
+  DELIVERED: "Entregado",
+  CANCELLED: "Cancelado",
+};
+
+const TRANSICIONES_PERMITIDAS: Record<string, { value: string; label: string }[]> = {
+  PAID: [
+    { value: "SHIPPED", label: "🚚 Marcar como Enviado" },
+    { value: "CANCELLED", label: "❌ Cancelar pedido" },
+  ],
+  SHIPPED: [
+    { value: "DELIVERED", label: "📦 Marcar como Entregado" },
+    { value: "CANCELLED", label: "❌ Cancelar pedido" },
+  ],
+  PENDING: [
+    { value: "SHIPPED", label: "🚚 Marcar como Enviado" },
+    { value: "CANCELLED", label: "❌ Cancelar pedido" },
+  ],
+  DELIVERED: [],
+  CANCELLED: [],
+};
 
 function shortOrderId(id: string): string {
   return id.replace(/-/g, "").slice(0, 8);
@@ -92,7 +109,7 @@ export default function AdminPedidoDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedStatus, setSelectedStatus] = useState("");
+  const [nuevoEstado, setNuevoEstado] = useState("");
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusOk, setStatusOk] = useState<string | null>(null);
   const [statusErr, setStatusErr] = useState<string | null>(null);
@@ -130,7 +147,7 @@ export default function AdminPedidoDetailPage() {
       return;
     }
     setOrder(d);
-    setSelectedStatus(d.status);
+    setNuevoEstado("");
     setPayMethod(d.paymentMethod || "BANK_TRANSFER");
     setShipEmail(d.shippingEmail ?? "");
     setShipDept(d.shippingDepartment ?? "");
@@ -163,10 +180,10 @@ export default function AdminPedidoDetailPage() {
     void load();
   }, [authLoading, isAdmin, load]);
 
-  const statusSelectOptions = useMemo(() => {
-    if (!order) return STATUS_OPTIONS;
-    if (STATUS_OPTIONS.some((o) => o.value === order.status)) return STATUS_OPTIONS;
-    return [{ value: order.status, label: order.status }, ...STATUS_OPTIONS];
+  const opcionesCambioEstado = useMemo(() => {
+    if (!order) return [];
+    const st = order.status === "PENDING" ? "PAID" : order.status;
+    return TRANSICIONES_PERMITIDAS[st] ?? [];
   }, [order]);
 
   const selectedCatalogProduct = useMemo(
@@ -174,15 +191,15 @@ export default function AdminPedidoDetailPage() {
     [catalog, addProductId],
   );
 
-  async function saveStatus() {
-    if (!order || selectedStatus === order.status) return;
+  async function handleCambiarEstado() {
+    if (!order || !nuevoEstado) return;
     setStatusSaving(true);
     setStatusOk(null);
     setStatusErr(null);
     try {
       const d = await apiFetch<OrderDetail>(`/orders/${order.id}/status`, {
         method: "PATCH",
-        body: JSON.stringify({ status: selectedStatus }),
+        body: JSON.stringify({ status: nuevoEstado }),
       });
       applyOrder(d);
       setStatusOk("Estado actualizado");
@@ -406,29 +423,46 @@ export default function AdminPedidoDetailPage() {
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
               Estado del pedido
             </p>
-            <select
-              value={selectedStatus}
-              onChange={(e) => {
-                setSelectedStatus(e.target.value);
-                setStatusOk(null);
-                setStatusErr(null);
-              }}
-              className="select-brand mt-3 w-full"
-            >
-              {statusSelectOptions.map((o) => (
-                <option key={o.value} value={o.value} className="bg-brand-steel">
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              disabled={statusSaving || selectedStatus === order.status}
-              onClick={() => void saveStatus()}
-              className="btn-brand mt-3 w-full disabled:opacity-50"
-            >
-              {statusSaving ? "Guardando…" : "Actualizar estado"}
-            </button>
+            <p className="mt-3 text-sm text-zinc-200">
+              Actual:{" "}
+              <span className="font-medium text-brand-yellow">
+                {STATUS_LABELS[order.status] ?? order.status}
+              </span>
+            </p>
+            {opcionesCambioEstado.length > 0 ? (
+              <div className="mt-4">
+                <select
+                  value={nuevoEstado}
+                  onChange={(e) => {
+                    setNuevoEstado(e.target.value);
+                    setStatusOk(null);
+                    setStatusErr(null);
+                  }}
+                  className="select-brand"
+                  style={{ width: "100%", marginBottom: "12px" }}
+                >
+                  <option value="">Seleccionar acción…</option>
+                  {opcionesCambioEstado.map((op) => (
+                    <option key={op.value} value={op.value} className="bg-brand-steel">
+                      {op.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={!nuevoEstado || statusSaving}
+                  onClick={() => void handleCambiarEstado()}
+                  className="btn-brand"
+                  style={{ width: "100%" }}
+                >
+                  {statusSaving ? "Actualizando…" : "Confirmar cambio"}
+                </button>
+              </div>
+            ) : (
+              <p style={{ color: "#52525b", fontSize: "13px" }} className="mt-3">
+                Este pedido no puede cambiar de estado.
+              </p>
+            )}
             {statusOk ? (
               <p className="mt-2 text-sm" style={{ color: "#22c55e" }}>
                 {statusOk}

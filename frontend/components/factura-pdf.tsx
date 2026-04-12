@@ -255,8 +255,8 @@ const formatFecha = (fecha: string) =>
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Borrador",
-  PENDING: "Pendiente",
-  PAID: "Confirmado",
+  PENDING: "Pagado",
+  PAID: "Pagado",
   SHIPPED: "Enviado",
   DELIVERED: "Entregado",
   CANCELLED: "Cancelado",

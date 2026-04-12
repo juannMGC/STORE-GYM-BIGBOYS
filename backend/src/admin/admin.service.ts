@@ -57,7 +57,6 @@ export class AdminService {
 
     const estadosDisponibles = [
       OrderStatus.DRAFT,
-      OrderStatus.PENDING,
       OrderStatus.PAID,
       OrderStatus.SHIPPED,
       OrderStatus.DELIVERED,
@@ -155,7 +154,9 @@ export class AdminService {
     });
 
     const totalPedidosActivos = await this.prisma.order.count({
-      where: { status: OrderStatus.PENDING },
+      where: {
+        status: { in: [OrderStatus.PAID, OrderStatus.SHIPPED] },
+      },
     });
 
     const productosAgotados = await this.prisma.product.count({
