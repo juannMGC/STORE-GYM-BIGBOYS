@@ -6,7 +6,11 @@ export type AuthUser = {
   role: UserRole;
   name?: string | null;
   phone?: string | null;
+  department?: string | null;
+  city?: string | null;
+  neighborhood?: string | null;
   address?: string | null;
+  complement?: string | null;
   avatarUrl?: string | null;
   createdAt?: string;
 };

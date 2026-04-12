@@ -23,7 +23,11 @@ export class UsersService {
       role: string;
       name: string | null;
       phone: string | null;
+      department: string | null;
+      city: string | null;
+      neighborhood: string | null;
       address: string | null;
+      complement: string | null;
       avatarUrl: string | null;
       createdAt: string;
     };
@@ -35,7 +39,11 @@ export class UsersService {
         role: user.role,
         name: user.name,
         phone: user.phone,
+        department: user.department,
+        city: user.city,
+        neighborhood: user.neighborhood,
         address: user.address,
+        complement: user.complement,
         avatarUrl: user.avatarUrl,
         createdAt: user.createdAt.toISOString(),
       },
@@ -136,12 +144,32 @@ export class UsersService {
     const data: {
       name?: string | null;
       phone?: string | null;
+      department?: string | null;
+      city?: string | null;
+      neighborhood?: string | null;
+      address?: string | null;
+      complement?: string | null;
     } = {};
     if (dto.name !== undefined) {
       data.name = dto.name.trim() || null;
     }
     if (dto.phone !== undefined) {
       data.phone = dto.phone.trim() || null;
+    }
+    if (dto.department !== undefined) {
+      data.department = dto.department.trim() || null;
+    }
+    if (dto.city !== undefined) {
+      data.city = dto.city.trim() || null;
+    }
+    if (dto.neighborhood !== undefined) {
+      data.neighborhood = dto.neighborhood.trim() || null;
+    }
+    if (dto.address !== undefined) {
+      data.address = dto.address.trim() || null;
+    }
+    if (dto.complement !== undefined) {
+      data.complement = dto.complement.trim() || null;
     }
     if (Object.keys(data).length === 0) {
       return existing;

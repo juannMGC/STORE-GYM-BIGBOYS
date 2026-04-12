@@ -17,7 +17,11 @@ model User {
   auth0Id      String?  @unique
   name         String?
   phone        String?
+  department   String?
+  city         String?
+  neighborhood String?
   address      String?
+  complement   String?
   avatarUrl    String?
   role         String   @default("CLIENT")
   createdAt    DateTime @default(now())

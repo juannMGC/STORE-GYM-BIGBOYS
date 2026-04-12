@@ -63,8 +63,12 @@ function cartLineImageUrl(item: CartOrder["items"][number]): string | undefined 
   return u || undefined;
 }
 
+function normAddr(s: string | null | undefined): string {
+  return (s ?? "").trim();
+}
+
 export default function CheckoutPage() {
-  const { isLoggedIn, isLoading, displayName, user } = useAuth();
+  const { isLoggedIn, isLoading, displayName, user, refreshUser } = useAuth();
   const [order, setOrder] = useState<CartOrder | null>(null);
   const [cartLoading, setCartLoading] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
@@ -80,8 +84,9 @@ export default function CheckoutPage() {
   const [shippingAddress, setShippingAddress] = useState("");
   const [shippingComplement, setShippingComplement] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [dismissSaveAddressOffer, setDismissSaveAddressOffer] = useState(false);
+  const [savingProfileAddress, setSavingProfileAddress] = useState(false);
 
-  const [wompiReady, setWompiReady] = useState(false);
   const skipShippingCompleteStep = useRef(false);
 
   useEffect(() => {
@@ -132,11 +137,41 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!order) return;
     setShippingEmail((prev) => order.shippingEmail?.trim() || prev || user?.email?.trim() || "");
-    setShippingDepartment(order.shippingDepartment?.trim() ?? "");
-    setShippingCity(order.shippingCity?.trim() ?? "");
-    setShippingNeighborhood(order.shippingNeighborhood?.trim() ?? "");
-    setShippingAddress(order.shippingAddress?.trim() ?? "");
-    setShippingComplement(order.shippingComplement?.trim() ?? "");
+    setShippingDepartment((prev) => {
+      const o = order.shippingDepartment?.trim();
+      if (o) return o;
+      const u = user?.department?.trim();
+      if (u) return u;
+      return prev;
+    });
+    setShippingCity((prev) => {
+      const o = order.shippingCity?.trim();
+      if (o) return o;
+      const u = user?.city?.trim();
+      if (u) return u;
+      return prev;
+    });
+    setShippingNeighborhood((prev) => {
+      const o = order.shippingNeighborhood?.trim();
+      if (o) return o;
+      const u = user?.neighborhood?.trim();
+      if (u) return u;
+      return prev;
+    });
+    setShippingAddress((prev) => {
+      const o = order.shippingAddress?.trim();
+      if (o) return o;
+      const u = user?.address?.trim();
+      if (u) return u;
+      return prev;
+    });
+    setShippingComplement((prev) => {
+      const o = order.shippingComplement?.trim();
+      if (o) return o;
+      const u = user?.complement?.trim();
+      if (u) return u;
+      return prev;
+    });
   }, [
     order?.id,
     order?.shippingEmail,
@@ -146,6 +181,11 @@ export default function CheckoutPage() {
     order?.shippingAddress,
     order?.shippingComplement,
     user?.email,
+    user?.department,
+    user?.city,
+    user?.neighborhood,
+    user?.address,
+    user?.complement,
   ]);
 
   function validateShipping(): boolean {
@@ -180,12 +220,36 @@ export default function CheckoutPage() {
       });
       setOrder(updated);
       skipShippingCompleteStep.current = false;
+      setDismissSaveAddressOffer(false);
       setStep(2);
       setFieldErrors({});
     } catch (e) {
       setError(formatShopApiError(e, { sessionActive: true }));
     } finally {
       setShippingSaving(false);
+    }
+  }
+
+  async function guardarDireccionEnPerfil() {
+    setSavingProfileAddress(true);
+    setError(null);
+    try {
+      await apiFetch("/users/me", {
+        method: "PATCH",
+        body: JSON.stringify({
+          address: normAddr(shippingAddress),
+          city: normAddr(shippingCity),
+          department: normAddr(shippingDepartment),
+          neighborhood: normAddr(shippingNeighborhood),
+          complement: normAddr(shippingComplement) || undefined,
+        }),
+      });
+      await refreshUser();
+      setDismissSaveAddressOffer(true);
+    } catch (e) {
+      setError(formatShopApiError(e, { sessionActive: true }));
+    } finally {
+      setSavingProfileAddress(false);
     }
   }
 
@@ -291,6 +355,16 @@ export default function CheckoutPage() {
   const shipComp = order.shippingComplement?.trim() || shippingComplement.trim();
   const shipMail = order.shippingEmail?.trim() || shippingEmail.trim();
 
+  const tieneDireccionGuardada = !!(user?.address?.trim() && user?.city?.trim());
+  const profileMatchesShipping =
+    !!user &&
+    normAddr(shippingDepartment) === normAddr(user.department) &&
+    normAddr(shippingCity) === normAddr(user.city) &&
+    normAddr(shippingNeighborhood) === normAddr(user.neighborhood) &&
+    normAddr(shippingAddress) === normAddr(user.address) &&
+    normAddr(shippingComplement) === normAddr(user.complement);
+  const direccionCambio = !!user && !profileMatchesShipping;
+
   return (
     <div
       className={
@@ -336,6 +410,84 @@ export default function CheckoutPage() {
           <p className="mt-4 text-zinc-400">
             Completá los datos de envío. Luego elegís la forma de pago y podés pagar con Wompi.
           </p>
+
+          {tieneDireccionGuardada ? (
+            <div
+              style={{
+                padding: "12px 16px",
+                background: "#1a1a1a",
+                border: "1px solid #2a2a2a",
+                borderLeft: "3px solid #22c55e",
+                marginTop: "16px",
+                marginBottom: "4px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <p
+                  style={{
+                    color: "#22c55e",
+                    fontSize: "12px",
+                    fontFamily: "var(--font-display)",
+                    letterSpacing: "1px",
+                    marginBottom: "2px",
+                  }}
+                >
+                  ✓ DIRECCIÓN DE PERFIL CARGADA
+                </p>
+                <p style={{ color: "#a1a1aa", fontSize: "13px" }}>
+                  {user!.address}, {user!.city}
+                </p>
+              </div>
+              <Link
+                href="/perfil"
+                style={{
+                  color: "#f7e047",
+                  fontSize: "12px",
+                  textDecoration: "none",
+                  fontFamily: "var(--font-display)",
+                  letterSpacing: "1px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Editar →
+              </Link>
+            </div>
+          ) : (
+            <div
+              style={{
+                padding: "12px 16px",
+                background: "#1a1a1a",
+                border: "1px solid #2a2a2a",
+                borderLeft: "3px solid #f7e047",
+                marginTop: "16px",
+                marginBottom: "4px",
+              }}
+            >
+              <p
+                style={{
+                  color: "#f7e047",
+                  fontSize: "12px",
+                  fontFamily: "var(--font-display)",
+                  letterSpacing: "1px",
+                  marginBottom: "4px",
+                }}
+              >
+                💡 GUARDÁ TU DIRECCIÓN
+              </p>
+              <p style={{ color: "#a1a1aa", fontSize: "13px" }}>
+                Guardá tu dirección en{" "}
+                <Link href="/perfil" style={{ color: "#f7e047" }}>
+                  tu perfil
+                </Link>{" "}
+                para no completarla cada vez.
+              </p>
+            </div>
+          )}
 
           <div className="panel-brand mt-6 space-y-4 p-6">
             <div>
@@ -583,6 +735,41 @@ export default function CheckoutPage() {
               <p className="font-display text-lg uppercase tracking-wide text-brand-yellow">
                 Método de pago
               </p>
+
+              {direccionCambio && !dismissSaveAddressOffer ? (
+                <div
+                  style={{
+                    padding: "16px",
+                    background: "#1a1a1a",
+                    border: "1px solid #2a2a2a",
+                    marginTop: "16px",
+                  }}
+                >
+                  <p style={{ color: "#e4e4e7", fontSize: "14px", marginBottom: "12px" }}>
+                    ¿Querés guardar esta dirección en tu perfil?
+                  </p>
+                  <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => void guardarDireccionEnPerfil()}
+                      disabled={savingProfileAddress}
+                      className="btn-brand"
+                      style={{ fontSize: "13px" }}
+                    >
+                      {savingProfileAddress ? "Guardando…" : "Sí, guardar"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDismissSaveAddressOffer(true)}
+                      className="btn-brand-outline"
+                      style={{ fontSize: "13px" }}
+                    >
+                      No, gracias
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
               <fieldset className="mt-4 space-y-3">
                 <legend className="sr-only">Forma de pago</legend>
                 {METHODS.map((m) => (

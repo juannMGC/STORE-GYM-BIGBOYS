@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import type { AuthUser } from "@/lib/types";
@@ -16,12 +16,30 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
+const labelStyle: CSSProperties = {
+  display: "block",
+  color: "#a1a1aa",
+  fontSize: "12px",
+  marginBottom: "6px",
+  fontFamily: "var(--font-display)",
+  letterSpacing: "1px",
+  textTransform: "uppercase",
+};
+
 export default function PerfilPage() {
   const { user, loading, isLoggedIn, refreshUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    department: "",
+    city: "",
+    neighborhood: "",
+    address: "",
+    complement: "",
+  });
+
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [avatarSaving, setAvatarSaving] = useState(false);
@@ -31,8 +49,15 @@ export default function PerfilPage() {
 
   useEffect(() => {
     if (!user) return;
-    setName(user.name ?? "");
-    setPhone(user.phone ?? "");
+    setForm({
+      name: user.name ?? "",
+      phone: user.phone ?? "",
+      department: user.department ?? "",
+      city: user.city ?? "",
+      neighborhood: user.neighborhood ?? "",
+      address: user.address ?? "",
+      complement: user.complement ?? "",
+    });
   }, [user]);
 
   async function handleSaveAvatar(base64: string) {
@@ -81,8 +106,13 @@ export default function PerfilPage() {
       await apiFetch<MePatch>("/users/me", {
         method: "PATCH",
         body: JSON.stringify({
-          name: name.trim(),
-          phone: phone.trim(),
+          name: form.name.trim(),
+          phone: form.phone.trim(),
+          department: form.department.trim(),
+          city: form.city.trim(),
+          neighborhood: form.neighborhood.trim(),
+          address: form.address.trim(),
+          complement: form.complement.trim(),
         }),
       });
       await refreshUser();
@@ -108,6 +138,11 @@ export default function PerfilPage() {
     user?.name?.trim() || user?.email?.trim() || "U";
   const showAvatar = avatarPreview ?? user?.avatarUrl ?? null;
 
+  const direccionCompleta =
+    Boolean(form.address?.trim()) &&
+    Boolean(form.city?.trim()) &&
+    Boolean(form.department?.trim());
+
   if (loading) {
     return (
       <div className="mx-auto max-w-[480px] px-4 py-16 text-center text-zinc-500">Cargando…</div>
@@ -124,7 +159,7 @@ export default function PerfilPage() {
 
   return (
     <div className="min-h-[60vh] bg-[#050505] px-4 py-8 sm:py-10">
-      <div className="mx-auto w-full max-w-[480px]">
+      <div className="mx-auto w-full max-w-[520px]">
         <div className="flex flex-col items-center">
           <div
             style={{
@@ -187,74 +222,215 @@ export default function PerfilPage() {
           ) : null}
         </div>
 
-        <div className="panel-brand mt-10 p-4 sm:p-6">
-          <h2 className="font-display text-base uppercase tracking-[0.2em] text-brand-yellow sm:text-lg">
-            Mi información
-          </h2>
-          <form onSubmit={(e) => void handleSubmit(e)} className="mt-6 space-y-4">
-            <div>
-              <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
-                Nombre visible
-              </label>
-              <input
-                className="input-brand mt-1"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoComplete="name"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
-                Email (solo lectura)
-              </label>
-              <div className="relative mt-1">
+        <form onSubmit={(e) => void handleSubmit(e)} className="mt-10 space-y-5">
+          <div
+            className="panel-brand"
+            style={{ padding: "24px", marginBottom: "20px" }}
+          >
+            <p
+              style={{
+                fontFamily: "var(--font-display)",
+                color: "#f7e047",
+                fontSize: "12px",
+                letterSpacing: "3px",
+                textTransform: "uppercase",
+                marginBottom: "20px",
+                paddingBottom: "12px",
+                borderBottom: "1px solid #2a2a2a",
+              }}
+            >
+              Mi información
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div>
+                <label style={labelStyle}>Nombre visible</label>
                 <input
-                  className="input-brand w-full pr-10 opacity-80"
+                  className="input-brand"
+                  style={{ width: "100%" }}
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Tu nombre"
+                  autoComplete="name"
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>
+                  Email
+                  <span style={{ color: "#52525b", fontSize: "11px", marginLeft: "8px" }}>
+                    🔒 No editable
+                  </span>
+                </label>
+                <input
+                  className="input-brand"
+                  style={{ width: "100%", opacity: 0.5, cursor: "not-allowed" }}
                   value={user.email}
                   disabled
                   readOnly
                   autoComplete="email"
                 />
-                <span
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500"
-                  aria-hidden
-                >
-                  🔒
-                </span>
+              </div>
+              <div>
+                <label style={labelStyle}>Teléfono</label>
+                <input
+                  className="input-brand"
+                  style={{ width: "100%" }}
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="Ej: 300 123 4567"
+                  autoComplete="tel"
+                />
               </div>
             </div>
-            <div>
-              <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
-                Teléfono
-              </label>
+          </div>
+
+          <div className="panel-brand" style={{ padding: "24px", marginBottom: "20px" }}>
+            <p
+              style={{
+                fontFamily: "var(--font-display)",
+                color: "#f7e047",
+                fontSize: "12px",
+                letterSpacing: "3px",
+                textTransform: "uppercase",
+                marginBottom: "4px",
+                paddingBottom: "4px",
+              }}
+            >
+              Dirección de envío
+            </p>
+            <p
+              style={{
+                color: "#52525b",
+                fontSize: "12px",
+                marginBottom: "20px",
+                paddingBottom: "12px",
+                borderBottom: "1px solid #2a2a2a",
+              }}
+            >
+              Se usará para pre-llenar el checkout automáticamente
+            </p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
+              }}
+              className="max-sm:grid-cols-1"
+            >
+              <div className="min-w-0 sm:col-span-1">
+                <label style={labelStyle}>Departamento</label>
+                <input
+                  className="input-brand"
+                  style={{ width: "100%" }}
+                  value={form.department}
+                  onChange={(e) => setForm({ ...form, department: e.target.value })}
+                  placeholder="Ej: Caldas"
+                />
+              </div>
+              <div className="min-w-0 sm:col-span-1">
+                <label style={labelStyle}>Ciudad</label>
+                <input
+                  className="input-brand"
+                  style={{ width: "100%" }}
+                  value={form.city}
+                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  placeholder="Ej: Manizales"
+                />
+              </div>
+              <div className="min-w-0 sm:col-span-2">
+                <label style={labelStyle}>Barrio</label>
+                <input
+                  className="input-brand"
+                  style={{ width: "100%" }}
+                  value={form.neighborhood}
+                  onChange={(e) => setForm({ ...form, neighborhood: e.target.value })}
+                  placeholder="Ej: La Enea"
+                />
+              </div>
+            </div>
+
+            <div style={{ marginTop: "16px" }}>
+              <label style={labelStyle}>Dirección *</label>
               <input
-                className="input-brand mt-1"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                autoComplete="tel"
+                className="input-brand"
+                style={{ width: "100%" }}
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                placeholder="Ej: Calle 50 # 23-45"
+                autoComplete="street-address"
               />
             </div>
 
-            {feedback ? (
-              <p
-                className={`text-sm ${
-                  feedback.type === "ok" ? "text-brand-yellow" : "text-brand-red"
-                }`}
-                role="status"
-              >
-                {feedback.text}
-              </p>
-            ) : null}
+            <div style={{ marginTop: "16px" }}>
+              <label style={labelStyle}>
+                Torre / Apto / Conjunto / Oficina
+                <span style={{ color: "#52525b", fontSize: "11px", marginLeft: "8px" }}>
+                  Opcional
+                </span>
+              </label>
+              <input
+                className="input-brand"
+                style={{ width: "100%" }}
+                value={form.complement}
+                onChange={(e) => setForm({ ...form, complement: e.target.value })}
+                placeholder="Ej: Apto 302, Torre B"
+              />
+            </div>
 
-            <button
-              type="submit"
-              disabled={saving}
-              className="btn-brand w-full disabled:opacity-50 sm:w-auto"
+            {direccionCompleta ? (
+              <div
+                style={{
+                  marginTop: "16px",
+                  padding: "12px",
+                  background: "#1a1a1a",
+                  border: "1px solid #2a2a2a",
+                  borderLeft: "3px solid #22c55e",
+                }}
+              >
+                <p
+                  style={{
+                    color: "#22c55e",
+                    fontSize: "11px",
+                    fontFamily: "var(--font-display)",
+                    letterSpacing: "1px",
+                    marginBottom: "4px",
+                  }}
+                >
+                  ✓ DIRECCIÓN COMPLETA
+                </p>
+                <p style={{ color: "#a1a1aa", fontSize: "13px" }}>
+                  {form.address}
+                  {form.complement ? `, ${form.complement}` : ""}
+                  {form.neighborhood ? ` · ${form.neighborhood}` : ""}
+                  {form.city || form.department
+                    ? ` · ${[form.city, form.department].filter(Boolean).join(", ")}`
+                    : ""}
+                </p>
+              </div>
+            ) : null}
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn-brand w-full disabled:opacity-50"
+            style={{ padding: "14px" }}
+          >
+            {saving ? "Guardando…" : "Guardar cambios"}
+          </button>
+
+          {feedback ? (
+            <p
+              className={`text-center text-sm ${
+                feedback.type === "ok" ? "text-emerald-400" : "text-brand-red"
+              }`}
+              role="status"
             >
-              {saving ? "Guardando…" : "Guardar cambios"}
-            </button>
-          </form>
-        </div>
+              {feedback.text}
+            </p>
+          ) : null}
+        </form>
 
         <div className="panel-brand mt-8 p-4 sm:p-6">
           <h2 className="font-display text-base uppercase tracking-[0.2em] text-brand-yellow sm:text-lg">
