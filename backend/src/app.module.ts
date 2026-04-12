@@ -13,6 +13,7 @@ import { OrdersModule } from './orders/orders.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { MailModule } from './mail/mail.module';
 import { AdminModule } from './admin/admin.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { AdminModule } from './admin/admin.module';
     OrdersModule,
     AdminModule,
     WebhooksModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

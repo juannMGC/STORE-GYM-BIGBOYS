@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { BackButton } from "@/components/back-button";
 import { AdminTableSkeleton } from "@/components/admin/table-skeleton";
 import { apiFetch, ApiError } from "@/lib/api-client";
+import { uploadImageFile } from "@/lib/upload-image";
 import type { Category } from "@/lib/types";
 
 type ModalMode = "create" | "edit" | null;
@@ -34,6 +35,7 @@ export default function AdminCategoriasPage() {
   const [imageBroken, setImageBroken] = useState(false);
   const [slugManual, setSlugManual] = useState(false);
   const [formFeedback, setFormFeedback] = useState<FormFeedback>(null);
+  const [catUploadBusy, setCatUploadBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -57,6 +59,8 @@ export default function AdminCategoriasPage() {
     setName("");
     setSlug("");
     setDescription("");
+    setImageUrl("");
+    setImageBroken(false);
     setSlugManual(false);
     setFormFeedback(null);
     setModal("create");
@@ -141,6 +145,35 @@ export default function AdminCategoriasPage() {
       });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleCategoriaImageUpload(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setFormFeedback({ type: "err", text: "La imagen supera 5MB" });
+      return;
+    }
+    try {
+      setCatUploadBusy(true);
+      setFormFeedback(null);
+      const url = await uploadImageFile(file, "categories");
+      setImageUrl(url);
+      setImageBroken(false);
+    } catch (err) {
+      setFormFeedback({
+        type: "err",
+        text:
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Error al subir imagen de categoría",
+      });
+    } finally {
+      setCatUploadBusy(false);
     }
   }
 
@@ -321,27 +354,43 @@ export default function AdminCategoriasPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  URL de imagen
+                  Imagen
                 </label>
-                <div className="mt-1 flex gap-3">
+                <div className="mt-1 flex gap-2">
                   <input
                     className="input-brand min-w-0 flex-1"
                     value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://…"
+                    onChange={(e) => {
+                      setImageUrl(e.target.value);
+                      setImageBroken(false);
+                    }}
+                    placeholder="https://… o subí desde dispositivo"
                   />
-                  {imageUrl.trim() && !imageBroken ? (
-                    <div className="shrink-0 overflow-hidden border-2 border-brand-border bg-brand-black">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={imageUrl.trim()}
-                        alt=""
-                        style={{ width: 80, height: 80, objectFit: "cover" }}
-                        onError={() => setImageBroken(true)}
-                      />
-                    </div>
-                  ) : null}
+                  <label
+                    htmlFor="cat-image-upload"
+                    className="btn-brand-outline shrink-0 cursor-pointer"
+                  >
+                    {catUploadBusy ? "⏳" : "📷"}
+                  </label>
+                  <input
+                    id="cat-image-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => void handleCategoriaImageUpload(e)}
+                  />
                 </div>
+                {imageUrl.trim() && !imageBroken ? (
+                  <div className="mt-2 shrink-0 overflow-hidden border-2 border-brand-border bg-brand-black">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imageUrl.trim()}
+                      alt=""
+                      style={{ width: 80, height: 80, objectFit: "cover" }}
+                      onError={() => setImageBroken(true)}
+                    />
+                  </div>
+                ) : null}
                 {imageUrl.trim() && imageBroken ? (
                   <p className="mt-1 text-xs text-brand-red">No se pudo cargar la imagen.</p>
                 ) : null}

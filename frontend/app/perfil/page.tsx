@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type
 import { BackButton } from "@/components/back-button";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch, ApiError } from "@/lib/api-client";
+import { uploadBase64Image } from "@/lib/upload-image";
 import type { AuthUser } from "@/lib/types";
 
 type MePatch = { user: AuthUser };
@@ -61,39 +62,39 @@ export default function PerfilPage() {
     });
   }, [user]);
 
-  async function handleSaveAvatar(base64: string) {
-    setAvatarSaving(true);
-    setAvatarErr(null);
-    setAvatarFeedback(null);
-    try {
-      await apiFetch<MePatch>("/users/me/avatar", {
-        method: "PATCH",
-        body: JSON.stringify({ avatarUrl: base64 }),
-      });
-      await refreshUser();
-      setAvatarPreview(null);
-      setAvatarFeedback("Foto actualizada ✓");
-    } catch (err) {
-      const text = err instanceof ApiError ? err.message : "No se pudo subir la foto";
-      setAvatarErr(text);
-    } finally {
-      setAvatarSaving(false);
-    }
-  }
-
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      setAvatarErr("La imagen debe pesar menos de 2MB");
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarErr("La imagen debe pesar menos de 5MB");
       return;
     }
     setAvatarErr(null);
+    setAvatarFeedback(null);
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const base64 = ev.target?.result as string;
-      setAvatarPreview(base64);
-      void handleSaveAvatar(base64);
+      void (async () => {
+        const base64 = ev.target?.result as string;
+        setAvatarPreview(base64);
+        try {
+          setAvatarSaving(true);
+          const cloudinaryUrl = await uploadBase64Image(base64, "avatars");
+          await apiFetch<MePatch>("/users/me/avatar", {
+            method: "PATCH",
+            body: JSON.stringify({ avatarUrl: cloudinaryUrl }),
+          });
+          setAvatarPreview(cloudinaryUrl);
+          await refreshUser();
+          setAvatarFeedback("Foto actualizada ✓");
+        } catch (err) {
+          const text =
+            err instanceof ApiError ? err.message : "Error al subir la imagen";
+          setAvatarErr(text);
+          setAvatarPreview(user?.avatarUrl ?? null);
+        } finally {
+          setAvatarSaving(false);
+        }
+      })();
     };
     reader.readAsDataURL(file);
     e.target.value = "";

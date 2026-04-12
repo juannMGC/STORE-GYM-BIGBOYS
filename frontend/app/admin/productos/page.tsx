@@ -12,6 +12,7 @@ import Link from "next/link";
 import { BackButton } from "@/components/back-button";
 import { AdminTableSkeleton } from "@/components/admin/table-skeleton";
 import { apiFetch, ApiError } from "@/lib/api-client";
+import { uploadImageFile } from "@/lib/upload-image";
 import { PRODUCT_SLUG_PATTERN, slugifyTitle } from "@/lib/slugify";
 import type { Category, ProductListItem, Size } from "@/lib/types";
 
@@ -43,6 +44,7 @@ export default function AdminProductosPage() {
   const [categoryId, setCategoryId] = useState("");
   const [selectedSizeIds, setSelectedSizeIds] = useState<string[]>([]);
   const [stockAdjustingId, setStockAdjustingId] = useState<string | null>(null);
+  const [uploadBusy, setUploadBusy] = useState(false);
 
   const stockBtnStyle: CSSProperties = {
     width: "28px",
@@ -205,42 +207,77 @@ export default function AdminProductosPage() {
     }
   }
 
+  async function handleImagenPrincipalUpload(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast({ type: "err", text: "La imagen principal supera 5MB" });
+      return;
+    }
+    try {
+      setUploadBusy(true);
+      const url = await uploadImageFile(file, "products");
+      setImagenes((prev) => {
+        if (prev.length === 0) {
+          return [{ id: `local-${Date.now()}`, url, sortOrder: 0 }];
+        }
+        const next = [...prev];
+        next[0] = { ...next[0], url };
+        return next;
+      });
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Error al subir imagen principal";
+      showToast({ type: "err", text: msg });
+    } finally {
+      setUploadBusy(false);
+    }
+  }
+
   async function handleGalleryUpload(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
     let ok = 0;
     for (const file of files) {
-      if (file.size > 2 * 1024 * 1024) {
-        showToast({ type: "err", text: `${file.name} supera 2MB` });
+      if (file.size > 5 * 1024 * 1024) {
+        showToast({ type: "err", text: `${file.name} supera 5MB` });
         continue;
       }
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      if (modal === "edit" && editingId) {
-        try {
+      try {
+        setUploadBusy(true);
+        const url = await uploadImageFile(file, "products");
+        if (modal === "edit" && editingId) {
           await apiFetch(`/admin/products/${editingId}/images`, {
             method: "POST",
-            body: JSON.stringify({ url: base64 }),
+            body: JSON.stringify({ url }),
           });
           ok += 1;
-        } catch (err) {
-          const msg = err instanceof ApiError ? err.message : "Error al subir";
-          showToast({ type: "err", text: msg });
+        } else {
+          setImagenes((prev) => [
+            ...prev,
+            {
+              id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              url,
+              sortOrder: prev.length,
+            },
+          ]);
+          ok += 1;
         }
-      } else {
-        setImagenes((prev) => [
-          ...prev,
-          {
-            id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-            url: base64,
-            sortOrder: prev.length,
-          },
-        ]);
-        ok += 1;
+      } catch (err) {
+        const msg =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Error al subir";
+        showToast({ type: "err", text: `${file.name}: ${msg}` });
+      } finally {
+        setUploadBusy(false);
       }
     }
     if (modal === "edit" && editingId && ok > 0) {
@@ -685,22 +722,37 @@ export default function AdminProductosPage() {
                 <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
                   URL de imagen principal
                 </label>
-                <input
-                  className="input-brand mt-1 w-full"
-                  value={imagenes[0]?.url ?? ""}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setImagenes((prev) => {
-                      if (prev.length === 0) {
-                        return [{ id: `local-${Date.now()}`, url: v, sortOrder: 0 }];
-                      }
-                      const next = [...prev];
-                      next[0] = { ...next[0], url: v };
-                      return next;
-                    });
-                  }}
-                  placeholder="https://… (primera en la galería)"
-                />
+                <div className="mt-1 flex gap-2">
+                  <input
+                    className="input-brand min-w-0 flex-1"
+                    value={imagenes[0]?.url ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setImagenes((prev) => {
+                        if (prev.length === 0) {
+                          return [{ id: `local-${Date.now()}`, url: v, sortOrder: 0 }];
+                        }
+                        const next = [...prev];
+                        next[0] = { ...next[0], url: v };
+                        return next;
+                      });
+                    }}
+                    placeholder="https://… o subí una imagen"
+                  />
+                  <label
+                    htmlFor="main-image-upload"
+                    className="btn-brand-outline shrink-0 cursor-pointer"
+                  >
+                    {uploadBusy ? "⏳" : "📷"}
+                  </label>
+                  <input
+                    id="main-image-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => void handleImagenPrincipalUpload(e)}
+                  />
+                </div>
                 {imagenes[0]?.url?.trim() ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -870,11 +922,12 @@ export default function AdminProductosPage() {
                     className="btn-brand-outline"
                     style={{
                       display: "inline-block",
-                      cursor: "pointer",
+                      cursor: uploadBusy ? "wait" : "pointer",
                       fontSize: "12px",
+                      opacity: uploadBusy ? 0.7 : 1,
                     }}
                   >
-                    📷 Subir desde dispositivo
+                    {uploadBusy ? "⏳ Subiendo…" : "📷 Subir desde dispositivo"}
                   </label>
                   <p
                     style={{
@@ -883,7 +936,7 @@ export default function AdminProductosPage() {
                       marginTop: "6px",
                     }}
                   >
-                    Máx. 2MB por imagen. Podés seleccionar varias.
+                    Máx. 5MB por imagen. Podés seleccionar varias.
                   </p>
                 </div>
               </div>
