@@ -114,3 +114,16 @@ model OrderItem {
   quantity      Int
   priceSnapshot Float
 }
+
+/// Snapshot de pedido eliminado por admin (solo DELIVERED / CANCELLED).
+model OrderHistory {
+  id        String   @id @default(uuid())
+  orderId   String
+  orderData Json
+  deletedAt DateTime @default(now())
+  deletedBy String
+  reason    String?
+
+  @@index([orderId])
+  @@index([deletedAt])
+}

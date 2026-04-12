@@ -78,6 +78,17 @@ const orderAdminDetailInclude = {
   },
 } as const;
 
+/** Snapshot completo antes de archivar (DELETE admin). */
+const orderArchiveInclude = {
+  user: true,
+  items: {
+    include: {
+      product: true,
+      size: true,
+    },
+  },
+} as const;
+
 /** Detalle unificado GET /orders/:id (dueño o ADMIN): ítems con precio catálogo + snapshot. */
 const orderDetailViewerInclude = {
   user: { select: { id: true, name: true, email: true } },
@@ -716,10 +727,61 @@ export class OrdersService {
   findAllAdmin(status?: string) {
     const s = status?.trim();
     return this.prisma.order.findMany({
-      where: s ? { status: s } : {},
+      where: s
+        ? { status: s }
+        : { status: { not: OrderStatus.DRAFT } },
       orderBy: { createdAt: 'desc' },
       include: orderAdminDetailInclude,
     });
+  }
+
+  async listOrderHistory() {
+    return this.prisma.orderHistory.findMany({
+      orderBy: { deletedAt: 'desc' },
+    });
+  }
+
+  async archiveOrder(
+    orderId: string,
+    adminEmail: string,
+    reason?: string,
+  ): Promise<{ ok: boolean; message: string }> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: orderArchiveInclude,
+    });
+    if (!order) {
+      throw new NotFoundException('Pedido no encontrado');
+    }
+    if (
+      order.status !== OrderStatus.DELIVERED &&
+      order.status !== OrderStatus.CANCELLED
+    ) {
+      throw new BadRequestException(
+        'Solo se pueden eliminar pedidos entregados o cancelados',
+      );
+    }
+
+    const orderData = JSON.parse(
+      JSON.stringify(order),
+    ) as Prisma.InputJsonValue;
+
+    await this.prisma.$transaction([
+      this.prisma.orderHistory.create({
+        data: {
+          orderId: order.id,
+          orderData,
+          deletedBy: adminEmail,
+          reason: reason?.trim() || 'Eliminado por administrador',
+        },
+      }),
+      this.prisma.order.delete({ where: { id: orderId } }),
+    ]);
+
+    return {
+      ok: true,
+      message: 'Pedido archivado y eliminado correctamente',
+    };
   }
 
   async adminUpdatePayment(orderId: string, dto: PatchPaymentDto) {
