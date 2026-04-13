@@ -1063,14 +1063,71 @@ export default function CheckoutPage() {
 
               {error ? <p className="mt-4 text-sm text-brand-red">{error}</p> : null}
 
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "12px 16px",
+                  background: "#0a0a0a",
+                  border: "1px solid #1a1a1a",
+                  marginBottom: "16px",
+                  marginTop: "16px",
+                }}
+              >
+                <span style={{ fontSize: "18px" }} aria-hidden>
+                  🛡️
+                </span>
+                <p
+                  style={{
+                    color: "#52525b",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                    margin: 0,
+                  }}
+                >
+                  Compra protegida · Devoluciones dentro de los 15 días.{" "}
+                  <a
+                    href="/devoluciones"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: "#f7e047",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Ver política →
+                  </a>
+                </p>
+              </div>
+
               <button
                 type="button"
                 disabled={saving}
                 onClick={() => void payWithWompi()}
-                className="btn-brand mt-6 w-full disabled:opacity-50"
+                className="btn-brand w-full disabled:opacity-50"
               >
                 {saving ? "Iniciando pago…" : "💳 Pagar con Wompi"}
               </button>
+
+              <p
+                style={{
+                  color: "#3f3f46",
+                  fontSize: "11px",
+                  textAlign: "center",
+                  marginTop: "12px",
+                  lineHeight: 1.6,
+                }}
+              >
+                Al confirmar aceptás nuestros{" "}
+                <a href="/terminos" target="_blank" rel="noopener noreferrer" style={{ color: "#52525b" }}>
+                  términos
+                </a>{" "}
+                y{" "}
+                <a href="/privacidad" target="_blank" rel="noopener noreferrer" style={{ color: "#52525b" }}>
+                  política de privacidad
+                </a>
+              </p>
 
               <button
                 type="button"
