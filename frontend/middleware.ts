@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getAuth0Client } from "@/lib/auth0";
+import { auth0 } from "@/lib/auth0";
 import { LOGIN_ENTRY_HREF, auth0LoginHref } from "@/lib/auth-routes";
 
 const PROTECTED_PREFIXES = [
@@ -27,8 +27,6 @@ export async function middleware(request: NextRequest) {
     url.pathname = legacyTarget;
     return NextResponse.redirect(url);
   }
-
-  const auth0 = getAuth0Client();
 
   if (!auth0) {
     const needsAuth = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));

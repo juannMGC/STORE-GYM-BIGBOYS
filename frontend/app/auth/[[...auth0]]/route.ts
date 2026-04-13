@@ -1,9 +1,9 @@
 import type { NextRequest } from "next/server";
-import { getAuth0Client, missingAuth0EnvKeys } from "@/lib/auth0";
+import { auth0, missingAuth0EnvKeys } from "@/lib/auth0";
 
 /**
- * v4: no hay `export const { GET, POST } = handlers` en este paquete; se usa `Auth0Client`
- * creado en `lib/auth0.ts` con `authorizationParameters` (AUTH0_AUDIENCE en el servidor).
+ * v4: no hay handlers sin configurar del SDK; se usa `auth0` desde `lib/auth0.ts`
+ * (`Auth0Client` con `authorizationParameters` / AUTH0_AUDIENCE).
  * Aquí se delega a `middleware(request)` para /auth/login, /auth/callback, /auth/access-token, etc.
  *
  * Rutas /auth/* cuando el middleware no cubre el path — evita 404 en producción (Vercel / Next 16).
@@ -26,7 +26,6 @@ function notConfiguredResponse() {
 }
 
 export async function GET(request: NextRequest) {
-  const auth0 = getAuth0Client();
   if (!auth0) {
     return notConfiguredResponse();
   }
@@ -34,7 +33,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth0 = getAuth0Client();
   if (!auth0) {
     return notConfiguredResponse();
   }

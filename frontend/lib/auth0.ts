@@ -3,12 +3,13 @@ import { NextResponse } from "next/server";
 import type { SdkError } from "@auth0/nextjs-auth0/errors";
 import { LOGIN_ENTRY_HREF } from "@/lib/auth-routes";
 
+const DEFAULT_APP_BASE_URL = "https://bigboysgym.com";
+
 const AUTH0_ENV_KEYS = [
   "AUTH0_DOMAIN",
   "AUTH0_CLIENT_ID",
   "AUTH0_CLIENT_SECRET",
   "AUTH0_SECRET",
-  "APP_BASE_URL",
   "AUTH0_AUDIENCE",
 ] as const;
 
@@ -21,61 +22,53 @@ export function missingAuth0EnvKeys(): string[] {
   return [...AUTH0_ENV_KEYS.filter((k) => !process.env[k]?.trim())];
 }
 
-function createAuth0Client(): Auth0Client | null {
-  if (!isAuth0Configured()) {
-    if (process.env.VERCEL) {
-      console.warn("[auth0] Faltan variables:", missingAuth0EnvKeys().join(", ") || "(desconocido)");
-    }
-    return null;
-  }
+function resolveAppBaseUrl(): string {
+  return process.env.APP_BASE_URL?.trim() || DEFAULT_APP_BASE_URL;
+}
 
-  try {
-    return new Auth0Client({
-      domain: process.env.AUTH0_DOMAIN!.trim(),
-      clientId: process.env.AUTH0_CLIENT_ID!.trim(),
-      clientSecret: process.env.AUTH0_CLIENT_SECRET!.trim(),
-      secret: process.env.AUTH0_SECRET!.trim(),
-      appBaseUrl: process.env.APP_BASE_URL!.trim(),
-      authorizationParameters: {
-        audience: process.env.AUTH0_AUDIENCE!.trim(),
-        scope: "openid profile email offline_access",
-      },
-      async onCallback(error, ctx, _session) {
-        if (error) {
-          const detail = oauthFailureDetail(error);
-          console.error("[Auth0] onCallback:", error.name, detail);
-          const base =
-            ctx.appBaseUrl ?? process.env.APP_BASE_URL?.trim() ?? "http://localhost:3000";
-          const login = new URL(LOGIN_ENTRY_HREF, base);
-          login.searchParams.set("error", "auth");
-          if (detail) {
-            login.searchParams.set("reason", detail.slice(0, 500));
-          }
-          return NextResponse.redirect(login);
+function createAuth0Client(): Auth0Client {
+  return new Auth0Client({
+    domain: process.env.AUTH0_DOMAIN!,
+    clientId: process.env.AUTH0_CLIENT_ID!,
+    clientSecret: process.env.AUTH0_CLIENT_SECRET!,
+    appBaseUrl: process.env.APP_BASE_URL?.trim() || DEFAULT_APP_BASE_URL,
+    secret: process.env.AUTH0_SECRET!,
+    authorizationParameters: {
+      audience: process.env.AUTH0_AUDIENCE!,
+      scope: "openid profile email offline_access",
+    },
+    async onCallback(error, ctx, _session) {
+      if (error) {
+        const detail = oauthFailureDetail(error);
+        console.error("[Auth0] onCallback:", error.name, detail);
+        const base = ctx.appBaseUrl ?? resolveAppBaseUrl();
+        const login = new URL(LOGIN_ENTRY_HREF, base);
+        login.searchParams.set("error", "auth");
+        if (detail) {
+          login.searchParams.set("reason", detail.slice(0, 500));
         }
-        return redirectAfterLogin(ctx);
-      },
-    });
-  } catch (e) {
-    console.error("[auth0] No se pudo crear Auth0Client:", e);
-    return null;
-  }
+        return NextResponse.redirect(login);
+      }
+      return redirectAfterLogin(ctx);
+    },
+  });
 }
 
 /**
- * Lazy singleton solo si el cliente se creó bien — no cachear `null` (Edge vs Node ven env distinto).
+ * Cliente Auth0 v4 (servidor). `appBaseUrl` = `APP_BASE_URL` o `https://bigboysgym.com`.
  */
-let cached: Auth0Client | undefined;
+let _auth0: Auth0Client | null = null;
+if (isAuth0Configured()) {
+  try {
+    _auth0 = createAuth0Client();
+  } catch (e) {
+    console.error("[auth0] No se pudo crear Auth0Client:", e);
+  }
+}
+export const auth0: Auth0Client | null = _auth0;
 
 export function getAuth0Client(): Auth0Client | null {
-  if (cached) {
-    return cached;
-  }
-  const c = createAuth0Client();
-  if (c) {
-    cached = c;
-  }
-  return c;
+  return auth0;
 }
 
 function oauthFailureDetail(error: SdkError): string {
