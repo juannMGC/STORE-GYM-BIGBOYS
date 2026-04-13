@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/admin/productos", label: "🛍️ Productos" },
   { href: "/admin/cupones", label: "🏷️ Cupones" },
   { href: "/admin/resenas", label: "⭐ Reseñas", badgePending: true },
+  { href: "/admin/notificaciones", label: "🔔 Notificaciones" },
 ] as const;
 
 export function AdminShell({ children }: { children: ReactNode }) {

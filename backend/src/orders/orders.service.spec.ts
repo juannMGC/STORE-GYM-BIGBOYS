@@ -3,6 +3,7 @@ import { OrdersService, orderTotalAmountInCents } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { CouponsService } from '../coupons/coupons.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { OrderStatus } from '../common/constants/order-status';
 
@@ -119,6 +120,12 @@ describe('OrdersService', () => {
           provide: CouponsService,
           useValue: {
             validateCoupon: jest.fn().mockResolvedValue({ discountAmount: 0 }),
+          },
+        },
+        {
+          provide: NotificationsService,
+          useValue: {
+            notifyOrderStatus: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],

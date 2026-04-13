@@ -29,6 +29,7 @@ import { Role } from '../common/constants/roles';
 import { verifyWompiEventChecksum } from '../wompi/wompi-event-verify';
 import { MailService, type OrderMailPayload } from '../mail/mail.service';
 import { CouponsService } from '../coupons/coupons.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import type { OrderItem, Prisma } from '@prisma/client';
 
 export function orderTotalAmountInCents(order: {
@@ -147,7 +148,14 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
     private readonly couponsService: CouponsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
+
+  private getFrontendUrl(): string {
+    return (
+      process.env.FRONTEND_URL?.trim() ?? 'https://store-gym-bigboys.vercel.app'
+    );
+  }
 
   /** Suma cantidades del mismo producto en el pedido (todas las tallas). */
   private async totalQuantityForProductInOrder(
@@ -681,6 +689,14 @@ export class OrdersService {
           this.logger.error(`Email pedido confirmado (Wompi): ${String(err)}`);
         });
       }
+      void this.notificationsService
+        .notifyOrderStatus(
+          order.userId,
+          order.id,
+          OrderStatus.PAID,
+          this.getFrontendUrl(),
+        )
+        .catch(() => {});
       return { ok: true };
     }
     if (
@@ -695,6 +711,14 @@ export class OrdersService {
         where: { id: order.id },
         data: { status: OrderStatus.CANCELLED },
       });
+      void this.notificationsService
+        .notifyOrderStatus(
+          order.userId,
+          order.id,
+          OrderStatus.CANCELLED,
+          this.getFrontendUrl(),
+        )
+        .catch(() => {});
       return { ok: true };
     }
     return { ok: true, detail: 'ignored_status' };
@@ -756,6 +780,14 @@ export class OrdersService {
         this.logger.error(`Error enviando emails de confirmación: ${String(err)}`),
       );
     }
+    void this.notificationsService
+      .notifyOrderStatus(
+        order.userId,
+        orderId,
+        OrderStatus.PAID,
+        this.getFrontendUrl(),
+      )
+      .catch(() => {});
     return updated;
   }
 
@@ -977,6 +1009,18 @@ export class OrdersService {
           this.logger.error(`Error emails estado: ${String(err)}`);
         });
       }
+    }
+
+    const pushStatuses: OrderStatusValue[] = [
+      OrderStatus.PAID,
+      OrderStatus.SHIPPED,
+      OrderStatus.DELIVERED,
+      OrderStatus.CANCELLED,
+    ];
+    if (pushStatuses.includes(to)) {
+      void this.notificationsService
+        .notifyOrderStatus(order.userId, id, to, this.getFrontendUrl())
+        .catch(() => {});
     }
 
     return this.getOrderDetailDtoById(id);

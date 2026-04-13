@@ -5,6 +5,7 @@ import { BackButton } from "@/components/back-button";
 import { ImageUploader } from "@/components/image-uploader";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch, ApiError } from "@/lib/api-client";
+import { usePushNotifications } from "@/lib/use-push-notifications";
 import type { AuthUser } from "@/lib/types";
 
 type MePatch = { user: AuthUser };
@@ -21,6 +22,14 @@ const labelStyle: CSSProperties = {
 
 export default function PerfilPage() {
   const { user, loading, isLoggedIn, refreshUser } = useAuth();
+  const {
+    permission,
+    subscribed,
+    loading: pushLoading,
+    subscribe,
+    unsubscribe,
+    isSupported,
+  } = usePushNotifications();
 
   const [form, setForm] = useState({
     name: "",
@@ -155,6 +164,98 @@ export default function PerfilPage() {
             </p>
           ) : null}
         </div>
+
+        {isSupported ? (
+          <div
+            className="panel-brand"
+            style={{ padding: "24px", marginBottom: "20px", marginTop: "8px" }}
+          >
+            <p
+              style={{
+                fontFamily: "var(--font-display)",
+                color: "#f7e047",
+                fontSize: "12px",
+                letterSpacing: "3px",
+                textTransform: "uppercase",
+                marginBottom: "16px",
+                paddingBottom: "12px",
+                borderBottom: "1px solid #2a2a2a",
+              }}
+            >
+              🔔 Notificaciones
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "16px",
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ flex: "1", minWidth: "200px" }}>
+                <p style={{ color: "#e4e4e7", fontSize: "14px", margin: "0 0 4px" }}>
+                  Notificaciones push
+                </p>
+                <p style={{ color: "#52525b", fontSize: "12px", margin: 0 }}>
+                  {subscribed
+                    ? "Activadas en este dispositivo ✓"
+                    : permission === "denied"
+                      ? "Bloqueadas en el navegador"
+                      : "Recibí actualizaciones de tus pedidos"}
+                </p>
+              </div>
+
+              {permission !== "denied" ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    void (subscribed ? unsubscribe(apiFetch) : subscribe(apiFetch))
+                  }
+                  disabled={pushLoading}
+                  style={{
+                    width: "48px",
+                    height: "26px",
+                    borderRadius: "13px",
+                    background: subscribed ? "#d91920" : "#2a2a2a",
+                    border: "none",
+                    cursor: pushLoading ? "wait" : "pointer",
+                    position: "relative",
+                    transition: "background 0.2s",
+                    flexShrink: 0,
+                  }}
+                  aria-label={subscribed ? "Desactivar notificaciones" : "Activar notificaciones"}
+                >
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "3px",
+                      left: subscribed ? "25px" : "3px",
+                      width: "20px",
+                      height: "20px",
+                      borderRadius: "50%",
+                      background: "white",
+                      transition: "left 0.2s",
+                    }}
+                  />
+                </button>
+              ) : (
+                <p
+                  style={{
+                    color: "#d91920",
+                    fontSize: "11px",
+                    maxWidth: "160px",
+                    textAlign: "right",
+                    margin: 0,
+                  }}
+                >
+                  Habilitá los permisos en la configuración del navegador
+                </p>
+              )}
+            </div>
+          </div>
+        ) : null}
 
         <form onSubmit={(e) => void handleSubmit(e)} className="mt-10 space-y-5">
           <div
