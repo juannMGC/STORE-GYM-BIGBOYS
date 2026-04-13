@@ -8,18 +8,9 @@ const AUTH0_ENV_KEYS = [
   "AUTH0_CLIENT_ID",
   "AUTH0_CLIENT_SECRET",
   "AUTH0_SECRET",
+  "APP_BASE_URL",
+  "AUTH0_AUDIENCE",
 ] as const;
-
-/**
- * URL canónica opcional. Si no está definida, el SDK infiere la base desde cada request
- * (Host / x-forwarded-host), así el redirect_uri coincide con la URL real del navegador.
- */
-function resolveAppBaseUrl(): string | undefined {
-  const explicit =
-    process.env.APP_BASE_URL?.trim() || process.env.AUTH0_BASE_URL?.trim();
-  if (explicit) return explicit;
-  return undefined;
-}
 
 function isAuth0Configured(): boolean {
   return AUTH0_ENV_KEYS.every((k) => Boolean(process.env[k]?.trim()));
@@ -38,31 +29,23 @@ function createAuth0Client(): Auth0Client | null {
     return null;
   }
 
-  /** Solo en servidor (middleware + /auth/*). Obligatorio para que el access token sea JWT del API Nest. */
-  const audience = process.env.AUTH0_AUDIENCE?.trim();
-  if (!audience && process.env.NODE_ENV === "development") {
-    console.warn(
-      "[auth0] AUTH0_AUDIENCE no está definido: el login no pedirá token para tu API. Definilo en .env.local (mismo Identifier que en Auth0 → APIs).",
-    );
-  }
-
   try {
     return new Auth0Client({
       domain: process.env.AUTH0_DOMAIN!.trim(),
       clientId: process.env.AUTH0_CLIENT_ID!.trim(),
       clientSecret: process.env.AUTH0_CLIENT_SECRET!.trim(),
       secret: process.env.AUTH0_SECRET!.trim(),
-      appBaseUrl: resolveAppBaseUrl(),
-      /** Aplica a login, signup (email/contraseña) y conexiones sociales: mismo audience + API JWT. */
+      appBaseUrl: process.env.APP_BASE_URL!.trim(),
       authorizationParameters: {
+        audience: process.env.AUTH0_AUDIENCE!.trim(),
         scope: "openid profile email offline_access",
-        ...(audience ? { audience } : {}),
       },
       async onCallback(error, ctx, _session) {
         if (error) {
           const detail = oauthFailureDetail(error);
           console.error("[Auth0] onCallback:", error.name, detail);
-          const base = ctx.appBaseUrl ?? resolveAppBaseUrl() ?? "http://localhost:3000";
+          const base =
+            ctx.appBaseUrl ?? process.env.APP_BASE_URL?.trim() ?? "http://localhost:3000";
           const login = new URL(LOGIN_ENTRY_HREF, base);
           login.searchParams.set("error", "auth");
           if (detail) {
