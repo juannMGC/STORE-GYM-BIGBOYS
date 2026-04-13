@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { ConditionalSiteFooter } from "@/components/conditional-site-footer";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { PushPrompt } from "@/components/push-prompt";
+import { ConsentBanner } from "@/components/consent-banner";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -90,6 +91,7 @@ export default function RootLayout({
           <ConditionalSiteFooter />
           <WhatsAppButton />
           <PushPrompt />
+          <ConsentBanner />
         </Providers>
       </body>
     </html>

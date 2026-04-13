@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { auth0SignupHref, loginPath } from "@/lib/auth-routes";
 
 function RegistroInner({ slug }: { slug: string }) {
@@ -10,6 +11,7 @@ function RegistroInner({ slug }: { slug: string }) {
   const returnTo = (raw && raw.trim()) || "/";
   const signupHref = auth0SignupHref(returnTo);
   const loginHref = `${loginPath()}?returnTo=${encodeURIComponent(returnTo)}`;
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   return (
     <div className="panel-brand mx-auto max-w-md p-8">
@@ -29,9 +31,44 @@ function RegistroInner({ slug }: { slug: string }) {
           Iniciá sesión
         </a>
       </p>
-      <a href={signupHref} className="btn-brand mt-8 flex w-full justify-center">
-        Registrarme con Auth0
-      </a>
+
+      <label className="mt-8 flex cursor-pointer gap-3 text-left">
+        <input
+          type="checkbox"
+          checked={acceptedLegal}
+          onChange={(e) => setAcceptedLegal(e.target.checked)}
+          className="mt-1 h-[18px] w-[18px] shrink-0 cursor-pointer accent-[#d91920]"
+        />
+        <span className="text-sm leading-relaxed text-zinc-400">
+          Declaro haber leído y aceptado los{" "}
+          <Link href="/terminos" target="_blank" rel="noopener noreferrer" className="text-brand-yellow hover:underline">
+            Términos y condiciones
+          </Link>{" "}
+          y la{" "}
+          <Link
+            href="/privacidad"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-yellow hover:underline"
+          >
+            Política de privacidad
+          </Link>
+          .
+        </span>
+      </label>
+
+      {acceptedLegal ? (
+        <a href={signupHref} className="btn-brand mt-6 flex w-full justify-center">
+          Registrarme con Auth0
+        </a>
+      ) : (
+        <span
+          className="btn-brand mt-6 flex w-full cursor-not-allowed justify-center opacity-50"
+          aria-disabled="true"
+        >
+          Registrarme con Auth0
+        </span>
+      )}
     </div>
   );
 }

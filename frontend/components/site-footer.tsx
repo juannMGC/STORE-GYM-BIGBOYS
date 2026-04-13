@@ -3,19 +3,23 @@ import { LOGIN_ENTRY_HREF } from "@/lib/auth-routes";
 import { INSTAGRAM_PROFILE_URL } from "@/data/instagram-gallery";
 import { InstagramIcon } from "@/components/instagram-icon";
 
+const LEGAL_LINKS = [
+  { href: "/terminos", label: "Términos y condiciones" },
+  { href: "/privacidad", label: "Política de privacidad" },
+  { href: "/devoluciones", label: "Devoluciones" },
+] as const;
+
 export function SiteFooter() {
+  const year = new Date().getFullYear();
+
   return (
     <footer className="relative z-10 mt-auto border-t-4 border-brand-border bg-brand-black py-10 text-center">
       <div className="mx-auto max-w-6xl px-4">
         <p className="font-display text-xl uppercase tracking-[0.2em] text-brand-yellow">
           BIG BOYS GYM
         </p>
-        <p className="mt-2 text-sm text-zinc-500">
-          Tienda oficial · Manizales, Colombia
-        </p>
-        <p className="mt-3 font-medium text-zinc-400">
-          Entrená fuerte. Equipate como un profesional.
-        </p>
+        <p className="mt-2 text-sm text-zinc-500">Tienda oficial · Manizales, Colombia</p>
+        <p className="mt-3 font-medium text-zinc-400">Entrená fuerte. Equipate como un profesional.</p>
         <div className="mt-6 flex justify-center gap-6 text-sm">
           <Link href="/tienda" className="text-brand-yellow/80 hover:text-brand-yellow">
             Tienda
@@ -35,6 +39,59 @@ export function SiteFooter() {
             Instagram
           </a>
         </div>
+
+        <div className="mt-10 flex justify-center">
+          <div className="text-left">
+            <p
+              style={{
+                fontFamily: "var(--font-display)",
+                color: "#f7e047",
+                fontSize: "11px",
+                letterSpacing: "3px",
+                textTransform: "uppercase",
+                marginBottom: "12px",
+              }}
+            >
+              Legal
+            </p>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+              }}
+            >
+              {LEGAL_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-[13px] text-zinc-600 transition-colors hover:text-brand-yellow"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <p
+          style={{
+            color: "#27272a",
+            fontSize: "11px",
+            marginTop: "24px",
+            borderTop: "1px solid #1a1a1a",
+            paddingTop: "16px",
+          }}
+        >
+          © {year} Big Boys Gym · Manizales, Colombia ·{" "}
+          <Link href="/privacidad" className="text-zinc-600 transition-colors hover:text-zinc-500">
+            Privacidad
+          </Link>
+          {" · "}
+          <Link href="/terminos" className="text-zinc-600 transition-colors hover:text-zinc-500">
+            Términos
+          </Link>
+        </p>
       </div>
     </footer>
   );
