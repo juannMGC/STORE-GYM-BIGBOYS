@@ -39,7 +39,7 @@ model User {
   avatarUrl    String?
   role         String   @default("CLIENT")
   createdAt    DateTime @default(now())
-  orders       Order[]
+  orders            Order[]
   reviews           Review[]
   pushSubscriptions PushSubscription[]
 }
