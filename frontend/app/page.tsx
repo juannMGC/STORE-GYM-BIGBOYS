@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { REGISTRO_ENTRY_HREF } from "@/lib/auth-routes";
+import { HomeRegisterCta } from "@/components/home-register-cta";
 import { BrandsSlider } from "@/components/brands-slider";
 import { InstagramCarousel } from "@/components/instagram-carousel";
 import { InstagramHomeCta } from "@/components/instagram-home-cta";
@@ -68,9 +68,7 @@ export default function HomePage() {
               <Link href="/tienda" className="btn-brand">
                 Ir a la tienda
               </Link>
-              <a href={REGISTRO_ENTRY_HREF} className="btn-brand-outline inline-block text-center">
-                Crear cuenta
-              </a>
+              <HomeRegisterCta />
             </div>
           </div>
         </div>

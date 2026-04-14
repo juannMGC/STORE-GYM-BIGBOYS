@@ -126,9 +126,6 @@ export function SiteHeader() {
           >
             Tienda
           </Link>
-          {isLoading && !isLoggedIn && (
-            <span className="text-xs text-zinc-500">Cargando…</span>
-          )}
           {isLoggedIn && user?.role === "CLIENT" && (
             <Link
               href="/carrito"
@@ -156,7 +153,14 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-2 md:gap-3">
-          {isLoggedIn && (
+          {isLoading && (
+            <div
+              className="shrink-0 animate-pulse rounded-full border border-[#2a2a2a] bg-[#1a1a1a]"
+              style={{ width: "40px", height: "40px" }}
+              aria-hidden
+            />
+          )}
+          {isLoggedIn && !isLoading && (
             <div style={{ position: "relative" }} ref={dropdownRef}>
               <button
                 type="button"

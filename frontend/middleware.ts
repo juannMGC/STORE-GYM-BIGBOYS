@@ -11,6 +11,14 @@ const PROTECTED_PREFIXES = [
   "/mis-pedidos",
 ];
 
+/** Rutas de login/registro en la app: solo para visitas sin sesión. */
+function isAuthMarketingRoute(pathname: string): boolean {
+  const routes = ["/login", "/registrar", "/registro"] as const;
+  return routes.some(
+    (r) => pathname === r || pathname.startsWith(`${r}/`),
+  );
+}
+
 /** v3 y docs antiguas usaban /api/auth/*; el rewrite /api/* → Nest captura eso y el login no llega al SDK. */
 const LEGACY_AUTH0_TO_V4: Record<string, string> = {
   "/api/auth/login": "/auth/login",
@@ -50,16 +58,27 @@ export async function middleware(request: NextRequest) {
       return authRes;
     }
 
+    const authLanding = isAuthMarketingRoute(pathname);
     const needsAuth = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
-    if (!needsAuth) {
+
+    if (!authLanding && !needsAuth) {
       return authRes;
     }
 
     const session = await auth0.getSession(request);
-    if (!session) {
+
+    if (authLanding && session) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    if (needsAuth && !session) {
       const returnPath = pathname + request.nextUrl.search;
       const loginTarget = auth0LoginHref(returnPath, "login");
       return NextResponse.redirect(new URL(loginTarget, request.url));
+    }
+
+    if (authLanding) {
+      return authRes;
     }
 
     /** Carrito y checkout solo para CLIENT: ADMIN → panel admin */

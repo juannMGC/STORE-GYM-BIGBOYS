@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { LOGIN_ENTRY_HREF } from "@/lib/auth-routes";
+import { useAuth } from "@/lib/auth-context";
 import { INSTAGRAM_PROFILE_URL } from "@/data/instagram-gallery";
 import { InstagramIcon } from "@/components/instagram-icon";
 
@@ -11,6 +14,7 @@ const LEGAL_LINKS = [
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
+  const { isLoggedIn, isLoading } = useAuth();
 
   return (
     <footer className="relative z-10 mt-auto border-t-4 border-brand-border bg-brand-black py-10 text-center">
@@ -24,9 +28,17 @@ export function SiteFooter() {
           <Link href="/tienda" className="text-brand-yellow/80 hover:text-brand-yellow">
             Tienda
           </Link>
-          <a href={LOGIN_ENTRY_HREF} className="text-zinc-500 hover:text-zinc-300">
-            Cuenta
-          </a>
+          {!isLoading && isLoggedIn ? (
+            <Link href="/perfil" className="text-zinc-500 hover:text-zinc-300">
+              Mi perfil
+            </Link>
+          ) : !isLoading ? (
+            <a href={LOGIN_ENTRY_HREF} className="text-zinc-500 hover:text-zinc-300">
+              Cuenta
+            </a>
+          ) : (
+            <span className="inline-block h-4 w-14 animate-pulse rounded bg-zinc-800" aria-hidden />
+          )}
         </div>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
           <a
