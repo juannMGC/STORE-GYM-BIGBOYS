@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { REGISTRO_ENTRY_HREF } from "@/lib/auth-routes";
+import { BrandsSlider } from "@/components/brands-slider";
 import { InstagramCarousel } from "@/components/instagram-carousel";
 import { InstagramHomeCta } from "@/components/instagram-home-cta";
 
@@ -74,6 +75,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <BrandsSlider velocidad={25} pausarAlHover={true} />
 
       <section className="border-b-4 border-brand-border bg-brand-steel py-16">
         <div className="mx-auto max-w-6xl px-4">
