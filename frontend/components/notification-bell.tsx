@@ -12,6 +12,48 @@ import {
 } from "@/lib/notifications-storage";
 import { usePushNotifications } from "@/lib/use-push-notifications";
 
+function normalizeNotifType(raw: string | undefined): StoredNotificationType {
+  if (raw === "ORDER" || raw === "PROMO") return raw;
+  return "SYSTEM";
+}
+
+function normalizeFromSw(raw: {
+  id: string;
+  title: string;
+  body: string;
+  url?: string;
+  notifType?: string;
+  read?: boolean;
+  createdAt: string;
+}): StoredNotification {
+  return {
+    id: raw.id,
+    title: raw.title,
+    body: raw.body,
+    url: raw.url ?? "/tienda",
+    read: !!raw.read,
+    createdAt: raw.createdAt,
+    type: normalizeNotifType(raw.notifType),
+  };
+}
+
+function mergeLsWithIdb(idb: StoredNotification[]): StoredNotification[] {
+  try {
+    const lsRaw = localStorage.getItem(NOTIFICATIONS_LS_KEY);
+    if (!lsRaw) return idb;
+    const ls: StoredNotification[] = JSON.parse(lsRaw);
+    const map = new Map(idb.map((n) => [n.id, n]));
+    for (const n of ls) {
+      if (!map.has(n.id)) map.set(n.id, n);
+    }
+    return Array.from(map.values())
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 20);
+  } catch {
+    return idb;
+  }
+}
+
 export function NotificationBell() {
   const { isLoggedIn } = useAuth();
   const { subscribed, subscribe, loading: pushSubLoading, isSupported } = usePushNotifications();
@@ -21,63 +63,142 @@ export function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const loadNotifications = useCallback(() => {
+  const loadNotificationsFromSW = useCallback(async () => {
+    if (!("serviceWorker" in navigator)) return;
     try {
-      const stored = localStorage.getItem(NOTIFICATIONS_LS_KEY);
-      const notifs: StoredNotification[] = stored ? JSON.parse(stored) : [];
-      setNotifications(notifs);
-      setUnreadCount(notifs.filter((n) => !n.read).length);
-    } catch {
-      setNotifications([]);
-      setUnreadCount(0);
+      const registration = await navigator.serviceWorker.ready;
+      registration.active?.postMessage({ type: "GET_STORED_NOTIFICATIONS" });
+    } catch (e) {
+      console.error("[NotificationBell] Error pidiendo notificaciones al SW:", e);
     }
   }, []);
 
   useEffect(() => {
     if (!isLoggedIn) return;
-    loadNotifications();
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === NOTIFICATIONS_LS_KEY || e.key === null) loadNotifications();
+    if (!("serviceWorker" in navigator)) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "STORED_NOTIFICATIONS") {
+        const rawList = (event.data.notifications ?? []) as Array<{
+          id: string;
+          title: string;
+          body: string;
+          url?: string;
+          notifType?: string;
+          read?: boolean;
+          createdAt: string;
+        }>;
+        const normalized = rawList.map((n) => normalizeFromSw(n));
+        const merged = mergeLsWithIdb(normalized);
+        setNotifications(merged);
+        setUnreadCount(merged.filter((n) => !n.read).length);
+        return;
+      }
+
+      if (event.data?.type === "NEW_NOTIFICATION") {
+        const raw = event.data.notif as
+          | {
+              id: string;
+              title: string;
+              body: string;
+              url?: string;
+              notifType?: string;
+              read?: boolean;
+              createdAt: string;
+            }
+          | undefined;
+        if (!raw) return;
+        const newNotif = normalizeFromSw(raw);
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === newNotif.id)) return prev;
+          const next = [newNotif, ...prev].slice(0, 20);
+          if (!newNotif.read) {
+            queueMicrotask(() => setUnreadCount((u) => u + 1));
+          }
+          return next;
+        });
+      }
     };
-    const onCustom = () => loadNotifications();
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("bigboys-notifications-updated", onCustom);
+
+    navigator.serviceWorker.addEventListener("message", handleMessage);
+    void loadNotificationsFromSW();
+
     return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("bigboys-notifications-updated", onCustom);
+      navigator.serviceWorker.removeEventListener("message", handleMessage);
     };
-  }, [isLoggedIn, loadNotifications]);
+  }, [isLoggedIn, loadNotificationsFromSW]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const handleFocus = () => {
+      void loadNotificationsFromSW();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [isLoggedIn, loadNotificationsFromSW]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const onCustom = () => void loadNotificationsFromSW();
+    window.addEventListener("bigboys-notifications-updated", onCustom);
+    return () => window.removeEventListener("bigboys-notifications-updated", onCustom);
+  }, [isLoggedIn, loadNotificationsFromSW]);
 
   const handleToggleOpen = () => {
     if (!open && unreadCount > 0) {
       setNotifications((prev) => {
         const updated = prev.map((n) => ({ ...n, read: true }));
-        localStorage.setItem(NOTIFICATIONS_LS_KEY, JSON.stringify(updated));
         return updated;
       });
       setUnreadCount(0);
+      if ("serviceWorker" in navigator) {
+        void navigator.serviceWorker.ready.then((reg) => {
+          reg.active?.postMessage({ type: "MARK_ALL_READ" });
+        });
+      }
     }
     setOpen((v) => !v);
   };
 
   const markAsRead = (id: string) => {
-    const updated = notifications.map((n) => (n.id === id ? { ...n, read: true } : n));
-    setNotifications(updated);
-    setUnreadCount(updated.filter((n) => !n.read).length);
-    localStorage.setItem(NOTIFICATIONS_LS_KEY, JSON.stringify(updated));
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker.ready.then((reg) => {
+        reg.active?.postMessage({ type: "MARK_READ", id });
+      });
+    }
+    setNotifications((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
+      queueMicrotask(() => setUnreadCount(updated.filter((n) => !n.read).length));
+      return updated;
+    });
   };
 
   const removeNotification = (id: string) => {
-    const updated = notifications.filter((n) => n.id !== id);
-    setNotifications(updated);
-    setUnreadCount(updated.filter((n) => !n.read).length);
-    localStorage.setItem(NOTIFICATIONS_LS_KEY, JSON.stringify(updated));
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker.ready.then((reg) => {
+        reg.active?.postMessage({ type: "DELETE_NOTIFICATION", id });
+      });
+    }
+    setNotifications((prev) => {
+      const updated = prev.filter((n) => n.id !== id);
+      queueMicrotask(() => setUnreadCount(updated.filter((n) => !n.read).length));
+      return updated;
+    });
   };
 
   const clearAll = () => {
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker.ready.then((reg) => {
+        reg.active?.postMessage({ type: "CLEAR_NOTIFICATIONS" });
+      });
+    }
+    try {
+      localStorage.removeItem(NOTIFICATIONS_LS_KEY);
+    } catch {
+      /* ignore */
+    }
     setNotifications([]);
     setUnreadCount(0);
-    localStorage.removeItem(NOTIFICATIONS_LS_KEY);
   };
 
   useEffect(() => {
@@ -89,49 +210,6 @@ export function NotificationBell() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    if (!("serviceWorker" in navigator)) return;
-
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type !== "NEW_NOTIFICATION") return;
-
-      const rawType = event.data.notifType;
-      const notifType: StoredNotificationType =
-        rawType === "ORDER" || rawType === "PROMO" ? rawType : "SYSTEM";
-
-      const newNotif: StoredNotification = {
-        id: String(event.data.id ?? `notif-${Date.now()}`),
-        title: String(event.data.title ?? "Big Boys Gym"),
-        body: String(event.data.body ?? ""),
-        url: event.data.url ? String(event.data.url) : "/tienda",
-        read: false,
-        createdAt: String(event.data.createdAt ?? new Date().toISOString()),
-        type: notifType,
-      };
-
-      setNotifications((prev) => {
-        if (prev.some((n) => n.id === newNotif.id)) {
-          return prev;
-        }
-        const updated = [newNotif, ...prev].slice(0, 20);
-        try {
-          localStorage.setItem(NOTIFICATIONS_LS_KEY, JSON.stringify(updated));
-        } catch {
-          /* quota */
-        }
-        queueMicrotask(() => {
-          setUnreadCount(updated.filter((n) => !n.read).length);
-          window.dispatchEvent(new Event("bigboys-notifications-updated"));
-        });
-        return updated;
-      });
-    };
-
-    navigator.serviceWorker.addEventListener("message", handleMessage);
-    return () => navigator.serviceWorker.removeEventListener("message", handleMessage);
-  }, [isLoggedIn]);
 
   if (!isLoggedIn) return null;
 
