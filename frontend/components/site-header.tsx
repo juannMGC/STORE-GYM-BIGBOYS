@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { auth0LoginHref, auth0SignupHref } from "@/lib/auth-routes";
+import { NotificationBell } from "@/components/notification-bell";
 
 function initials(name: string): string {
   return name
@@ -161,7 +162,15 @@ export function SiteHeader() {
             />
           )}
           {isLoggedIn && !isLoading && (
-            <div style={{ position: "relative" }} ref={dropdownRef}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <NotificationBell />
+              <div style={{ position: "relative" }} ref={dropdownRef}>
               <button
                 type="button"
                 aria-expanded={open}
@@ -355,6 +364,7 @@ export function SiteHeader() {
                   </nav>
                 </div>
               ) : null}
+              </div>
             </div>
           )}
 

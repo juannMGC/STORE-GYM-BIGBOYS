@@ -1,23 +1,27 @@
 /* global self, clients */
 
-self.addEventListener("push", function (event) {
-  let data = {
+function parsePushData(event) {
+  const defaults = {
     title: "Big Boys Gym",
     body: "",
     icon: "/brand/logo-bigboys.jpg",
     badge: "/brand/logo-bigboys.jpg",
     url: "/",
     tag: "bigboys",
+    notifType: "SYSTEM",
   };
+  if (!event.data) return defaults;
   try {
-    if (event.data) {
-      const text = event.data.text();
-      const parsed = JSON.parse(text);
-      data = { ...data, ...parsed };
-    }
+    const text = event.data.text();
+    const parsed = JSON.parse(text);
+    return { ...defaults, ...parsed };
   } catch (_) {
-    /* usar defaults */
+    return defaults;
   }
+}
+
+self.addEventListener("push", function (event) {
+  const data = parsePushData(event);
 
   const options = {
     body: data.body,
@@ -33,7 +37,22 @@ self.addEventListener("push", function (event) {
     requireInteraction: false,
   };
 
-  event.waitUntil(self.registration.showNotification(data.title, options));
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(data.title, options),
+      clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
+        clientList.forEach(function (client) {
+          client.postMessage({
+            type: "NEW_NOTIFICATION",
+            title: data.title,
+            body: data.body,
+            url: data.url,
+            notifType: data.notifType || "SYSTEM",
+          });
+        });
+      }),
+    ]),
+  );
 });
 
 self.addEventListener("notificationclick", function (event) {

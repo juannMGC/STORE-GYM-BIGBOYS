@@ -18,6 +18,11 @@ import {
   auth0LoginHref,
   auth0SignupHref,
 } from "./auth-routes";
+import {
+  NOTIFICATIONS_LS_KEY,
+  NOTIF_WELCOME_LS_KEY,
+  type StoredNotification,
+} from "./notifications-storage";
 
 export type Auth0SessionUser = {
   email?: string;
@@ -190,6 +195,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loading = auth0Loading || (!!auth0Sub && meLoading);
   const isLoggedIn = Boolean(auth0Sub);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (loading || !isLoggedIn) return;
+    if (localStorage.getItem(NOTIF_WELCOME_LS_KEY)) return;
+
+    try {
+      const welcomeNotif: StoredNotification = {
+        id: `welcome-${Date.now()}`,
+        title: "¡Bienvenido a Big Boys Gym! 💪",
+        body:
+          "Activá las notificaciones para estar al tanto de tus pedidos y ofertas exclusivas.",
+        url: "/tienda",
+        read: false,
+        createdAt: new Date().toISOString(),
+        type: "SYSTEM",
+      };
+      const raw = localStorage.getItem(NOTIFICATIONS_LS_KEY) ?? "[]";
+      const notifs = JSON.parse(raw) as StoredNotification[];
+      notifs.unshift(welcomeNotif);
+      localStorage.setItem(NOTIFICATIONS_LS_KEY, JSON.stringify(notifs.slice(0, 20)));
+      localStorage.setItem(NOTIF_WELCOME_LS_KEY, "1");
+      window.dispatchEvent(new Event("bigboys-notifications-updated"));
+    } catch {
+      /* ignore */
+    }
+  }, [loading, isLoggedIn]);
 
   const displayName = useMemo(() => {
     const fromDb = meUser?.name?.trim() || meUser?.email;
