@@ -92,31 +92,45 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (!isLoggedIn) return;
+    if (!("serviceWorker" in navigator)) return;
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type !== "NEW_NOTIFICATION") return;
+
       const rawType = event.data.notifType;
       const notifType: StoredNotificationType =
         rawType === "ORDER" || rawType === "PROMO" ? rawType : "SYSTEM";
+
       const newNotif: StoredNotification = {
-        id: `sw-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        id: String(event.data.id ?? `notif-${Date.now()}`),
         title: String(event.data.title ?? "Big Boys Gym"),
         body: String(event.data.body ?? ""),
-        url: event.data.url ? String(event.data.url) : undefined,
+        url: event.data.url ? String(event.data.url) : "/tienda",
         read: false,
-        createdAt: new Date().toISOString(),
+        createdAt: String(event.data.createdAt ?? new Date().toISOString()),
         type: notifType,
       };
+
       setNotifications((prev) => {
+        if (prev.some((n) => n.id === newNotif.id)) {
+          return prev;
+        }
         const updated = [newNotif, ...prev].slice(0, 20);
-        localStorage.setItem(NOTIFICATIONS_LS_KEY, JSON.stringify(updated));
+        try {
+          localStorage.setItem(NOTIFICATIONS_LS_KEY, JSON.stringify(updated));
+        } catch {
+          /* quota */
+        }
+        queueMicrotask(() => {
+          setUnreadCount(updated.filter((n) => !n.read).length);
+          window.dispatchEvent(new Event("bigboys-notifications-updated"));
+        });
         return updated;
       });
-      setUnreadCount((c) => c + 1);
     };
 
-    navigator.serviceWorker?.addEventListener("message", handleMessage);
-    return () => navigator.serviceWorker?.removeEventListener("message", handleMessage);
+    navigator.serviceWorker.addEventListener("message", handleMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", handleMessage);
   }, [isLoggedIn]);
 
   if (!isLoggedIn) return null;

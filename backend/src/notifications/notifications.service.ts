@@ -74,6 +74,7 @@ export class NotificationsService {
       badge?: string;
       url?: string;
       tag?: string;
+      notifType?: string;
     },
   ): Promise<void> {
     if (!this.vapidReady) return;
@@ -88,9 +89,10 @@ export class NotificationsService {
       title: payload.title,
       body: payload.body,
       icon: payload.icon ?? '/brand/logo-bigboys.jpg',
-      badge: payload.badge ?? '/brand/logo-bigboys.jpg',
+      badge: '/brand/logo-bigboys.jpg',
       url: payload.url ?? '/',
-      tag: payload.tag ?? 'bigboys-notification',
+      tag: payload.tag ?? `bigboys-${Date.now()}`,
+      notifType: payload.notifType ?? 'SYSTEM',
     });
 
     const results = await Promise.allSettled(
@@ -129,6 +131,7 @@ export class NotificationsService {
     body: string;
     url?: string;
     tag?: string;
+    notifType?: string;
   }): Promise<void> {
     if (!this.vapidReady) {
       this.logger.warn('VAPID no configurado: broadcast omitido');
@@ -148,7 +151,8 @@ export class NotificationsService {
       icon: '/brand/logo-bigboys.jpg',
       badge: '/brand/logo-bigboys.jpg',
       url: payload.url ?? '/tienda',
-      tag: payload.tag ?? 'bigboys-promo',
+      tag: payload.tag ?? `bigboys-promo-${Date.now()}`,
+      notifType: payload.notifType ?? 'PROMO',
     });
 
     let sent = 0;
@@ -222,9 +226,17 @@ export class NotificationsService {
     const config = statusConfig[status];
     if (!config) return;
 
+    const notifTypeMap: Record<string, 'ORDER' | 'SYSTEM'> = {
+      PAID: 'ORDER',
+      SHIPPED: 'ORDER',
+      DELIVERED: 'ORDER',
+      CANCELLED: 'ORDER',
+    };
+
     await this.sendToUser(userId, {
       ...config,
       url: `${frontendUrl.replace(/\/$/, '')}/mis-pedidos`,
+      notifType: notifTypeMap[status] ?? 'SYSTEM',
     });
   }
 

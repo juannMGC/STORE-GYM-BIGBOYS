@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class BroadcastPushDto {
   @IsString()
@@ -15,4 +15,9 @@ export class BroadcastPushDto {
   @IsString()
   @MaxLength(2048)
   url?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['PROMO', 'SYSTEM', 'ORDER'])
+  notifType?: 'PROMO' | 'SYSTEM' | 'ORDER';
 }

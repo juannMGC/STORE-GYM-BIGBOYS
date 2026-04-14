@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { ApiError, apiFetch } from "@/lib/api-client";
 
 type Stats = {
@@ -8,8 +8,22 @@ type Stats = {
   totalUsers: number;
 };
 
+const labelStyle: CSSProperties = {
+  display: "block",
+  marginBottom: "6px",
+  fontSize: "11px",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "#71717a",
+};
+
 export default function AdminNotificacionesPage() {
-  const [form, setForm] = useState({ title: "", body: "", url: "/tienda" });
+  const [form, setForm] = useState({
+    title: "",
+    body: "",
+    url: "/tienda",
+    notifType: "PROMO" as "PROMO" | "SYSTEM" | "ORDER",
+  });
   const [sending, setSending] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
   const [sent, setSent] = useState(false);
@@ -43,10 +57,11 @@ export default function AdminNotificacionesPage() {
           title: form.title.trim(),
           body: form.body.trim(),
           url: form.url.trim() || "/tienda",
+          notifType: form.notifType,
         }),
       });
       setSent(true);
-      setForm({ title: "", body: "", url: "/tienda" });
+      setForm({ title: "", body: "", url: "/tienda", notifType: "PROMO" });
       setTimeout(() => setSent(false), 5000);
       void apiFetch<Stats>("/notifications/stats").then(setStats).catch(() => {});
     } catch (e) {
@@ -115,11 +130,76 @@ export default function AdminNotificacionesPage() {
           />
         </div>
 
+        <div style={{ marginBottom: "16px" }}>
+          <label style={labelStyle}>Tipo</label>
+          <select
+            value={form.notifType}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                notifType: e.target.value as "PROMO" | "SYSTEM" | "ORDER",
+              })
+            }
+            className="input-brand w-full"
+            style={{ width: "100%" }}
+          >
+            <option value="PROMO">🏷️ Oferta / Promoción</option>
+            <option value="SYSTEM">🔔 Anuncio general</option>
+            <option value="ORDER">📦 Info de pedido</option>
+          </select>
+        </div>
+
+        {form.title ? (
+          <div
+            style={{
+              marginBottom: "20px",
+              padding: "16px",
+              background: "#0a0a0a",
+              border: "1px solid #2a2a2a",
+            }}
+          >
+            <p
+              style={{
+                color: "#52525b",
+                fontSize: "11px",
+                fontFamily: "var(--font-display)",
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                marginBottom: "12px",
+              }}
+            >
+              Vista previa en campana
+            </p>
+            <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+              <span style={{ fontSize: "20px" }}>
+                {form.notifType === "PROMO" ? "🏷️" : form.notifType === "ORDER" ? "📦" : "🔔"}
+              </span>
+              <div>
+                <p style={{ color: "#ffffff", fontSize: "13px", fontWeight: 600, margin: "0 0 4px" }}>
+                  {form.title}
+                </p>
+                <p style={{ color: "#52525b", fontSize: "12px", margin: 0 }}>{form.body || "—"}</p>
+                <p
+                  style={{
+                    color: "#3f3f46",
+                    fontSize: "11px",
+                    margin: "4px 0 0",
+                    fontFamily: "var(--font-display)",
+                    letterSpacing: "1px",
+                  }}
+                >
+                  Ahora
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div
           className="rounded-sm border border-dashed border-brand-border p-4"
           style={{ background: "#0a0a0a" }}
         >
-          <p className="font-display text-[10px] uppercase tracking-wider text-zinc-500">Vista previa</p>
+          <p className="font-display text-[10px] uppercase tracking-wider text-zinc-500">Vista previa OS</p>
           <div className="mt-3 rounded border border-zinc-700 bg-zinc-900 p-3 text-left">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">🏋️ Big Boys Gym</p>
             <p className="mt-1 font-medium text-white">{form.title || "Título"}</p>
