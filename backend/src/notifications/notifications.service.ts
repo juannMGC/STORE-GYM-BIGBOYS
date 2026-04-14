@@ -147,8 +147,8 @@ export class NotificationsService {
       this.logger.warn('VAPID no configurado: sendToMultipleUsers omitido');
       return {
         sent: 0,
-        failed: 0,
-        noSubscription: uniqueIds.length,
+        failed: uniqueIds.length,
+        noSubscription: 0,
       };
     }
 
