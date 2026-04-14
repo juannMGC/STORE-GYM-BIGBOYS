@@ -86,6 +86,21 @@ export function SiteHeader() {
 
   const closeMobile = () => setMenuOpen(false);
 
+  const isHomeActive = pathname === "/";
+  const isEntrenamientosActive =
+    pathname === "/entrenamientos" || pathname.startsWith("/entrenamientos/");
+  const isTiendaActive = pathname.startsWith("/tienda");
+
+  const desktopNavClass = (active: boolean) =>
+    active
+      ? "rounded-sm px-2 py-1.5 font-medium uppercase tracking-wide bg-brand-steel text-brand-yellow"
+      : "rounded-sm px-2 py-1.5 font-medium uppercase tracking-wide text-zinc-300 hover:bg-brand-steel hover:text-brand-yellow";
+
+  const mobileNavStyle = (active: boolean): CSSProperties =>
+    active
+      ? { ...mobileNavLink, color: "#f7e047", background: "#1a1a1a" }
+      : mobileNavLink;
+
   return (
     <header className="sticky top-0 z-[100] border-b-4 border-brand-red bg-brand-black/95 shadow-[0_4px_24px_rgba(0,0,0,0.6)] backdrop-blur-sm">
       <div
@@ -115,16 +130,13 @@ export function SiteHeader() {
         </Link>
 
         <nav className="header-desktop-nav hidden flex-1 flex-wrap items-center justify-end gap-1 text-sm md:flex sm:gap-2">
-          <Link
-            href="/"
-            className="rounded-sm px-2 py-1.5 font-medium uppercase tracking-wide text-zinc-300 hover:bg-brand-steel hover:text-brand-yellow"
-          >
+          <Link href="/" className={desktopNavClass(isHomeActive)}>
             Inicio
           </Link>
-          <Link
-            href="/tienda"
-            className="rounded-sm px-2 py-1.5 font-medium uppercase tracking-wide text-zinc-300 hover:bg-brand-steel hover:text-brand-yellow"
-          >
+          <Link href="/entrenamientos" className={desktopNavClass(isEntrenamientosActive)}>
+            Entrenamientos
+          </Link>
+          <Link href="/tienda" className={desktopNavClass(isTiendaActive)}>
             Tienda
           </Link>
           {isLoggedIn && user?.role === "CLIENT" && (
@@ -403,11 +415,18 @@ export function SiteHeader() {
           className="header-mobile-nav border-t border-brand-border bg-[#111111] md:hidden"
           style={{ padding: "8px 0" }}
         >
-          <Link href="/" style={mobileNavLink} onClick={closeMobile}>
-            Inicio
+          <Link href="/" style={mobileNavStyle(isHomeActive)} onClick={closeMobile}>
+            INICIO
           </Link>
-          <Link href="/tienda" style={mobileNavLink} onClick={closeMobile}>
-            Tienda
+          <Link
+            href="/entrenamientos"
+            style={mobileNavStyle(isEntrenamientosActive)}
+            onClick={closeMobile}
+          >
+            ENTRENAMIENTOS
+          </Link>
+          <Link href="/tienda" style={mobileNavStyle(isTiendaActive)} onClick={closeMobile}>
+            TIENDA
           </Link>
 
           {!isLoggedIn && !isLoading && (
