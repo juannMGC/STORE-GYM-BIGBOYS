@@ -1,10 +1,13 @@
-import { Body, Controller, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Query, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
   CurrentUser,
   type RequestUser,
 } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../common/constants/roles';
+import { RolesGuard } from '../common/guards/roles.guard';
 import { UsersService } from './users.service';
 import { UpdateAvatarDto } from './dto/update-avatar.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -12,6 +15,13 @@ import { UpdateUserDto } from './dto/update-user.dto';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Get('search')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  search(@Query('q') q?: string) {
+    return this.usersService.searchUsers(q ?? '');
+  }
 
   @Patch('me/avatar')
   @Throttle({

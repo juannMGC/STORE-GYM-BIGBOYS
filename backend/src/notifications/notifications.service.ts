@@ -126,6 +126,64 @@ export class NotificationsService {
     );
   }
 
+  async sendToMultipleUsers(payload: {
+    userIds: string[];
+    title: string;
+    body: string;
+    url?: string;
+    notifType?: string;
+  }): Promise<{
+    sent: number;
+    failed: number;
+    noSubscription: number;
+  }> {
+    let sent = 0;
+    let failed = 0;
+    let noSubscription = 0;
+
+    const uniqueIds = [...new Set(payload.userIds)];
+
+    if (!this.vapidReady) {
+      this.logger.warn('VAPID no configurado: sendToMultipleUsers omitido');
+      return {
+        sent: 0,
+        failed: 0,
+        noSubscription: uniqueIds.length,
+      };
+    }
+
+    for (const userId of uniqueIds) {
+      const subscriptions = await this.prisma.pushSubscription.findMany({
+        where: { userId },
+      });
+
+      if (!subscriptions.length) {
+        noSubscription++;
+        continue;
+      }
+
+      try {
+        await this.sendToUser(userId, {
+          title: payload.title,
+          body: payload.body,
+          url: payload.url ?? '/',
+          notifType: payload.notifType ?? 'SYSTEM',
+        });
+        sent++;
+      } catch {
+        failed++;
+      }
+    }
+
+    this.logger.log(
+      `📱 Push dirigido: ${sent} enviados, ` +
+        `${failed} fallidos, ` +
+        `${noSubscription} sin suscripción`,
+    );
+
+    return { sent, failed, noSubscription };
+  }
+
   async sendToAll(payload: {
     title: string;
     body: string;

@@ -13,6 +13,7 @@ import { CurrentUser, type RequestUser } from '../common/decorators/current-user
 import { Role } from '../common/constants/roles';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { BroadcastPushDto } from './dto/broadcast-push.dto';
+import { SendToUsersDto } from './dto/send-to-users.dto';
 import { SubscribePushDto, UnsubscribePushDto } from './dto/subscribe-push.dto';
 import { NotificationsService } from './notifications.service';
 
@@ -45,6 +46,13 @@ export class NotificationsController {
   @Roles(Role.ADMIN)
   broadcast(@Body() body: BroadcastPushDto) {
     return this.notificationsService.sendToAll(body);
+  }
+
+  @Post('send-to-users')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  sendToUsers(@Body() body: SendToUsersDto) {
+    return this.notificationsService.sendToMultipleUsers(body);
   }
 
   @Get('stats')

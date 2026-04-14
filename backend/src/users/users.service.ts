@@ -204,4 +204,42 @@ export class UsersService {
     }
     return Role.CLIENT;
   }
+
+  async searchUsers(query: string) {
+    const q = query?.trim() ?? '';
+    if (q.length < 2) {
+      return [];
+    }
+
+    return this.prisma.user.findMany({
+      where: {
+        role: Role.CLIENT,
+        OR: [
+          {
+            name: {
+              contains: q,
+              mode: 'insensitive',
+            },
+          },
+          {
+            email: {
+              contains: q,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+        pushSubscriptions: {
+          select: { id: true },
+        },
+      },
+      take: 20,
+      orderBy: { name: 'asc' },
+    });
+  }
 }
