@@ -21,13 +21,13 @@ const bebasNeue = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://store-gym-bigboys.vercel.app"),
+  metadataBase: new URL("https://bigboysgym.com"),
   title: {
     default: "Big Boys Gym · Tienda Oficial",
     template: "%s | Big Boys Gym",
   },
   description:
-    "Tienda oficial de Big Boys Gym en Manizales, Colombia. Suplementación, ropa deportiva y equipamiento para tu entrenamiento.",
+    "Tienda oficial de Big Boys Gym en Manizales, Colombia. Suplementación, ropa deportiva y equipamiento.",
   keywords: [
     "gym",
     "suplementos",
@@ -40,14 +40,41 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Big Boys Gym" }],
   creator: "Big Boys Gym",
+  themeColor: "#d91920",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      {
+        url: "/brand/logo-bigboys.jpg",
+        type: "image/jpeg",
+      },
+      {
+        url: "/favicon-32x32.png",
+        sizes: "32x32",
+        type: "image/png",
+      },
+      {
+        url: "/favicon-16x16.png",
+        sizes: "16x16",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+    shortcut: "/brand/logo-bigboys.jpg",
+  },
+  manifest: "/site.webmanifest",
   openGraph: {
-    type: "website",
-    locale: "es_CO",
-    url: "https://store-gym-bigboys.vercel.app",
-    siteName: "Big Boys Gym · Tienda",
     title: "Big Boys Gym · Tienda Oficial",
-    description:
-      "Suplementación, ropa deportiva y equipamiento. Manizales, Colombia.",
+    description: "Suplementación y ropa deportiva en Manizales, Colombia.",
+    url: "https://bigboysgym.com",
+    siteName: "Big Boys Gym",
     images: [
       {
         url: "/brand/logo-bigboys.jpg",
@@ -56,11 +83,13 @@ export const metadata: Metadata = {
         alt: "Big Boys Gym Logo",
       },
     ],
+    locale: "es_CO",
+    type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "Big Boys Gym · Tienda Oficial",
-    description: "Suplementación y ropa deportiva en Manizales.",
+    description: "Suplementación y ropa deportiva.",
     images: ["/brand/logo-bigboys.jpg"],
   },
   robots: {

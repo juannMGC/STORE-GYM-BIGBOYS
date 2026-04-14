@@ -1,0 +1,21 @@
+{
+  "name": "Big Boys Gym",
+  "short_name": "BigBoys",
+  "description": "Tienda oficial Big Boys Gym",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#d91920",
+  "icons": [
+    {
+      "src": "/brand/logo-bigboys.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/brand/logo-bigboys.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
