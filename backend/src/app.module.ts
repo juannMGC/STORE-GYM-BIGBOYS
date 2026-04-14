@@ -19,6 +19,7 @@ import { UploadModule } from './upload/upload.module';
 import { CouponsModule } from './coupons/coupons.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { TrainingsModule } from './trainings/trainings.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     CouponsModule,
     ReviewsModule,
     NotificationsModule,
+    TrainingsModule,
   ],
   controllers: [AppController],
   providers: [

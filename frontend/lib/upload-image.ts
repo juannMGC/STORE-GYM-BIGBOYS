@@ -40,7 +40,7 @@ async function errorMessageFromResponse(res: Response): Promise<string> {
   return res.statusText;
 }
 
-export type UploadFolder = "avatars" | "products" | "categories";
+export type UploadFolder = "avatars" | "products" | "categories" | "trainings";
 
 /** Subir archivo desde input type="file" → URL en Cloudinary. */
 export async function uploadImageFile(

@@ -175,3 +175,41 @@ model OrderHistory {
   @@index([orderId])
   @@index([deletedAt])
 }
+
+model Training {
+  id          String              @id @default(uuid())
+  name        String
+  slug        String              @unique
+  description String
+  longDesc    String?
+  price       Float
+  priceLabel  String?
+  imageUrl    String?
+  icon        String?
+  active      Boolean             @default(true)
+  featured    Boolean             @default(false)
+  order       Int                 @default(0)
+  schedules   TrainingSchedule[]
+  benefits    TrainingBenefit[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model TrainingSchedule {
+  id         String   @id @default(uuid())
+  trainingId String
+  training   Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  day        String
+  startTime  String
+  endTime    String
+  spots      Int?
+  createdAt  DateTime @default(now())
+}
+
+model TrainingBenefit {
+  id         String   @id @default(uuid())
+  trainingId String
+  training   Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  text       String
+  order      Int      @default(0)
+}
