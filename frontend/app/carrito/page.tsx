@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { BackButton } from "@/components/back-button";
+import { TiltCard } from "@/components/tilt-card";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch, formatShopApiError } from "@/lib/api-client";
@@ -146,9 +147,15 @@ export default function CarritoPage() {
       {displayName ? (
         <p className="mt-1 text-sm text-zinc-500">Comprando como {displayName}</p>
       ) : null}
-      <ul className="panel-brand mt-8 divide-y divide-brand-border">
+      <ul className="mt-8 list-none space-y-4 p-0">
         {order.items.map((line) => (
-          <li key={line.id} className="flex flex-col gap-3 p-4 md:flex-row md:items-center">
+          <li key={line.id}>
+            <TiltCard
+              className="card-3d"
+              intensity={6}
+              style={{ padding: "16px", borderRadius: "6px" }}
+            >
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <div className="flex min-w-0 flex-1 gap-3">
               <div className="relative h-16 w-16 shrink-0 overflow-hidden border-2 border-brand-border bg-brand-black md:h-20 md:w-20">
                 {line.product.images[0] ? (
@@ -193,6 +200,8 @@ export default function CarritoPage() {
             <div className="hidden shrink-0 font-display text-xl text-brand-yellow md:block md:text-right">
               ${(line.priceSnapshot * line.quantity).toFixed(2)}
             </div>
+              </div>
+            </TiltCard>
           </li>
         ))}
       </ul>

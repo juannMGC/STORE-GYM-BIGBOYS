@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackButton } from "@/components/back-button";
+import { TiltCard } from "@/components/tilt-card";
 import { apiFetch } from "@/lib/api-client";
 import type { Category, ProductListItem, Size } from "@/lib/types";
 
@@ -442,6 +443,7 @@ export default function TiendaPage() {
   return (
     <div
       className="tienda-page"
+      data-reveal
       style={{ maxWidth: "1152px", margin: "0 auto", padding: "24px 16px 48px" }}
     >
       <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
@@ -740,16 +742,18 @@ export default function TiendaPage() {
                     href={
                       p.slug ? `/tienda/productos/${encodeURIComponent(p.slug)}` : `/producto/${p.id}`
                     }
-                    className="card-3d"
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      overflow: "hidden",
-                      textDecoration: "none",
-                      color: "inherit",
-                      borderRadius: "4px",
-                    }}
+                    style={{ textDecoration: "none", color: "inherit" }}
                   >
+                    <TiltCard
+                      className="card-3d"
+                      intensity={7}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        overflow: "hidden",
+                        borderRadius: "4px",
+                      }}
+                    >
                     <div style={{ position: "relative", aspectRatio: "1", background: "var(--black)" }}>
                       {p.images[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -844,6 +848,7 @@ export default function TiendaPage() {
                         </div>
                       ) : null}
                     </div>
+                    </TiltCard>
                   </Link>
                 </li>
               ))}

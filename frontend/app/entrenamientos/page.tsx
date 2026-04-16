@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BackButton } from "@/components/back-button";
+import { TiltCard } from "@/components/tilt-card";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -51,6 +52,7 @@ export default function EntrenamientosPage() {
       }}
     >
       <section
+        data-reveal
         style={{
           minHeight: "min(92vh, 900px)",
           position: "relative",
@@ -198,6 +200,7 @@ export default function EntrenamientosPage() {
       </section>
 
       <section
+        data-reveal="left"
         style={{
           maxWidth: "1200px",
           margin: "0 auto",
@@ -256,8 +259,9 @@ export default function EntrenamientosPage() {
                 href={`/entrenamientos/${training.slug}`}
                 style={{ textDecoration: "none" }}
               >
-                <div
+                <TiltCard
                   className="card-3d"
+                  intensity={8}
                   style={{
                     overflow: "hidden",
                     cursor: "pointer",
@@ -453,7 +457,7 @@ export default function EntrenamientosPage() {
                       ) : null}
                     </div>
                   </div>
-                </div>
+                </TiltCard>
               </Link>
             ))}
           </div>

@@ -645,3 +645,194 @@ h3 {
   -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid rgba(204, 0, 0, 0.25) !important;
 }
+
+/* ─── Scroll reveal ─────────────────── */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease;
+}
+
+[data-reveal="left"] {
+  transform: translateX(-60px);
+}
+
+[data-reveal="right"] {
+  transform: translateX(60px);
+}
+
+[data-reveal="scale"] {
+  transform: scale(0.92);
+}
+
+[data-reveal].revealed {
+  opacity: 1;
+  transform: translateY(0) translateX(0) scale(1);
+}
+
+[data-reveal-delay="1"].revealed {
+  transition-delay: 0.1s;
+}
+[data-reveal-delay="2"].revealed {
+  transition-delay: 0.2s;
+}
+[data-reveal-delay="3"].revealed {
+  transition-delay: 0.3s;
+}
+[data-reveal-delay="4"].revealed {
+  transition-delay: 0.4s;
+}
+
+/* Ripple en botones */
+.btn-primary,
+.btn-outline,
+.btn-brand,
+.btn-brand-outline {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(0);
+  animation: ripple-anim 0.6s linear;
+  pointer-events: none;
+}
+
+@keyframes ripple-anim {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes cursor-burst {
+  to {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes particle-fly {
+  to {
+    transform: rotate(var(--burst-angle, 0deg)) translateX(32px);
+    opacity: 0;
+  }
+}
+
+.cursor-particle-burst {
+  animation: particle-fly 0.4s ease-out forwards;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Tilt + card-3d: el tilt controla transform en desktop */
+@media (min-width: 769px) {
+  .tilt-card.card-3d:hover {
+    transform: none;
+  }
+}
+
+/* Glitch título */
+.glitch {
+  position: relative;
+  display: inline-block;
+  animation: glitch-main 4s infinite;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.glitch::before {
+  color: #ff0000;
+  animation: glitch-1 4s infinite;
+  clip-path: polygon(0 30%, 100% 30%, 100% 50%, 0 50%);
+  transform: translateX(-4px);
+}
+
+.glitch::after {
+  color: #ffd700;
+  animation: glitch-2 4s infinite;
+  clip-path: polygon(0 60%, 100% 60%, 100% 80%, 0 80%);
+  transform: translateX(4px);
+}
+
+@keyframes glitch-main {
+  0%,
+  90%,
+  100% {
+    transform: none;
+  }
+  91% {
+    transform: skewX(-1deg);
+  }
+  93% {
+    transform: skewX(1deg);
+  }
+  95% {
+    transform: skewX(-0.5deg);
+  }
+}
+
+@keyframes glitch-1 {
+  0%,
+  90%,
+  100% {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  91% {
+    opacity: 0.8;
+    transform: translateX(-6px);
+  }
+  93% {
+    opacity: 0.8;
+    transform: translateX(2px);
+  }
+}
+
+@keyframes glitch-2 {
+  0%,
+  92%,
+  100% {
+    opacity: 0;
+    transform: translateX(4px);
+  }
+  93% {
+    opacity: 0.6;
+    transform: translateX(6px);
+  }
+  95% {
+    opacity: 0.6;
+    transform: translateX(-2px);
+  }
+}
+
+/* Marca header: hover sutil */
+.header-brand-link {
+  transition: transform 0.25s ease, filter 0.25s ease;
+}
+.header-brand-link:hover {
+  transform: scale(1.02);
+  filter: drop-shadow(0 0 14px rgba(204, 0, 0, 0.65));
+}

@@ -7,6 +7,11 @@ import { ConditionalSiteFooter } from "@/components/conditional-site-footer";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { PushPrompt } from "@/components/push-prompt";
 import { ConsentBanner } from "@/components/consent-banner";
+import { CustomCursor } from "@/components/custom-cursor";
+import { ParticlesBg } from "@/components/particles-bg";
+import { RippleDelegate } from "@/components/ripple-delegate";
+import { ScrollProgress } from "@/components/scroll-progress";
+import { ScrollRevealProvider } from "@/components/scroll-reveal-provider";
 
 const blackOps = Black_Ops_One({
   weight: "400",
@@ -111,6 +116,8 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${blackOps.variable} ${rajdhani.variable} h-full`}>
       <body className="relative flex min-h-screen flex-col antialiased text-white">
+        <CustomCursor />
+        <ParticlesBg count={40} />
         <div
           style={{
             position: "fixed",
@@ -126,6 +133,9 @@ export default function RootLayout({
           aria-hidden
         />
         <Providers>
+          <RippleDelegate />
+          <ScrollRevealProvider />
+          <ScrollProgress />
           <SiteHeader />
           <div className="main-shell">{children}</div>
           <ConditionalSiteFooter />

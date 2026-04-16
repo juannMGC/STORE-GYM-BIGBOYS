@@ -139,6 +139,7 @@ export function SiteHeader() {
       >
         <Link
           href="/"
+          className="header-brand-link"
           onClick={closeMobile}
           style={{
             display: "flex",

@@ -10,7 +10,7 @@ export function HomeRegisterCta() {
     return null;
   }
   return (
-    <a href={REGISTRO_ENTRY_HREF} className="btn-brand-outline inline-block text-center">
+    <a href={REGISTRO_ENTRY_HREF} className="btn-outline inline-block text-center">
       Crear cuenta
     </a>
   );
