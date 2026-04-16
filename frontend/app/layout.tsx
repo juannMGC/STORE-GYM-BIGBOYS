@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, DM_Sans } from "next/font/google";
+import { Black_Ops_One, Rajdhani } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { SiteHeader } from "@/components/site-header";
@@ -8,16 +8,16 @@ import { WhatsAppButton } from "@/components/whatsapp-button";
 import { PushPrompt } from "@/components/push-prompt";
 import { ConsentBanner } from "@/components/consent-banner";
 
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-dm-sans",
-  weight: ["400", "500", "600", "700"],
-});
-
-const bebasNeue = Bebas_Neue({
+const blackOps = Black_Ops_One({
   weight: "400",
   subsets: ["latin"],
-  variable: "--font-bebas",
+  variable: "--font-display",
+});
+
+const rajdhani = Rajdhani({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-body",
 });
 
 export const metadata: Metadata = {
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Big Boys Gym" }],
   creator: "Big Boys Gym",
-  themeColor: "#d91920",
+  themeColor: "#cc0000",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -109,14 +109,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="es"
-      className={`${dmSans.variable} ${bebasNeue.variable} h-full antialiased`}
-    >
-      <body className="relative min-h-full flex flex-col font-sans text-zinc-100">
+    <html lang="es" className={`${blackOps.variable} ${rajdhani.variable} h-full`}>
+      <body className="relative flex min-h-screen flex-col antialiased text-white">
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "2px",
+            background: "linear-gradient(90deg, transparent, #cc0000, transparent)",
+            opacity: 0.35,
+            zIndex: 9998,
+            pointerEvents: "none",
+          }}
+          aria-hidden
+        />
         <Providers>
           <SiteHeader />
-          <div className="relative z-10 flex flex-1 flex-col">{children}</div>
+          <div className="main-shell">{children}</div>
           <ConditionalSiteFooter />
           <WhatsAppButton />
           <PushPrompt />

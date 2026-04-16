@@ -83,15 +83,16 @@ export function WhatsAppButton() {
           tooltipHoverRef.current = true;
           setShowTooltip(true);
           const el = e.currentTarget;
-          el.style.transform = "scale(1.1)";
-          el.style.boxShadow = "0 6px 28px rgba(37,211,102,0.6)";
+          el.style.transform = "scale(1.08)";
+          el.style.boxShadow =
+            "0 0 24px rgba(204,0,0,0.55), 0 0 48px rgba(204,0,0,0.25), 0 8px 32px rgba(0,0,0,0.5)";
         }}
         onMouseLeave={(e) => {
           tooltipHoverRef.current = false;
           setShowTooltip(false);
           const el = e.currentTarget;
           el.style.transform = "scale(1)";
-          el.style.boxShadow = "0 4px 20px rgba(37,211,102,0.4)";
+          el.style.boxShadow = "0 0 20px rgba(204,0,0,0.35), 0 4px 24px rgba(0,0,0,0.45)";
         }}
         onFocus={() => {
           tooltipHoverRef.current = true;
@@ -106,7 +107,7 @@ export function WhatsAppButton() {
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
-          fill="white"
+          fill="#25D366"
           width={32}
           height={32}
           className="whatsapp-icon"
@@ -119,15 +120,21 @@ export function WhatsAppButton() {
         .whatsapp-tooltip {
           position: fixed;
           z-index: 999;
-          max-width: min(220px, calc(100vw - 32px));
-          padding: 10px 16px;
-          border-radius: 8px;
+          max-width: min(240px, calc(100vw - 32px));
+          padding: 12px 18px;
+          border-radius: 10px;
           font-size: 13px;
           font-weight: 500;
-          line-height: 1.4;
-          color: #111111;
-          background: #ffffff;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+          line-height: 1.45;
+          font-family: var(--font-body), system-ui, sans-serif;
+          color: rgba(255, 255, 255, 0.92);
+          background: rgba(0, 0, 0, 0.82);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(204, 0, 0, 0.45);
+          box-shadow:
+            0 0 24px rgba(204, 0, 0, 0.25),
+            0 8px 32px rgba(0, 0, 0, 0.5);
           animation: whatsapp-fade-in-up 0.3s ease;
           bottom: calc(16px + 60px + 10px + env(safe-area-inset-bottom, 0px));
           right: max(16px, env(safe-area-inset-right, 0px));
@@ -141,6 +148,7 @@ export function WhatsAppButton() {
         .whatsapp-tooltip-accent {
           color: #25d366;
           font-weight: 700;
+          text-shadow: 0 0 12px rgba(37, 211, 102, 0.45);
         }
         .whatsapp-tooltip-arrow {
           position: absolute;
@@ -150,7 +158,8 @@ export function WhatsAppButton() {
           height: 0;
           border-left: 8px solid transparent;
           border-right: 8px solid transparent;
-          border-top: 8px solid #ffffff;
+          border-top: 8px solid rgba(0, 0, 0, 0.82);
+          filter: drop-shadow(0 0 6px rgba(204, 0, 0, 0.4));
         }
         .whatsapp-float-btn {
           position: fixed;
@@ -161,10 +170,13 @@ export function WhatsAppButton() {
           width: 60px;
           height: 60px;
           border-radius: 50%;
-          background: #25d366;
+          background: linear-gradient(145deg, #0a0a0a 0%, #1a0505 100%);
+          border: 2px solid #cc0000;
           text-decoration: none;
-          transition: transform 0.2s, box-shadow 0.2s;
-          box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+          transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+          box-shadow:
+            0 0 20px rgba(204, 0, 0, 0.35),
+            0 4px 24px rgba(0, 0, 0, 0.45);
           animation: whatsapp-bounce-in 0.5s ease;
           bottom: max(16px, env(safe-area-inset-bottom, 0px));
           right: max(16px, env(safe-area-inset-right, 0px));
@@ -179,9 +191,10 @@ export function WhatsAppButton() {
         .whatsapp-pulse {
           pointer-events: none;
           position: absolute;
-          inset: 0;
+          inset: -2px;
           border-radius: 50%;
-          background: rgba(37, 211, 102, 0.4);
+          border: 1px solid rgba(204, 0, 0, 0.35);
+          background: rgba(204, 0, 0, 0.15);
           animation: whatsapp-pulse 2s infinite;
         }
         .whatsapp-icon {
@@ -217,14 +230,14 @@ export function WhatsAppButton() {
         @keyframes whatsapp-pulse {
           0% {
             transform: scale(1);
-            opacity: 0.7;
+            opacity: 0.55;
           }
           70% {
-            transform: scale(1.4);
+            transform: scale(1.35);
             opacity: 0;
           }
           100% {
-            transform: scale(1.4);
+            transform: scale(1.35);
             opacity: 0;
           }
         }

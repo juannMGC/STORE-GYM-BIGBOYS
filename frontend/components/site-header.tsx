@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
@@ -33,23 +32,36 @@ const mobileNavLink: CSSProperties = {
   padding: "12px 20px",
   color: "#e4e4e7",
   textDecoration: "none",
-  fontFamily: "var(--font-display)",
+  fontFamily: "var(--font-display), Impact, sans-serif",
   fontSize: "14px",
   letterSpacing: "2px",
   textTransform: "uppercase",
-  borderBottom: "1px solid #1a1a1a",
+  borderBottom: "1px solid rgba(204,0,0,0.15)",
 };
 
 const mobileDivider: CSSProperties = {
   height: "1px",
-  background: "#2a2a2a",
+  background: "rgba(204,0,0,0.2)",
   margin: "4px 0",
 };
 
-/**
- * Auth en nav: usa `useAuth` (no `useUser` de Auth0).
- * Móvil: menú hamburguesa; desktop: nav completa (≥768px).
- */
+const headerShell: CSSProperties = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  height: "72px",
+  background: "rgba(0,0,0,0.82)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+  borderBottom: "1px solid rgba(204,0,0,0.3)",
+  boxShadow: "0 4px 30px rgba(204,0,0,0.12)",
+  zIndex: 1000,
+  display: "flex",
+  alignItems: "center",
+  padding: "0 16px",
+};
+
 export function SiteHeader() {
   const pathname = usePathname() ?? "/";
   const returnTo = pathname || "/";
@@ -91,58 +103,141 @@ export function SiteHeader() {
     pathname === "/entrenamientos" || pathname.startsWith("/entrenamientos/");
   const isTiendaActive = pathname.startsWith("/tienda");
 
-  const desktopNavClass = (active: boolean) =>
-    active
-      ? "rounded-sm px-2 py-1.5 font-medium uppercase tracking-wide bg-brand-steel text-brand-yellow"
-      : "rounded-sm px-2 py-1.5 font-medium uppercase tracking-wide text-zinc-300 hover:bg-brand-steel hover:text-brand-yellow";
+  function isActive(href: string): boolean {
+    if (href === "/") return isHomeActive;
+    if (href === "/entrenamientos") return isEntrenamientosActive;
+    if (href === "/tienda") return isTiendaActive;
+    return false;
+  }
+
+  const linkBase: CSSProperties = {
+    fontFamily: "var(--font-display), Impact, sans-serif",
+    fontSize: "13px",
+    textDecoration: "none",
+    letterSpacing: "3px",
+    textTransform: "uppercase",
+    transition: "var(--transition)",
+    position: "relative",
+  };
 
   const mobileNavStyle = (active: boolean): CSSProperties =>
     active
-      ? { ...mobileNavLink, color: "#f7e047", background: "#1a1a1a" }
+      ? { ...mobileNavLink, color: "#ff0000", background: "rgba(204,0,0,0.12)", textShadow: "var(--glow-sm)" }
       : mobileNavLink;
 
   return (
-    <header className="sticky top-0 z-[100] border-b-4 border-brand-red bg-brand-black/95 shadow-[0_4px_24px_rgba(0,0,0,0.6)] backdrop-blur-sm">
+    <header style={headerShell}>
       <div
-        className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4"
-        style={{ minHeight: "60px" }}
+        style={{
+          maxWidth: "1200px",
+          margin: "0 auto",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+        }}
       >
         <Link
           href="/"
           onClick={closeMobile}
-          className="flex min-w-0 items-center gap-2 transition hover:opacity-90 sm:gap-3"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            textDecoration: "none",
+            marginRight: "auto",
+            minWidth: 0,
+          }}
         >
-          <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-sm border-2 border-brand-yellow/80 bg-black sm:h-14 sm:w-14">
-            <Image
-              src="/brand/logo-bigboys.jpg"
-              alt="BIG BOYS GYM"
-              fill
-              className="object-cover"
-              sizes="56px"
-            />
-          </span>
-          <span className="font-display text-xl leading-none tracking-wide text-brand-yellow sm:text-3xl">
-            BIG BOYS
-            <span className="block font-display text-xs text-zinc-400 sm:text-base">
-              GYM · TIENDA
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/logo-BigBoysGYM.jpg"
+            alt="Big Boys Gym"
+            style={{
+              height: "52px",
+              width: "auto",
+              maxWidth: "min(160px, 40vw)",
+              objectFit: "contain",
+              filter: "drop-shadow(0 0 8px rgba(204,0,0,0.6))",
+              transition: "var(--transition)",
+            }}
+          />
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+            <span
+              style={{
+                fontFamily: "var(--font-display), Impact, sans-serif",
+                fontSize: "clamp(14px, 3vw, 18px)",
+                color: "#ffffff",
+                letterSpacing: "4px",
+                textTransform: "uppercase",
+                lineHeight: 1,
+              }}
+            >
+              BIG BOYS
             </span>
-          </span>
+            <span
+              style={{
+                fontFamily: "var(--font-display), Impact, sans-serif",
+                fontSize: "clamp(11px, 2.5vw, 14px)",
+                color: "var(--red)",
+                letterSpacing: "6px",
+                textTransform: "uppercase",
+                textShadow: "var(--glow-sm)",
+              }}
+            >
+              GYM
+            </span>
+          </div>
         </Link>
 
-        <nav className="header-desktop-nav hidden flex-1 flex-wrap items-center justify-end gap-1 text-sm md:flex sm:gap-2">
-          <Link href="/" className={desktopNavClass(isHomeActive)}>
-            Inicio
-          </Link>
-          <Link href="/entrenamientos" className={desktopNavClass(isEntrenamientosActive)}>
-            Entrenamientos
-          </Link>
-          <Link href="/tienda" className={desktopNavClass(isTiendaActive)}>
-            Tienda
-          </Link>
+        <nav
+          className="header-desktop-nav"
+          style={{
+            display: "flex",
+            gap: "clamp(16px, 3vw, 32px)",
+            alignItems: "center",
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+          }}
+        >
+          {[
+            { href: "/", label: "Inicio" },
+            { href: "/entrenamientos", label: "Entrenamientos" },
+            { href: "/tienda", label: "Tienda" },
+          ].map((link) => {
+            const active = isActive(link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                style={{
+                  ...linkBase,
+                  color: active ? "var(--red-neon)" : "rgba(255,255,255,0.7)",
+                  textShadow: active ? "var(--glow-sm)" : "none",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--red-neon)";
+                  e.currentTarget.style.textShadow = "var(--glow-sm)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive(link.href)) {
+                    e.currentTarget.style.color = "rgba(255,255,255,0.7)";
+                    e.currentTarget.style.textShadow = "none";
+                  }
+                }}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
           {isLoggedIn && user?.role === "CLIENT" && (
             <Link
               href="/carrito"
-              className="rounded-sm px-2 py-1.5 font-semibold uppercase tracking-wide text-brand-yellow hover:bg-brand-red/20"
+              style={{
+                ...linkBase,
+                color: "var(--gold)",
+                fontWeight: 600,
+              }}
             >
               Carrito
             </Link>
@@ -151,231 +246,225 @@ export function SiteHeader() {
             <>
               <a
                 href={entrarHref}
-                className="rounded-sm px-2 py-1.5 font-medium text-zinc-400 hover:text-white"
+                style={{
+                  ...linkBase,
+                  color: "rgba(255,255,255,0.55)",
+                  fontSize: "12px",
+                }}
               >
                 Entrar
               </a>
-              <a
-                href={registroHref}
-                className="rounded-sm border-2 border-brand-red bg-brand-red px-3 py-1.5 font-display text-sm uppercase tracking-wide text-white hover:bg-brand-red-dark"
-              >
+              <a href={registroHref} className="btn-primary" style={{ padding: "10px 18px", fontSize: "11px" }}>
                 Registro
               </a>
             </>
           ) : null}
         </nav>
 
-        <div className="flex shrink-0 items-center gap-2 md:gap-3">
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginLeft: "12px", flexShrink: 0 }}>
           {isLoading && (
             <div
-              className="shrink-0 animate-pulse rounded-full border border-[#2a2a2a] bg-[#1a1a1a]"
-              style={{ width: "40px", height: "40px" }}
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                border: "1px solid rgba(204,0,0,0.3)",
+                background: "var(--black-3)",
+                animation: "pulse 1.2s ease-in-out infinite",
+              }}
               aria-hidden
             />
           )}
           {isLoggedIn && !isLoading && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <NotificationBell />
               <div style={{ position: "relative" }} ref={dropdownRef}>
-              <button
-                type="button"
-                aria-expanded={open}
-                aria-haspopup="menu"
-                onClick={() => setOpen((v) => !v)}
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  border: "2px solid #d91920",
-                  overflow: "hidden",
-                  cursor: "pointer",
-                  background: "#1a1a1a",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: 0,
-                  transition: "border-color 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#f7e047";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#d91920";
-                }}
-              >
-                {user?.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.name ?? "Avatar"}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
-                ) : (
-                  <span
-                    style={{
-                      color: "#f7e047",
-                      fontSize: "14px",
-                      fontWeight: 700,
-                      fontFamily: "var(--font-display)",
-                      letterSpacing: "1px",
-                    }}
-                  >
-                    {initials(labelForInitials)}
-                  </span>
-                )}
-              </button>
-
-              {open ? (
-                <div
-                  role="menu"
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  aria-haspopup="menu"
+                  onClick={() => setOpen((v) => !v)}
                   style={{
-                    position: "absolute",
-                    top: "calc(100% + 12px)",
-                    right: 0,
-                    width: "min(240px, calc(100vw - 32px))",
-                    background: "#111111",
-                    border: "1px solid #2a2a2a",
-                    boxShadow: "4px 4px 0px #d91920",
-                    zIndex: 200,
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "50%",
+                    border: "2px solid #cc0000",
                     overflow: "hidden",
+                    cursor: "pointer",
+                    background: "#0a0a0a",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 0,
+                    transition: "border-color 0.2s, box-shadow 0.2s",
+                }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#ffd700";
+                    e.currentTarget.style.boxShadow = "var(--glow-sm)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "#cc0000";
+                    e.currentTarget.style.boxShadow = "none";
                   }}
                 >
+                  {user?.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.name ?? "Avatar"}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <span
+                      style={{
+                        color: "#ffd700",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        fontFamily: "var(--font-display), Impact, sans-serif",
+                        letterSpacing: "1px",
+                      }}
+                    >
+                      {initials(labelForInitials)}
+                    </span>
+                  )}
+                </button>
+
+                {open ? (
                   <div
+                    role="menu"
                     style={{
-                      padding: "16px",
-                      borderBottom: "1px solid #2a2a2a",
-                      background: "#1a1a1a",
+                      position: "absolute",
+                      top: "calc(100% + 12px)",
+                      right: 0,
+                      width: "min(240px, calc(100vw - 32px))",
+                      background: "rgba(0,0,0,0.95)",
+                      border: "1px solid rgba(204,0,0,0.35)",
+                      boxShadow: "var(--glow-sm), 0 12px 40px rgba(0,0,0,0.6)",
+                      zIndex: 200,
+                      overflow: "hidden",
+                      backdropFilter: "blur(16px)",
                     }}
                   >
-                    <p
+                    <div
                       style={{
-                        color: "#f7e047",
-                        fontFamily: "var(--font-display)",
-                        fontSize: "16px",
-                        textTransform: "uppercase",
-                        letterSpacing: "2px",
-                        margin: 0,
+                        padding: "16px",
+                        borderBottom: "1px solid rgba(204,0,0,0.2)",
+                        background: "rgba(17,17,17,0.9)",
                       }}
                     >
-                      {user?.name?.trim() || displayName.trim() || "Mi cuenta"}
-                    </p>
-                    <p
-                      style={{
-                        color: "#52525b",
-                        fontSize: "12px",
-                        margin: "4px 0 0",
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {user?.email ?? (auth0User as { email?: string })?.email ?? ""}
-                    </p>
-                  </div>
+                      <p
+                        style={{
+                          color: "#ffd700",
+                          fontFamily: "var(--font-display), Impact, sans-serif",
+                          fontSize: "16px",
+                          textTransform: "uppercase",
+                          letterSpacing: "2px",
+                          margin: 0,
+                        }}
+                      >
+                        {user?.name?.trim() || displayName.trim() || "Mi cuenta"}
+                      </p>
+                      <p
+                        style={{
+                          color: "#71717a",
+                          fontSize: "12px",
+                          margin: "4px 0 0",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {user?.email ?? (auth0User as { email?: string })?.email ?? ""}
+                      </p>
+                    </div>
 
-                  <nav style={{ padding: "8px 0" }}>
-                    <Link
-                      href="/perfil"
-                      role="menuitem"
-                      style={dropdownLinkStyle}
-                      onClick={() => setOpen(false)}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#1a1a1a";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
-                      }}
-                    >
-                      👤 Mi perfil
-                    </Link>
-                    {user?.role === "CLIENT" && (
-                      <>
-                        <Link
-                          href="/carrito"
-                          role="menuitem"
-                          style={dropdownLinkStyle}
-                          onClick={() => setOpen(false)}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "#1a1a1a";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "transparent";
-                          }}
-                        >
-                          🛒 Carrito
-                        </Link>
-                        <Link
-                          href="/mis-pedidos"
-                          role="menuitem"
-                          style={dropdownLinkStyle}
-                          onClick={() => setOpen(false)}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "#1a1a1a";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "transparent";
-                          }}
-                        >
-                          📦 Mis pedidos
-                        </Link>
-                      </>
-                    )}
-                    {isAdmin && (
+                    <nav style={{ padding: "8px 0" }}>
                       <Link
-                        href="/admin"
+                        href="/perfil"
                         role="menuitem"
                         style={dropdownLinkStyle}
                         onClick={() => setOpen(false)}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#1a1a1a";
+                          e.currentTarget.style.background = "rgba(204,0,0,0.1)";
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = "transparent";
                         }}
                       >
-                        ⚙️ Panel admin
+                        👤 Mi perfil
                       </Link>
-                    )}
-                    <div
-                      style={{
-                        height: "1px",
-                        background: "#2a2a2a",
-                        margin: "8px 0",
-                      }}
-                    />
-                    <a
-                      href="/auth/logout"
-                      role="menuitem"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        padding: "10px 16px",
-                        color: "#d91920",
-                        textDecoration: "none",
-                        fontSize: "14px",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#1a1a1a";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
-                      }}
-                    >
-                      🚪 Cerrar sesión
-                    </a>
-                  </nav>
-                </div>
-              ) : null}
+                      {user?.role === "CLIENT" && (
+                        <>
+                          <Link
+                            href="/carrito"
+                            role="menuitem"
+                            style={dropdownLinkStyle}
+                            onClick={() => setOpen(false)}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "rgba(204,0,0,0.1)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "transparent";
+                            }}
+                          >
+                            🛒 Carrito
+                          </Link>
+                          <Link
+                            href="/mis-pedidos"
+                            role="menuitem"
+                            style={dropdownLinkStyle}
+                            onClick={() => setOpen(false)}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "rgba(204,0,0,0.1)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "transparent";
+                            }}
+                          >
+                            📦 Mis pedidos
+                          </Link>
+                        </>
+                      )}
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          role="menuitem"
+                          style={dropdownLinkStyle}
+                          onClick={() => setOpen(false)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "rgba(204,0,0,0.1)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          ⚙️ Panel admin
+                        </Link>
+                      )}
+                      <div style={{ height: "1px", background: "rgba(204,0,0,0.2)", margin: "8px 0" }} />
+                      <a
+                        href="/auth/logout"
+                        role="menuitem"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          padding: "10px 16px",
+                          color: "#ff0000",
+                          textDecoration: "none",
+                          fontSize: "14px",
+                          transition: "background 0.15s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "rgba(204,0,0,0.1)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        🚪 Cerrar sesión
+                      </a>
+                    </nav>
+                  </div>
+                ) : null}
               </div>
             </div>
           )}
@@ -387,11 +476,12 @@ export function SiteHeader() {
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
             style={{
-              background: "none",
-              border: "none",
+              background: "rgba(204,0,0,0.2)",
+              border: "1px solid rgba(204,0,0,0.4)",
               cursor: "pointer",
               padding: "8px",
               color: "#e4e4e7",
+              borderRadius: "4px",
             }}
           >
             {menuOpen ? (
@@ -412,8 +502,16 @@ export function SiteHeader() {
 
       {menuOpen ? (
         <nav
-          className="header-mobile-nav border-t border-brand-border bg-[#111111] md:hidden"
-          style={{ padding: "8px 0" }}
+          className="header-mobile-nav glass"
+          style={{
+            position: "fixed",
+            top: "72px",
+            left: 0,
+            right: 0,
+            padding: "8px 0",
+            zIndex: 999,
+            borderTop: "1px solid rgba(204,0,0,0.25)",
+          }}
         >
           <Link href="/" style={mobileNavStyle(isHomeActive)} onClick={closeMobile}>
             INICIO
@@ -435,7 +533,11 @@ export function SiteHeader() {
               <a href={entrarHref} style={mobileNavLink} onClick={closeMobile}>
                 Entrar
               </a>
-              <a href={registroHref} style={{ ...mobileNavLink, color: "#d91920" }} onClick={closeMobile}>
+              <a
+                href={registroHref}
+                style={{ ...mobileNavLink, color: "#ff0000", borderBottom: "none" }}
+                onClick={closeMobile}
+              >
                 Registro
               </a>
             </>
@@ -465,7 +567,7 @@ export function SiteHeader() {
               <div style={mobileDivider} />
               <a
                 href="/auth/logout"
-                style={{ ...mobileNavLink, color: "#d91920", borderBottom: "none" }}
+                style={{ ...mobileNavLink, color: "#ff0000", borderBottom: "none" }}
                 onClick={closeMobile}
               >
                 Cerrar sesión

@@ -1,79 +1,536 @@
 @import "tailwindcss";
 
-/* BIG BOYS GYM — identidad: rojo pesas, amarillo tipografía, negro/gris carbón */
+/* ═══════════════════════════════════
+   BIG BOYS GYM — DESIGN SYSTEM 2026
+   (Fuentes display/body aplicadas via next/font en layout)
+   ═══════════════════════════════════ */
+
 :root {
-  --brand-red: #d91920;
-  --brand-red-dark: #9f1419;
-  --brand-yellow: #f7e047;
+  /* Colores */
+  --red: #cc0000;
+  --red-neon: #ff0000;
+  --red-dark: #8b0000;
+  --red-glow: rgba(204, 0, 0, 0.4);
+  --gold: #ffd700;
+  --black: #000000;
+  --black-1: #0a0a0a;
+  --black-2: #111111;
+  --black-3: #1a1a1a;
+  --white: #ffffff;
+  --gray: #71717a;
+  --gray-dark: #3f3f46;
+
+  /* Compatibilidad con @theme / Tailwind legacy */
+  --brand-red: var(--red);
+  --brand-red-dark: var(--red-dark);
+  --brand-yellow: var(--gold);
   --brand-yellow-dim: #c9a227;
-  --brand-black: #050505;
-  --brand-charcoal: #0f0f0f;
-  --brand-steel: #1a1a1a;
-  --brand-border: #2a2a2a;
-  --background: var(--brand-charcoal);
+  --brand-black: var(--black);
+  --brand-charcoal: var(--black-1);
+  --brand-steel: var(--black-3);
+  --brand-border: rgba(204, 0, 0, 0.25);
+  --background: var(--black);
   --foreground: #f4f4f5;
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-red: rgba(204, 0, 0, 0.15);
+
+  /* Neón glow */
+  --glow-red: 0 0 20px rgba(204, 0, 0, 0.6), 0 0 40px rgba(204, 0, 0, 0.3), 0 0 80px rgba(204, 0, 0, 0.1);
+  --glow-gold: 0 0 20px rgba(255, 215, 0, 0.4), 0 0 40px rgba(255, 215, 0, 0.2);
+  --glow-sm: 0 0 10px rgba(204, 0, 0, 0.4);
+
+  /* Transiciones */
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: all 0.15s ease;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-brand-red: var(--brand-red);
-  --color-brand-red-dark: var(--brand-red-dark);
-  --color-brand-yellow: var(--brand-yellow);
+  --color-brand-red: var(--red);
+  --color-brand-red-dark: var(--red-dark);
+  --color-brand-yellow: var(--gold);
   --color-brand-yellow-dim: var(--brand-yellow-dim);
-  --color-brand-black: var(--brand-black);
-  --color-brand-charcoal: var(--brand-charcoal);
-  --color-brand-steel: var(--brand-steel);
-  --color-brand-border: var(--brand-border);
-  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-bebas), Impact, "Arial Narrow", sans-serif;
+  --color-brand-black: var(--black);
+  --color-brand-charcoal: var(--black-1);
+  --color-brand-steel: var(--black-3);
+  --color-brand-border: rgba(204, 0, 0, 0.2);
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
-  background: var(--brand-charcoal);
-  color: var(--foreground);
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--font-body), system-ui, sans-serif;
+  overflow-x: hidden;
+  position: relative;
 }
 
-/* Textura sutil tipo “grit” del logo */
+/* Fondo con grid futurista */
 body::before {
   content: "";
-  pointer-events: none;
   position: fixed;
   inset: 0;
+  background-image: linear-gradient(rgba(204, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(204, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
   z-index: 0;
-  opacity: 0.04;
+}
+
+/* Ruido de fondo */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── TIPOGRAFÍA ─────────────────────── */
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), Impact, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  line-height: 1.1;
+}
+
+.text-neon {
+  color: var(--red-neon);
+  text-shadow: var(--glow-red);
+}
+
+.text-gold {
+  color: var(--gold);
+  text-shadow: var(--glow-gold);
 }
 
 .font-display {
-  font-family: var(--font-bebas), Impact, "Arial Narrow", sans-serif;
+  font-family: var(--font-display), Impact, sans-serif;
   letter-spacing: 0.02em;
 }
 
-/* Botón primario estilo gym: bloque, rojo, mayúsculas */
+/* ─── GLASSMORPHISM ──────────────────── */
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-red {
+  background: var(--glass-red);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(204, 0, 0, 0.3);
+  box-shadow: var(--glow-sm);
+}
+
+/* ─── BOTONES 2026 ────────────────────────── */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 32px;
+  background: var(--red);
+  color: var(--white);
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+  text-decoration: none;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.btn-primary:hover {
+  background: var(--red-neon);
+  box-shadow: var(--glow-red);
+  transform: translateY(-2px);
+}
+
+.btn-primary:hover::before {
+  opacity: 1;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 32px;
+  background: transparent;
+  color: var(--red);
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  border: 1px solid var(--red);
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.btn-outline:hover {
+  background: var(--red);
+  color: var(--white);
+  box-shadow: var(--glow-red);
+  transform: translateY(-2px);
+}
+
+/* Compatibilidad con clases existentes en la app */
 .btn-brand {
-  @apply inline-flex items-center justify-center border-2 border-brand-red bg-brand-red px-6 py-3 font-display text-lg uppercase tracking-wider text-white shadow-[4px_4px_0_0_rgba(0,0,0,0.4)] transition hover:bg-brand-red-dark hover:shadow-[2px_2px_0_0_rgba(0,0,0,0.5)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 32px;
+  background: var(--red);
+  color: var(--white);
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+  text-decoration: none;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  box-shadow: 0 4px 24px rgba(204, 0, 0, 0.25);
+}
+
+.btn-brand:hover {
+  background: var(--red-neon);
+  box-shadow: var(--glow-red);
+  transform: translateY(-2px);
 }
 
 .btn-brand-outline {
-  @apply inline-flex items-center justify-center border-2 border-brand-yellow bg-transparent px-6 py-3 font-display text-lg uppercase tracking-wider text-brand-yellow shadow-[4px_4px_0_0_rgba(247,224,71,0.25)] transition hover:bg-brand-yellow/10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 32px;
+  background: transparent;
+  color: var(--gold);
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  border: 1px solid var(--gold);
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
 }
 
-/* Tarjetas / paneles */
+.btn-brand-outline:hover {
+  background: rgba(255, 215, 0, 0.1);
+  box-shadow: var(--glow-gold);
+  color: var(--white);
+  border-color: var(--red-neon);
+}
+
+/* ─── CARDS ──────────────────────────── */
+
+.card-3d {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: var(--transition);
+  transform-style: preserve-3d;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-3d::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(204, 0, 0, 0.1) 0%, transparent 60%);
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.card-3d:hover {
+  border-color: var(--red);
+  box-shadow: var(--glow-sm), 0 20px 40px rgba(0, 0, 0, 0.5);
+  transform: translateY(-8px) rotateX(5deg);
+}
+
+.card-3d:hover::before {
+  opacity: 1;
+}
+
 .panel-brand {
-  @apply border-2 border-brand-border bg-brand-steel shadow-[6px_6px_0_0_rgba(0,0,0,0.35)];
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
-.input-brand {
-  @apply w-full border-2 border-brand-border bg-brand-black px-3 py-2.5 text-zinc-100 placeholder:text-zinc-600 focus:border-brand-red focus:outline-none;
+/* ─── INPUTS ─────────────────────────── */
+
+.input-3d {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--white);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 14px;
+  transition: var(--transition);
+  outline: none;
 }
 
+.input-3d:focus {
+  border-color: var(--red);
+  box-shadow: var(--glow-sm);
+  background: rgba(204, 0, 0, 0.05);
+}
+
+.input-3d::placeholder {
+  color: var(--gray-dark);
+}
+
+.input-brand,
 .select-brand {
-  @apply w-full border-2 border-brand-border bg-brand-black px-3 py-2.5 text-zinc-100 focus:border-brand-red focus:outline-none;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--white);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 14px;
+  transition: var(--transition);
+  outline: none;
 }
 
-/* —— Responsive: móvil < 768px —— */
+.input-brand:focus,
+.select-brand:focus {
+  border-color: var(--red);
+  box-shadow: var(--glow-sm);
+  background: rgba(204, 0, 0, 0.05);
+}
+
+.input-brand::placeholder {
+  color: var(--gray-dark);
+}
+
+/* ─── ANIMACIONES ────────────────────── */
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px) rotateY(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotateY(5deg);
+  }
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: var(--glow-red);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(204, 0, 0, 0.8), 0 0 80px rgba(204, 0, 0, 0.4);
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+@keyframes rotate-3d {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+@keyframes text-flicker {
+  0%,
+  19%,
+  21%,
+  23%,
+  25%,
+  54%,
+  56%,
+  100% {
+    opacity: 1;
+    text-shadow: var(--glow-red);
+  }
+  20%,
+  24%,
+  55% {
+    opacity: 0.8;
+    text-shadow: none;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes counter-spin {
+  from {
+    transform: rotateX(0deg);
+  }
+  to {
+    transform: rotateX(-360deg);
+  }
+}
+
+@keyframes border-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+.animate-glow {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+.animate-slide-up {
+  animation: slide-up 0.6s ease forwards;
+}
+.animate-flicker {
+  animation: text-flicker 4s infinite;
+}
+
+.neon-line {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--red), var(--red-neon), var(--red), transparent);
+  box-shadow: var(--glow-red);
+}
+
+.badge-neon {
+  display: inline-block;
+  padding: 4px 16px;
+  background: var(--glass-red);
+  border: 1px solid var(--red);
+  color: var(--red-neon);
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  box-shadow: var(--glow-sm);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--black);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--red);
+  box-shadow: var(--glow-sm);
+}
+
+::selection {
+  background: var(--red);
+  color: var(--white);
+}
+
+/* Contenido bajo header fijo */
+.main-shell {
+  position: relative;
+  z-index: 1;
+  padding-top: 72px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.home-hero-logo-foreground {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .home-hero-logo-foreground {
+    display: block;
+  }
+}
+
+/* Header / admin responsive helpers */
 @media (min-width: 768px) {
   .header-hamburger-btn {
     display: none !important;
@@ -123,7 +580,6 @@ body::before {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-/* /tienda — sidebar filtros vs botón móvil */
 .filtros-sidebar {
   display: none;
 }
@@ -154,12 +610,11 @@ body::before {
   }
 }
 
-/* Sliders en panel de filtros tienda */
 .tienda-filtros input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   height: 4px;
-  background: #2a2a2a;
+  background: rgba(204, 0, 0, 0.25);
   border-radius: 2px;
   outline: none;
 }
@@ -169,15 +624,24 @@ body::before {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #d91920;
+  background: var(--red-neon);
   cursor: pointer;
+  box-shadow: var(--glow-sm);
 }
 
 .tienda-filtros input[type="range"]::-moz-range-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #d91920;
+  background: var(--red-neon);
   cursor: pointer;
   border: none;
+}
+
+/* Admin sidebar 2026 */
+.admin-sidebar {
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(204, 0, 0, 0.25) !important;
 }

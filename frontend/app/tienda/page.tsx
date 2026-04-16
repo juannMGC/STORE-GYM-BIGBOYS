@@ -8,7 +8,7 @@ import { apiFetch } from "@/lib/api-client";
 import type { Category, ProductListItem, Size } from "@/lib/types";
 
 const labelFiltro: CSSProperties = {
-  color: "#f7e047",
+  color: "var(--gold)",
   fontFamily: "var(--font-display)",
   fontSize: "11px",
   letterSpacing: "2px",
@@ -62,13 +62,13 @@ function FiltrosContent({
           alignItems: "center",
           marginBottom: "20px",
           paddingBottom: "12px",
-          borderBottom: "1px solid #2a2a2a",
+          borderBottom: "1px solid var(--glass-border)",
         }}
       >
         <span
           style={{
             fontFamily: "var(--font-display)",
-            color: "#f7e047",
+            color: "var(--gold)",
             fontSize: "14px",
             letterSpacing: "3px",
             textTransform: "uppercase",
@@ -83,7 +83,7 @@ function FiltrosContent({
             style={{
               background: "none",
               border: "none",
-              color: "#d91920",
+              color: "var(--red-neon)",
               cursor: "pointer",
               fontSize: "12px",
               fontFamily: "var(--font-display)",
@@ -137,7 +137,7 @@ function FiltrosContent({
             if (val < maxPrice) setMinPrice(val);
             else setMinPrice(Math.max(prMin, maxPrice - 1));
           }}
-          style={{ width: "100%", accentColor: "#d91920" }}
+          style={{ width: "100%", accentColor: "var(--red)" }}
         />
         <input
           type="range"
@@ -150,7 +150,7 @@ function FiltrosContent({
             if (val > minPrice) setMaxPrice(val);
             else setMaxPrice(Math.min(prMax, minPrice + 1));
           }}
-          style={{ width: "100%", marginTop: "8px", accentColor: "#d91920" }}
+          style={{ width: "100%", marginTop: "8px", accentColor: "var(--red)" }}
         />
         <div
           style={{
@@ -169,7 +169,7 @@ function FiltrosContent({
               setMinPrice(Math.min(Math.max(v, prMin), Math.min(maxPrice, prMax)));
             }}
             placeholder="Mín"
-            className="input-brand"
+            className="input-3d"
             style={{ fontSize: "12px", padding: "6px 8px" }}
           />
           <input
@@ -181,7 +181,7 @@ function FiltrosContent({
               setMaxPrice(Math.max(Math.min(v, prMax), Math.max(minPrice, prMin)));
             }}
             placeholder="Máx"
-            className="input-brand"
+            className="input-3d"
             style={{ fontSize: "12px", padding: "6px 8px" }}
           />
         </div>
@@ -198,7 +198,7 @@ function FiltrosContent({
                 alignItems: "center",
                 gap: "8px",
                 cursor: "pointer",
-                color: sizeActiva === talla.id ? "#f7e047" : "#a1a1aa",
+                color: sizeActiva === talla.id ? "var(--gold)" : "rgba(255,255,255,0.55)",
                 fontSize: "13px",
               }}
             >
@@ -208,7 +208,7 @@ function FiltrosContent({
                 value={talla.id}
                 checked={sizeActiva === talla.id}
                 onChange={() => setSizeActiva(sizeActiva === talla.id ? "" : talla.id)}
-                style={{ accentColor: "#d91920" }}
+                style={{ accentColor: "var(--red)" }}
               />
               {talla.name}
             </label>
@@ -240,7 +240,7 @@ function FiltrosContent({
           alignItems: "center",
           justifyContent: "space-between",
           paddingTop: "16px",
-          borderTop: "1px solid #2a2a2a",
+          borderTop: "1px solid var(--glass-border)",
         }}
       >
         <span style={{ color: "#a1a1aa", fontSize: "13px" }}>Solo disponibles</span>
@@ -252,7 +252,7 @@ function FiltrosContent({
             width: "40px",
             height: "22px",
             borderRadius: "11px",
-            background: soloDisponibles ? "#d91920" : "#2a2a2a",
+            background: soloDisponibles ? "var(--red)" : "var(--black-3)",
             border: "none",
             cursor: "pointer",
             position: "relative",
@@ -440,28 +440,44 @@ export default function TiendaPage() {
   };
 
   return (
-    <div className="tienda-page mx-auto max-w-6xl px-4 py-12">
+    <div
+      className="tienda-page"
+      style={{ maxWidth: "1152px", margin: "0 auto", padding: "24px 16px 48px" }}
+    >
       <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
         <BackButton href="/" label="← Inicio" />
       </div>
-      <h1 className="font-display text-5xl uppercase tracking-wide text-white md:text-6xl">Tienda</h1>
-      <p className="mt-3 max-w-xl text-zinc-400">
+      <h1
+        style={{
+          fontFamily: "var(--font-display)",
+          fontSize: "clamp(2.25rem, 6vw, 3.75rem)",
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          color: "var(--white)",
+          margin: 0,
+        }}
+      >
+        Tienda
+      </h1>
+      <p style={{ marginTop: "12px", maxWidth: "36rem", color: "rgba(255,255,255,0.55)", lineHeight: 1.6 }}>
         Filtrá por precio, talla y disponibilidad, o buscá por nombre.
       </p>
 
-      {categoriesError ? <p className="mt-4 text-sm text-brand-red">{categoriesError}</p> : null}
+      {categoriesError ? (
+        <p style={{ marginTop: "16px", fontSize: "14px", color: "var(--red-neon)" }}>{categoriesError}</p>
+      ) : null}
 
       <button
         type="button"
         onClick={() => setFiltrosAbiertos(true)}
-        className="filtros-mobile-btn btn-brand-outline mt-6"
+        className="filtros-mobile-btn btn-outline mt-6"
         style={{ marginBottom: "16px" }}
       >
         ⚙️ Filtros
         {hayFiltrosActivos ? (
           <span
             style={{
-              background: "#d91920",
+              background: "var(--red)",
               color: "white",
               borderRadius: "50%",
               width: "18px",
@@ -486,16 +502,15 @@ export default function TiendaPage() {
         }}
       >
         <aside
-          className="filtros-sidebar"
+          className="filtros-sidebar glass"
           style={{
             width: "220px",
             flexShrink: 0,
-            background: "#111111",
-            border: "1px solid #2a2a2a",
             padding: "20px",
             alignSelf: "flex-start",
             position: "sticky",
             top: "80px",
+            borderRadius: "8px",
           }}
         >
           <FiltrosContent {...filtrosProps} />
@@ -520,7 +535,7 @@ export default function TiendaPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar productos..."
-              className="input-brand"
+              className="input-3d"
               autoComplete="off"
               style={{
                 width: "100%",
@@ -565,8 +580,8 @@ export default function TiendaPage() {
               onClick={() => setCategoriaActiva("")}
               style={{
                 padding: "6px 16px",
-                border: `1px solid ${categoriaActiva === "" ? "#d91920" : "#2a2a2a"}`,
-                background: categoriaActiva === "" ? "#d91920" : "transparent",
+                border: `1px solid ${categoriaActiva === "" ? "var(--red)" : "var(--glass-border)"}`,
+                background: categoriaActiva === "" ? "var(--red)" : "transparent",
                 color: categoriaActiva === "" ? "white" : "#a1a1aa",
                 cursor: "pointer",
                 fontFamily: "var(--font-display)",
@@ -579,7 +594,9 @@ export default function TiendaPage() {
               Todas
             </button>
             {categoriesLoading ? (
-              <span className="self-center text-sm text-zinc-500">Cargando categorías…</span>
+              <span style={{ alignSelf: "center", fontSize: "14px", color: "rgba(255,255,255,0.45)" }}>
+                Cargando categorías…
+              </span>
             ) : (
               categories.map((cat) => (
                 <button
@@ -588,8 +605,8 @@ export default function TiendaPage() {
                   onClick={() => setCategoriaActiva(categoriaActiva === cat.id ? "" : cat.id)}
                   style={{
                     padding: "6px 16px",
-                    border: `1px solid ${categoriaActiva === cat.id ? "#d91920" : "#2a2a2a"}`,
-                    background: categoriaActiva === cat.id ? "#d91920" : "transparent",
+                    border: `1px solid ${categoriaActiva === cat.id ? "var(--red)" : "var(--glass-border)"}`,
+                    background: categoriaActiva === cat.id ? "var(--red)" : "transparent",
                     color: categoriaActiva === cat.id ? "white" : "#a1a1aa",
                     cursor: "pointer",
                     fontFamily: "var(--font-display)",
@@ -697,19 +714,25 @@ export default function TiendaPage() {
                 <p style={{ fontSize: "14px", marginBottom: "24px" }}>
                   Probá ajustar filtros o la búsqueda.
                 </p>
-                <button type="button" onClick={limpiarFiltros} className="btn-brand-outline">
+                <button type="button" onClick={limpiarFiltros} className="btn-outline">
                   Ver todos los productos
                 </button>
               </div>
             ) : (
-              <p className="mt-10 text-center text-zinc-500">
+              <p style={{ marginTop: "40px", textAlign: "center", color: "rgba(255,255,255,0.45)" }}>
                 No hay productos en el catálogo todavía. Creá algunos desde el panel admin.
               </p>
             )
           ) : (
             <ul
-              className="grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3"
-              style={{ margin: 0 }}
+              style={{
+                display: "grid",
+                listStyle: "none",
+                gap: "20px",
+                padding: 0,
+                margin: 0,
+                gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+              }}
             >
               {productos.map((p) => (
                 <li key={p.id}>
@@ -717,18 +740,34 @@ export default function TiendaPage() {
                     href={
                       p.slug ? `/tienda/productos/${encodeURIComponent(p.slug)}` : `/producto/${p.id}`
                     }
-                    className="panel-brand flex flex-col overflow-hidden transition hover:border-brand-red"
+                    className="card-3d"
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      overflow: "hidden",
+                      textDecoration: "none",
+                      color: "inherit",
+                      borderRadius: "4px",
+                    }}
                   >
-                    <div className="relative aspect-square bg-brand-black">
+                    <div style={{ position: "relative", aspectRatio: "1", background: "var(--black)" }}>
                       {p.images[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={p.images[0].url}
                           alt=""
-                          className="h-full w-full object-cover"
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-zinc-600">
+                        <div
+                          style={{
+                            display: "flex",
+                            height: "100%",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "rgba(255,255,255,0.35)",
+                          }}
+                        >
                           Sin foto
                         </div>
                       )}
@@ -738,7 +777,7 @@ export default function TiendaPage() {
                             position: "absolute",
                             top: "8px",
                             right: "8px",
-                            background: "#d91920",
+                            background: "var(--red)",
                             color: "white",
                             fontSize: "11px",
                             fontWeight: 700,
@@ -746,17 +785,40 @@ export default function TiendaPage() {
                             fontFamily: "var(--font-display)",
                             letterSpacing: "1px",
                             textTransform: "uppercase",
+                            boxShadow: "var(--glow-sm)",
                           }}
                         >
                           AGOTADO
                         </div>
                       )}
                     </div>
-                    <div className="border-t-2 border-brand-border p-4">
-                      <span className="font-display text-xl uppercase leading-tight text-white">
+                    <div
+                      style={{
+                        borderTop: "2px solid rgba(204,0,0,0.25)",
+                        padding: "16px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: "1.25rem",
+                          textTransform: "uppercase",
+                          lineHeight: 1.2,
+                          color: "var(--white)",
+                        }}
+                      >
                         {p.title}
                       </span>
-                      <span className="mt-2 block font-display text-2xl text-brand-yellow">
+                      <span
+                        style={{
+                          marginTop: "8px",
+                          display: "block",
+                          fontFamily: "var(--font-display)",
+                          fontSize: "1.5rem",
+                          color: "var(--gold)",
+                          textShadow: "var(--glow-gold)",
+                        }}
+                      >
                         ${" "}
                         {p.price.toLocaleString("es-CO", {
                           minimumFractionDigits: 0,
@@ -772,11 +834,13 @@ export default function TiendaPage() {
                             marginTop: "8px",
                           }}
                         >
-                          <span style={{ color: "#f7e047", fontSize: "12px", letterSpacing: "1px" }}>
+                          <span style={{ color: "var(--gold)", fontSize: "12px", letterSpacing: "1px" }}>
                             {"★".repeat(Math.round(p.avgRating ?? 0))}
                             {"☆".repeat(5 - Math.round(p.avgRating ?? 0))}
                           </span>
-                          <span style={{ color: "#52525b", fontSize: "11px" }}>({p.reviewCount})</span>
+                          <span style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px" }}>
+                            ({p.reviewCount})
+                          </span>
                         </div>
                       ) : null}
                     </div>
@@ -801,13 +865,14 @@ export default function TiendaPage() {
             }}
           />
           <div
+            className="glass"
             style={{
               position: "fixed",
               bottom: 0,
               left: 0,
               right: 0,
-              background: "#111111",
-              borderTop: "2px solid #d91920",
+              borderTop: "2px solid rgba(204,0,0,0.5)",
+              boxShadow: "0 -8px 40px rgba(204,0,0,0.12)",
               zIndex: 50,
               maxHeight: "80vh",
               overflowY: "auto",
@@ -824,7 +889,7 @@ export default function TiendaPage() {
               <span
                 style={{
                   fontFamily: "var(--font-display)",
-                  color: "#f7e047",
+                  color: "var(--gold)",
                   letterSpacing: "3px",
                   textTransform: "uppercase",
                 }}
@@ -851,7 +916,7 @@ export default function TiendaPage() {
               onClick={() => {
                 setFiltrosAbiertos(false);
               }}
-              className="btn-brand"
+              className="btn-primary"
               style={{ width: "100%", marginTop: "16px" }}
             >
               Aplicar filtros

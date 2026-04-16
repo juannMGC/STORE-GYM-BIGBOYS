@@ -46,16 +46,21 @@ export default function EntrenamientosPage() {
     <main
       style={{
         minHeight: "100vh",
-        background: "#050505",
+        background: "var(--black)",
+        overflowX: "hidden",
       }}
     >
       <section
         style={{
+          minHeight: "min(92vh, 900px)",
           position: "relative",
-          padding: "80px 24px 60px",
+          padding: "72px 24px 64px",
           textAlign: "center",
-          borderBottom: "1px solid #1a1a1a",
+          borderBottom: "1px solid rgba(204,0,0,0.2)",
           overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
         }}
       >
         <div
@@ -63,7 +68,7 @@ export default function EntrenamientosPage() {
             position: "absolute",
             top: "24px",
             left: "24px",
-            zIndex: 2,
+            zIndex: 4,
           }}
         >
           <BackButton href="/" label="← Inicio" />
@@ -73,8 +78,11 @@ export default function EntrenamientosPage() {
           style={{
             position: "absolute",
             inset: 0,
-            background:
-              "radial-gradient(ellipse at center top, rgba(217,25,32,0.08) 0%, transparent 70%)",
+            background: `
+              radial-gradient(ellipse at 20% 40%, rgba(204,0,0,0.12) 0%, transparent 55%),
+              radial-gradient(ellipse at 80% 60%, rgba(139,0,0,0.1) 0%, transparent 55%),
+              radial-gradient(ellipse at 50% 100%, rgba(204,0,0,0.06) 0%, transparent 50%)
+            `,
             pointerEvents: "none",
           }}
         />
@@ -82,37 +90,28 @@ export default function EntrenamientosPage() {
         <div
           style={{
             position: "absolute",
-            fontSize: "300px",
-            fontFamily: "var(--font-display)",
-            color: "#0d0d0d",
-            fontWeight: 900,
+            right: "-8%",
             top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            lineHeight: 1,
-            userSelect: "none",
+            transform: "translateY(-50%)",
+            width: "min(55vw, 480px)",
+            opacity: 0.12,
+            filter: "blur(2px)",
+            animation: "float 8s ease-in-out infinite",
             pointerEvents: "none",
-            letterSpacing: "-10px",
+            zIndex: 0,
           }}
         >
-          BB
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/logo-BigBoysGYM.jpg"
+            alt=""
+            style={{ width: "100%", height: "auto", filter: "drop-shadow(0 0 40px rgba(204,0,0,0.5))" }}
+          />
         </div>
 
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <div
-            style={{
-              display: "inline-block",
-              background: "#d91920",
-              color: "white",
-              fontFamily: "var(--font-display)",
-              fontSize: "11px",
-              letterSpacing: "4px",
-              textTransform: "uppercase",
-              padding: "6px 16px",
-              marginBottom: "20px",
-            }}
-          >
-            Big Boys Gym
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <div className="badge-neon" style={{ marginBottom: "20px" }}>
+            Big Boys Gym · Planes
           </div>
 
           <h1
@@ -122,21 +121,25 @@ export default function EntrenamientosPage() {
               color: "#ffffff",
               textTransform: "uppercase",
               letterSpacing: "6px",
-              lineHeight: 1.1,
-              margin: "0 0 16px",
+              lineHeight: 1.05,
+              margin: "0 0 8px",
             }}
           >
             Entren
-            <span style={{ color: "#d91920" }}>amientos</span>
+            <span className="text-neon">amientos</span>
           </h1>
+
+          <div className="neon-line" style={{ width: "100px", margin: "0 auto 24px" }} />
 
           <p
             style={{
-              color: "#71717a",
+              color: "rgba(255,255,255,0.55)",
               fontSize: "clamp(14px, 2vw, 18px)",
               maxWidth: "560px",
-              margin: "0 auto 32px",
-              lineHeight: 1.6,
+              margin: "0 auto 36px",
+              lineHeight: 1.65,
+              fontFamily: "var(--font-body)",
+              fontWeight: 500,
             }}
           >
             Todo lo que necesitás para llevar tu entrenamiento al siguiente nivel. Rutinas, consejos y más. 💪
@@ -145,7 +148,7 @@ export default function EntrenamientosPage() {
           <div
             style={{
               display: "flex",
-              gap: "32px",
+              gap: "28px",
               justifyContent: "center",
               flexWrap: "wrap",
             }}
@@ -155,22 +158,31 @@ export default function EntrenamientosPage() {
               { valor: "100%", label: "Gratis" },
               { valor: "24/7", label: "Disponible" },
             ].map((stat) => (
-              <div key={stat.label}>
+              <div
+                key={stat.label}
+                className="glass"
+                style={{
+                  padding: "16px 28px",
+                  minWidth: "120px",
+                  borderRadius: "4px",
+                }}
+              >
                 <p
                   style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: "28px",
-                    color: "#f7e047",
-                    margin: "0 0 4px",
+                    fontSize: "26px",
+                    color: "var(--gold)",
+                    margin: "0 0 6px",
                     letterSpacing: "2px",
+                    textShadow: "var(--glow-gold)",
                   }}
                 >
                   {stat.valor}
                 </p>
                 <p
                   style={{
-                    color: "#52525b",
-                    fontSize: "11px",
+                    color: "rgba(255,255,255,0.4)",
+                    fontSize: "10px",
                     fontFamily: "var(--font-display)",
                     letterSpacing: "3px",
                     textTransform: "uppercase",
@@ -189,28 +201,46 @@ export default function EntrenamientosPage() {
         style={{
           maxWidth: "1200px",
           margin: "0 auto",
-          padding: "48px 24px 64px",
+          padding: "56px 24px 80px",
         }}
       >
         <p
-          className="font-display mb-8 text-center text-xs uppercase tracking-[0.35em] text-brand-yellow"
-          style={{ letterSpacing: "4px" }}
+          style={{
+            fontFamily: "var(--font-display)",
+            marginBottom: "36px",
+            textAlign: "center",
+            fontSize: "11px",
+            letterSpacing: "6px",
+            textTransform: "uppercase",
+            color: "var(--gold)",
+          }}
         >
           Nuestros planes
         </p>
 
         {loading ? (
-          <p className="text-center text-sm text-zinc-500">Cargando planes…</p>
+          <p
+            style={{
+              textAlign: "center",
+              fontSize: "14px",
+              color: "rgba(255,255,255,0.45)",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            Cargando planes…
+          </p>
         ) : trainings.length === 0 ? (
           <div
+            className="glass"
             style={{
               textAlign: "center",
               padding: "48px 24px",
-              border: "1px dashed #2a2a2a",
-              background: "#0a0a0a",
+              borderRadius: "8px",
             }}
           >
-            <p className="text-zinc-500">No hay planes disponibles por ahora.</p>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontFamily: "var(--font-body)" }}>
+              No hay planes disponibles por ahora.
+            </p>
           </div>
         ) : (
           <div
@@ -227,21 +257,12 @@ export default function EntrenamientosPage() {
                 style={{ textDecoration: "none" }}
               >
                 <div
-                  className="panel-brand"
+                  className="card-3d"
                   style={{
                     overflow: "hidden",
-                    transition: "border-color 0.2s, transform 0.2s",
                     cursor: "pointer",
                     position: "relative",
-                    border: "1px solid #2a2a2a",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#d91920";
-                    e.currentTarget.style.transform = "translateY(-4px)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "#2a2a2a";
-                    e.currentTarget.style.transform = "translateY(0)";
+                    borderRadius: "4px",
                   }}
                 >
                   {training.featured ? (
@@ -250,14 +271,15 @@ export default function EntrenamientosPage() {
                         position: "absolute",
                         top: "12px",
                         right: "12px",
-                        background: "#f7e047",
-                        color: "#050505",
+                        background: "var(--gold)",
+                        color: "var(--black)",
                         fontFamily: "var(--font-display)",
                         fontSize: "9px",
                         letterSpacing: "2px",
                         textTransform: "uppercase",
                         padding: "4px 10px",
                         zIndex: 2,
+                        boxShadow: "var(--glow-gold)",
                       }}
                     >
                       DESTACADO
@@ -269,7 +291,7 @@ export default function EntrenamientosPage() {
                       width: "100%",
                       height: "200px",
                       overflow: "hidden",
-                      background: "#1a1a1a",
+                      background: "var(--black-3)",
                       position: "relative",
                       display: "flex",
                       alignItems: "center",
@@ -315,9 +337,10 @@ export default function EntrenamientosPage() {
                         style={{
                           fontFamily: "var(--font-display)",
                           fontSize: "22px",
-                          color: "#f7e047",
+                          color: "var(--gold)",
                           margin: 0,
                           letterSpacing: "2px",
+                          textShadow: "var(--glow-gold)",
                         }}
                       >
                         ${Number(training.price).toLocaleString("es-CO")}
@@ -384,9 +407,9 @@ export default function EntrenamientosPage() {
                           <span
                             key={s.id}
                             style={{
-                              background: "#1a1a1a",
-                              border: "1px solid #2a2a2a",
-                              color: "#a1a1aa",
+                              background: "var(--glass-bg)",
+                              border: "1px solid var(--glass-border)",
+                              color: "rgba(255,255,255,0.55)",
                               fontSize: "11px",
                               padding: "3px 8px",
                               fontFamily: "var(--font-display)",
@@ -413,11 +436,12 @@ export default function EntrenamientosPage() {
                     >
                       <span
                         style={{
-                          color: "#d91920",
+                          color: "var(--red-neon)",
                           fontFamily: "var(--font-display)",
                           fontSize: "12px",
                           letterSpacing: "2px",
                           textTransform: "uppercase",
+                          textShadow: "var(--glow-sm)",
                         }}
                       >
                         Ver detalle →

@@ -28,7 +28,7 @@ function BrandLogoOrText({ marca }: { marca: MarcaAliada }) {
 
   const labelStyle: CSSProperties = {
     fontFamily: "var(--font-display)",
-    color: "#f7e047",
+    color: "var(--gold)",
     fontSize: "18px",
     letterSpacing: "3px",
     textTransform: "uppercase",
@@ -67,64 +67,75 @@ export function BrandsSlider({
     <section
       aria-label="Marcas aliadas"
       style={{
-        padding: "48px 0",
-        background: "#0a0a0a",
-        borderTop: "1px solid #1a1a1a",
-        borderBottom: "1px solid #1a1a1a",
+        padding: "48px 16px",
+        background: "linear-gradient(180deg, transparent, rgba(204,0,0,0.04), transparent)",
+        borderTop: "1px solid rgba(204,0,0,0.2)",
+        borderBottom: "1px solid rgba(204,0,0,0.15)",
         overflow: "hidden",
         position: "relative",
       }}
     >
-      <p
+      <div
+        className="glass"
         style={{
-          fontFamily: "var(--font-display)",
-          color: "#3f3f46",
-          fontSize: "11px",
-          letterSpacing: "4px",
-          textTransform: "uppercase",
-          textAlign: "center",
-          marginBottom: "32px",
+          maxWidth: "1200px",
+          margin: "0 auto",
+          borderRadius: "16px",
+          padding: "28px 0 8px",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        Nuestros aliados
-      </p>
+        <p
+          style={{
+            fontFamily: "var(--font-display)",
+            color: "rgba(255,255,255,0.35)",
+            fontSize: "11px",
+            letterSpacing: "4px",
+            textTransform: "uppercase",
+            textAlign: "center",
+            marginBottom: "28px",
+          }}
+        >
+          Nuestros aliados
+        </p>
 
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: "120px",
-          background: "linear-gradient(to right, #0a0a0a, transparent)",
-          zIndex: 2,
-          pointerEvents: "none",
-        }}
-      />
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: "100px",
+            background: "linear-gradient(to right, rgba(0,0,0,0.95), transparent)",
+            zIndex: 2,
+            pointerEvents: "none",
+          }}
+        />
 
-      <div
-        style={{
-          position: "absolute",
-          right: 0,
-          top: 0,
-          bottom: 0,
-          width: "120px",
-          background: "linear-gradient(to left, #0a0a0a, transparent)",
-          zIndex: 2,
-          pointerEvents: "none",
-        }}
-      />
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: "100px",
+            background: "linear-gradient(to left, rgba(0,0,0,0.95), transparent)",
+            zIndex: 2,
+            pointerEvents: "none",
+          }}
+        />
 
-      <div
-        className={["brands-slider-track", pausarAlHover ? "brands-slider-pause-hover" : ""]
-          .filter(Boolean)
-          .join(" ")}
-        style={{
-          display: "flex",
-          animation: `scroll-brands ${velocidad}s linear infinite`,
-          width: "max-content",
-        }}
-      >
+        <div
+          className={["brands-slider-track", pausarAlHover ? "brands-slider-pause-hover" : ""]
+            .filter(Boolean)
+            .join(" ")}
+          style={{
+            display: "flex",
+            animation: `scroll-brands ${velocidad}s linear infinite`,
+            width: "max-content",
+          }}
+        >
         {marcasDobles.map((marca, index) => {
           const placeholder = marca.url === "#" || !marca.url.trim();
           return (
@@ -158,6 +169,7 @@ export function BrandsSlider({
             </a>
           );
         })}
+        </div>
       </div>
 
       <style>{`

@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { LOGIN_ENTRY_HREF } from "@/lib/auth-routes";
 import { useAuth } from "@/lib/auth-context";
@@ -12,99 +13,166 @@ const LEGAL_LINKS = [
   { href: "/devoluciones", label: "Devoluciones" },
 ] as const;
 
+const navLink: CSSProperties = {
+  color: "rgba(255,255,255,0.65)",
+  textDecoration: "none",
+  fontSize: "14px",
+  transition: "var(--transition)",
+};
+
 export function SiteFooter() {
   const year = new Date().getFullYear();
   const { isLoggedIn, isLoading } = useAuth();
 
   return (
-    <footer className="relative z-10 mt-auto border-t-4 border-brand-border bg-brand-black py-10 text-center">
-      <div className="mx-auto max-w-6xl px-4">
-        <p className="font-display text-xl uppercase tracking-[0.2em] text-brand-yellow">
-          BIG BOYS GYM
-        </p>
-        <p className="mt-2 text-sm text-zinc-500">Tienda oficial · Manizales, Colombia</p>
-        <p className="mt-3 font-medium text-zinc-400">Entrená fuerte. Equipate como un profesional.</p>
-        <div className="mt-6 flex justify-center gap-6 text-sm">
-          <Link href="/tienda" className="text-brand-yellow/80 hover:text-brand-yellow">
-            Tienda
-          </Link>
-          {!isLoading && isLoggedIn ? (
-            <Link href="/perfil" className="text-zinc-500 hover:text-zinc-300">
-              Mi perfil
-            </Link>
-          ) : !isLoading ? (
-            <a href={LOGIN_ENTRY_HREF} className="text-zinc-500 hover:text-zinc-300">
-              Cuenta
-            </a>
-          ) : (
-            <span className="inline-block h-4 w-14 animate-pulse rounded bg-zinc-800" aria-hidden />
-          )}
+    <footer
+      style={{
+        background: "#000000",
+        borderTop: "1px solid rgba(204,0,0,0.3)",
+        padding: "60px 24px 24px",
+        position: "relative",
+        marginTop: "auto",
+      }}
+    >
+      <div className="neon-line" style={{ marginBottom: "48px" }} />
+
+      <div
+        style={{
+          maxWidth: "1200px",
+          margin: "0 auto",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "40px",
+          marginBottom: "48px",
+        }}
+      >
+        <div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/logo-BigBoysGYM.jpg"
+            alt="Big Boys Gym"
+            style={{
+              height: "80px",
+              width: "auto",
+              objectFit: "contain",
+              filter: "drop-shadow(0 0 12px rgba(204,0,0,0.5))",
+              marginBottom: "16px",
+            }}
+          />
+          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", lineHeight: 1.6 }}>
+            El gym más intenso de Manizales. Transformamos cuerpos y vidas. 💪
+          </p>
         </div>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+
+        <div>
+          <p
+            style={{
+              fontFamily: "var(--font-display), Impact, sans-serif",
+              color: "#ffd700",
+              fontSize: "11px",
+              letterSpacing: "3px",
+              textTransform: "uppercase",
+              marginBottom: "16px",
+            }}
+          >
+            Navegación
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <Link href="/" style={navLink}>
+              Inicio
+            </Link>
+            <Link href="/entrenamientos" style={navLink}>
+              Entrenamientos
+            </Link>
+            <Link href="/tienda" style={navLink}>
+              Tienda
+            </Link>
+            {!isLoading && isLoggedIn ? (
+              <Link href="/perfil" style={navLink}>
+                Mi perfil
+              </Link>
+            ) : !isLoading ? (
+              <a href={LOGIN_ENTRY_HREF} style={navLink}>
+                Cuenta
+              </a>
+            ) : null}
+          </div>
+        </div>
+
+        <div>
+          <p
+            style={{
+              fontFamily: "var(--font-display), Impact, sans-serif",
+              color: "#ffd700",
+              fontSize: "11px",
+              letterSpacing: "3px",
+              textTransform: "uppercase",
+              marginBottom: "16px",
+            }}
+          >
+            Legal
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {LEGAL_LINKS.map((link) => (
+              <Link key={link.href} href={link.href} style={navLink}>
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p
+            style={{
+              fontFamily: "var(--font-display), Impact, sans-serif",
+              color: "#ffd700",
+              fontSize: "11px",
+              letterSpacing: "3px",
+              textTransform: "uppercase",
+              marginBottom: "16px",
+            }}
+          >
+            Contacto
+          </p>
           <a
             href={INSTAGRAM_PROFILE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border-2 border-brand-border bg-brand-steel px-4 py-2 text-sm font-medium text-brand-yellow transition hover:border-brand-red hover:text-white"
+            className="glass"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 16px",
+              borderRadius: "4px",
+              color: "#ffd700",
+              textDecoration: "none",
+              fontSize: "14px",
+              border: "1px solid rgba(204,0,0,0.35)",
+            }}
           >
             <InstagramIcon className="h-5 w-5" decorative />
             Instagram
           </a>
+          <p style={{ marginTop: "16px", color: "rgba(255,255,255,0.4)", fontSize: "13px" }}>
+            Manizales, Colombia
+          </p>
         </div>
-
-        <div className="mt-10 flex justify-center">
-          <div className="text-left">
-            <p
-              style={{
-                fontFamily: "var(--font-display)",
-                color: "#f7e047",
-                fontSize: "11px",
-                letterSpacing: "3px",
-                textTransform: "uppercase",
-                marginBottom: "12px",
-              }}
-            >
-              Legal
-            </p>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
-              }}
-            >
-              {LEGAL_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-[13px] text-zinc-600 transition-colors hover:text-brand-yellow"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <p
-          style={{
-            color: "#27272a",
-            fontSize: "11px",
-            marginTop: "24px",
-            borderTop: "1px solid #1a1a1a",
-            paddingTop: "16px",
-          }}
-        >
-          © {year} Big Boys Gym · Manizales, Colombia ·{" "}
-          <Link href="/privacidad" className="text-zinc-600 transition-colors hover:text-zinc-500">
-            Privacidad
-          </Link>
-          {" · "}
-          <Link href="/terminos" className="text-zinc-600 transition-colors hover:text-zinc-500">
-            Términos
-          </Link>
-        </p>
       </div>
+
+      <div className="neon-line" style={{ marginBottom: "24px" }} />
+
+      <p
+        style={{
+          color: "rgba(255,255,255,0.2)",
+          fontSize: "12px",
+          textAlign: "center",
+          fontFamily: "var(--font-display), Impact, sans-serif",
+          letterSpacing: "2px",
+        }}
+      >
+        © {year} BIG BOYS GYM · MANIZALES, COLOMBIA
+      </p>
     </footer>
   );
 }
