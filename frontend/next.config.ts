@@ -13,23 +13,6 @@ const backend =
   "http://localhost:3001";
 
 const nextConfig: NextConfig = {
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          {
-            key: "Cross-Origin-Embedder-Policy",
-            value: "credentialless",
-          },
-          {
-            key: "Cross-Origin-Opener-Policy",
-            value: "same-origin",
-          },
-        ],
-      },
-    ];
-  },
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -77,16 +60,6 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "scontent.cdninstagram.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "github.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "objects.githubusercontent.com",
         pathname: "/**",
       },
     ],
