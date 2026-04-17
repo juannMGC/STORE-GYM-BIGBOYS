@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
       ...config.resolve.alias,
       canvas: canvasStub,
     };
+    config.module.rules.push({
+      test: /\.(glb|gltf)$/,
+      type: "asset/resource",
+    });
     return config;
   },
   turbopack: {

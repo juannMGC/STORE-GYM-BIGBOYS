@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { animate, motion, useInView, useScroll, useTransform } from "framer-motion";
+import { animate, motion, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { BrandsSlider } from "@/components/brands-slider";
 import { HomeRegisterCta } from "@/components/home-register-cta";
+import { Logo3DScene } from "@/components/logo-3d";
 import {
   fadeLeft,
   fadeUp,
-  floatAnimation,
   glitchVariants,
   scaleIn,
   staggerContainer,
@@ -84,122 +84,44 @@ export function HomePageView({
 }) {
   const bp = useBreakpoint();
   const isMobile = bp === "sm";
-  const heroRef = useRef<HTMLElement>(null);
   const subtitle = useTypewriter(TYPEWRITER_TEXTS, 72, 2200);
-
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-
-  const logoY = useTransform(scrollYProgress, [0, 1], [0, 200]);
-  const logoOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
-  const logoScale = useTransform(scrollYProgress, [0, 1], [1, 1.3]);
-  const textY = useTransform(scrollYProgress, [0, 1], [0, -100]);
 
   return (
     <main style={{ position: "relative", zIndex: 1, flex: 1 }}>
       <section
-        ref={heroRef}
         style={{
-          minHeight: "100svh",
-          display: "flex",
-          alignItems: "center",
           position: "relative",
+          minHeight: "min(100svh, 100dvh)",
+          width: "100%",
           overflow: "hidden",
-          padding: isMobile ? "64px 16px 40px" : "80px 48px 48px",
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: `
-              radial-gradient(ellipse at 20% 50%, rgba(204,0,0,0.15) 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 50%, rgba(139,0,0,0.1) 0%, transparent 60%),
-              radial-gradient(ellipse at 50% 100%, rgba(204,0,0,0.05) 0%, transparent 50%)`,
-          }}
-        />
-
-        <motion.div
-          style={{
-            position: "absolute",
-            right: "-5%",
-            top: "50%",
-            y: "-50%",
-            width: "55%",
-            opacity: 0.12,
-            filter: "blur(1px)",
-            pointerEvents: "none",
-            display: isMobile ? "none" : "block",
-          }}
-        >
-          <motion.div animate={floatAnimation.animate} transition={floatAnimation.transition}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/brand/logo-BigBoysGYM.jpg"
-              alt=""
-              style={{ width: "100%", filter: "drop-shadow(0 0 60px rgba(204,0,0,0.8))" }}
-            />
-          </motion.div>
-        </motion.div>
-
-        <div
-          className="home-hero-logo-foreground"
-          style={{
-            position: "absolute",
-            right: "5%",
-            top: "50%",
-            transform: "translateY(-50%)",
-            width: "min(40%, 420px)",
-            zIndex: 2,
-          }}
-        >
-          <motion.div
-            style={{
-              y: logoY,
-              opacity: logoOpacity,
-              scale: logoScale,
-              filter: "drop-shadow(0 0 30px rgba(204,0,0,0.5))",
-            }}
-          >
-            <motion.div animate={floatAnimation.animate} transition={floatAnimation.transition}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/logo-BigBoysGYM.jpg" alt="" style={{ width: "100%" }} />
-            </motion.div>
-          </motion.div>
-        </div>
+        <Logo3DScene height="min(100svh, 100dvh)" interactive showScrollHint />
 
         <motion.div
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
           style={{
-            position: "relative",
-            zIndex: 3,
-            maxWidth: isMobile ? "100%" : "640px",
-            width: "100%",
-            padding: isMobile ? "0" : "0 clamp(16px, 4vw, 48px)",
-            y: textY,
-            textAlign: isMobile ? "center" : "left",
+            position: "absolute",
+            inset: 0,
+            zIndex: 10,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-end",
+            alignItems: isMobile ? "center" : "flex-start",
+            padding: isMobile ? "64px 16px max(100px, 18vh)" : "80px 48px max(80px, 10vh)",
+            pointerEvents: "none",
           }}
         >
-          {isMobile ? (
-            <div style={{ textAlign: "center", marginBottom: "20px" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/brand/logo-BigBoysGYM.jpg"
-                alt=""
-                style={{
-                  height: "120px",
-                  width: "auto",
-                  margin: "0 auto",
-                  filter: "drop-shadow(0 0 20px rgba(204,0,0,0.6))",
-                }}
-              />
-            </div>
-          ) : null}
-
+          <div
+            style={{
+              maxWidth: isMobile ? "100%" : "640px",
+              width: "100%",
+              pointerEvents: "auto",
+              textAlign: isMobile ? "center" : "left",
+            }}
+          >
           <motion.div variants={fadeUp} className="badge-neon" style={{ marginBottom: "24px", display: "inline-block" }}>
             ⚡ Manizales · Colombia
           </motion.div>
@@ -328,46 +250,7 @@ export function HomePageView({
               <HomeRegisterCta />
             </div>
           </motion.div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2, duration: 1 }}
-          style={{
-            position: "absolute",
-            bottom: "32px",
-            left: "50%",
-            x: "-50%",
-            display: isMobile ? "none" : "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          <motion.span
-            animate={{ opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            style={{
-              color: "var(--gray-dark)",
-              fontSize: "11px",
-              fontFamily: "var(--font-display), Impact, sans-serif",
-              letterSpacing: "3px",
-            }}
-          >
-            SCROLL
-          </motion.span>
-          <motion.div
-            animate={{ scaleY: [0, 1, 0], opacity: [0, 1, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-            style={{
-              width: "1px",
-              height: "40px",
-              background: "linear-gradient(var(--red), transparent)",
-              transformOrigin: "top",
-              boxShadow: "var(--glow-sm)",
-            }}
-          />
+          </div>
         </motion.div>
       </section>
 

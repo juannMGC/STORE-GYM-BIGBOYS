@@ -964,3 +964,22 @@ video {
 .tienda-filter-scroll::-webkit-scrollbar {
   display: none;
 }
+
+/* Logo 3D hero — loaders / hints */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse-height {
+  0%,
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scaleY(0.5);
+    opacity: 0.5;
+  }
+}
