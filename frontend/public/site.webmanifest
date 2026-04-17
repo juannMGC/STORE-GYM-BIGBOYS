@@ -8,14 +8,14 @@
   "theme_color": "#d91920",
   "icons": [
     {
-      "src": "/brand/logo-bigboys.jpg",
+      "src": "/brand/logo-BigBoysGYM.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png"
     },
     {
-      "src": "/brand/logo-bigboys.jpg",
+      "src": "/brand/logo-BigBoysGYM.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png"
     }
   ]
 }

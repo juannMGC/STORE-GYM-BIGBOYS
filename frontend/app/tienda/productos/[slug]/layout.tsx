@@ -57,7 +57,7 @@ export async function generateMetadata({
   const description =
     (typeof producto.description === "string" && producto.description.trim()) ||
     `${producto.title} disponible en Big Boys Gym. Calidad premium para tu entrenamiento en Manizales.`;
-  const imageUrl = producto.images?.[0]?.url ?? "/brand/logo-bigboys.jpg";
+  const imageUrl = producto.images?.[0]?.url ?? "/brand/logo-BigBoysGYM.png";
   const precio =
     typeof producto.price === "number"
       ? producto.price.toLocaleString("es-CO")

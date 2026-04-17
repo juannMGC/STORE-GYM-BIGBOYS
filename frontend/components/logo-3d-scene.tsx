@@ -339,6 +339,9 @@ export function Logo3DScene({
           alpha: true,
           powerPreference: "high-performance",
         }}
+        onCreated={({ gl }) => {
+          gl.shadowMap.type = THREE.PCFShadowMap;
+        }}
       >
         <Suspense fallback={<Loader />}>
           <Scene mouseX={mouseX} mouseY={mouseY} scrollProgress={scrollProgress} />

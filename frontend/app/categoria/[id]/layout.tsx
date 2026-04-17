@@ -50,7 +50,7 @@ export async function generateMetadata({
     const description =
       categoria.description?.trim() ||
       `Explorá todos los productos de ${categoria.name} en Big Boys Gym. Manizales, Colombia.`;
-    const imageUrl = categoria.imageUrl?.trim() || "/brand/logo-bigboys.jpg";
+    const imageUrl = categoria.imageUrl?.trim() || "/brand/logo-BigBoysGYM.png";
     const pageUrl = `${SITE}/categoria/${encodeURIComponent(id)}`;
 
     return {

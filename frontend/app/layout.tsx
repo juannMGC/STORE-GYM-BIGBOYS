@@ -49,8 +49,8 @@ export const metadata: Metadata = {
       { url: "/favicon.ico", sizes: "any" },
       { url: "/favicon.svg", type: "image/svg+xml" },
       {
-        url: "/brand/logo-bigboys.jpg",
-        type: "image/jpeg",
+        url: "/brand/logo-BigBoysGYM.png",
+        type: "image/png",
       },
       {
         url: "/favicon-32x32.png",
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
         type: "image/png",
       },
     ],
-    shortcut: "/brand/logo-bigboys.jpg",
+    shortcut: "/brand/logo-BigBoysGYM.png",
   },
   manifest: "/site.webmanifest",
   openGraph: {
@@ -80,7 +80,7 @@ export const metadata: Metadata = {
     siteName: "Big Boys Gym",
     images: [
       {
-        url: "/brand/logo-bigboys.jpg",
+        url: "/brand/logo-BigBoysGYM.png",
         width: 400,
         height: 400,
         alt: "Big Boys Gym Logo",
@@ -93,7 +93,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Big Boys Gym · Tienda Oficial",
     description: "Suplementación y ropa deportiva.",
-    images: ["/brand/logo-bigboys.jpg"],
+    images: ["/brand/logo-BigBoysGYM.png"],
   },
   robots: {
     index: true,

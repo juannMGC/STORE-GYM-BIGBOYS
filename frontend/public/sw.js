@@ -44,7 +44,7 @@ self.addEventListener("push", function (event) {
         url: "/tienda",
         tag: "bigboys",
         notifType: "PROMO",
-        icon: "/brand/logo-bigboys.jpg",
+        icon: "/brand/logo-BigBoysGYM.png",
       };
       var data = defaults;
       if (event.data) {
@@ -72,8 +72,8 @@ self.addEventListener("push", function (event) {
 
       var notificationOptions = {
         body: body,
-        icon: data.icon || "/brand/logo-bigboys.jpg",
-        badge: "/brand/logo-bigboys.jpg",
+        icon: data.icon || "/brand/logo-BigBoysGYM.png",
+        badge: "/brand/logo-BigBoysGYM.png",
         tag: data.tag || notif.id,
         data: { url: url },
         vibrate: [200, 100, 200],

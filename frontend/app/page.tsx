@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     url: "https://store-gym-bigboys.vercel.app",
     images: [
       {
-        url: "/brand/logo-bigboys.jpg",
+        url: "/brand/logo-BigBoysGYM.png",
         width: 400,
         height: 400,
         alt: "Big Boys Gym",

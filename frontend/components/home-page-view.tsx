@@ -565,7 +565,7 @@ export function HomePageView({
         />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/brand/logo-BigBoysGYM.jpg"
+          src="/brand/logo-BigBoysGYM.png"
           alt=""
           style={{
             position: "absolute",
