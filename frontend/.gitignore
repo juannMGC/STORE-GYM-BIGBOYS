@@ -41,3 +41,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Assets pesados — alojados en GitHub Releases
+public/models/*.glb
+public/models/*.gltf
+public/models/*.bin
+public/videos/*.mp4
+public/videos/*.webm

@@ -13,11 +13,12 @@ import {
   useProgress,
 } from "@react-three/drei";
 import * as THREE from "three";
+import { ASSETS } from "@/lib/assets";
 
-const MODEL_URL = "/models/logo-BigBoysGYM-v01.glb";
+const MODEL_URL = ASSETS.models.logo3D;
 
 function Loader() {
-  const { progress } = useProgress();
+  const { progress, active, errors } = useProgress();
   return (
     <Html center>
       <div
@@ -26,6 +27,7 @@ function Loader() {
           flexDirection: "column",
           alignItems: "center",
           gap: "16px",
+          minWidth: "200px",
         }}
       >
         <div
@@ -33,21 +35,61 @@ function Loader() {
             width: "60px",
             height: "60px",
             borderRadius: "50%",
-            border: "3px solid rgba(204,0,0,0.3)",
+            border: "3px solid rgba(204,0,0,0.2)",
             borderTopColor: "#CC0000",
             animation: "spin 1s linear infinite",
           }}
         />
-        <span
+        <div
           style={{
-            fontFamily: "monospace",
-            color: "#CC0000",
-            fontSize: "12px",
-            letterSpacing: "4px",
+            width: "180px",
+            height: "3px",
+            background: "rgba(255,255,255,0.1)",
+            borderRadius: "2px",
+            overflow: "hidden",
           }}
         >
-          {Math.round(progress)}%
-        </span>
+          <div
+            style={{
+              height: "100%",
+              width: `${progress}%`,
+              background: "linear-gradient(90deg, #8B0000, #FF0000)",
+              boxShadow: "0 0 8px #FF0000",
+              transition: "width 0.3s ease",
+              borderRadius: "2px",
+            }}
+          />
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "4px",
+          }}
+        >
+          <span
+            style={{
+              color: "#CC0000",
+              fontSize: "20px",
+              fontFamily: "monospace",
+              fontWeight: "bold",
+              letterSpacing: "2px",
+            }}
+          >
+            {Math.round(progress)}%
+          </span>
+          <span
+            style={{
+              color: "rgba(255,255,255,0.3)",
+              fontSize: "10px",
+              letterSpacing: "4px",
+              textTransform: "uppercase",
+            }}
+          >
+            {active ? "Cargando modelo 3D..." : errors.length > 0 ? "⚠️ Error al cargar" : "Listo"}
+          </span>
+        </div>
       </div>
     </Html>
   );
