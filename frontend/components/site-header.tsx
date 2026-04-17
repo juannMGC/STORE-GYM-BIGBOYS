@@ -14,6 +14,8 @@ const NAV_LINKS = [
   { href: "/tienda", label: "Tienda" },
 ] as const;
 
+const MotionLink = motion(Link);
+
 function initials(name: string): string {
   return name
     .split(" ")
@@ -154,60 +156,100 @@ export function SiteHeader() {
             gap: "12px",
           }}
         >
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} style={{ flexShrink: 0 }}>
-            <Link
-              href="/"
-              onClick={() => setMenuOpen(false)}
-              className="header-brand-link"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                textDecoration: "none",
-                minWidth: 0,
+          <MotionLink
+            href="/"
+            onClick={() => setMenuOpen(false)}
+            className="header-brand-link"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              textDecoration: "none",
+              flexShrink: 0,
+              minWidth: 0,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <motion.img
+              src="/brand/logo-BigBoysGYM.png"
+              alt="Big Boys Gym"
+              whileHover={{
+                filter:
+                  "drop-shadow(0 0 16px rgba(204,0,0,0.9)) " +
+                  "drop-shadow(0 0 32px rgba(204,0,0,0.4))",
+                scale: 1.1,
+                rotateY: 15,
               }}
+              animate={{
+                filter: [
+                  "drop-shadow(0 0 6px rgba(204,0,0,0.4))",
+                  "drop-shadow(0 0 12px rgba(204,0,0,0.7))",
+                  "drop-shadow(0 0 6px rgba(204,0,0,0.4))",
+                ],
+              }}
+              transition={{
+                filter: {
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                },
+                scale: { duration: 0.2 },
+                rotateY: { duration: 0.3 },
+              }}
+              style={{
+                height: "48px",
+                width: "auto",
+                maxWidth: "min(140px, 38vw)",
+                objectFit: "contain",
+              }}
+            />
+            <motion.div
+              className="hide-mobile"
+              whileHover={{
+                x: 4,
+                transition: { duration: 0.2 },
+              }}
+              style={{ display: "flex", flexDirection: "column", minWidth: 0 }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <motion.img
-                src="/brand/logo-BigBoysGYM.jpg"
-                alt="Big Boys Gym"
-                whileHover={{ filter: "drop-shadow(0 0 12px rgba(204,0,0,0.9))" }}
+              <motion.div
                 style={{
-                  height: "44px",
-                  width: "auto",
-                  maxWidth: "min(140px, 38vw)",
-                  objectFit: "contain",
-                  filter: "drop-shadow(0 0 6px rgba(204,0,0,0.5))",
+                  fontFamily: "var(--font-display), Impact, sans-serif",
+                  fontSize: "16px",
+                  color: "#ffffff",
+                  letterSpacing: "3px",
+                  lineHeight: 1,
+                  textTransform: "uppercase",
                 }}
-              />
-              <div className="hide-mobile" style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                <span
-                  style={{
-                    fontFamily: "var(--font-display), Impact, sans-serif",
-                    fontSize: "16px",
-                    color: "#ffffff",
-                    letterSpacing: "3px",
-                    lineHeight: 1,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  BIG BOYS
-                </span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-display), Impact, sans-serif",
-                    fontSize: "12px",
-                    color: "#CC0000",
-                    letterSpacing: "5px",
-                    textTransform: "uppercase",
-                    textShadow: "0 0 8px rgba(204,0,0,0.6)",
-                  }}
-                >
-                  GYM
-                </span>
-              </div>
-            </Link>
-          </motion.div>
+              >
+                BIG BOYS
+              </motion.div>
+              <motion.div
+                animate={{
+                  textShadow: [
+                    "0 0 8px rgba(204,0,0,0.6)",
+                    "0 0 16px rgba(204,0,0,0.9)",
+                    "0 0 8px rgba(204,0,0,0.6)",
+                  ],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                style={{
+                  fontFamily: "var(--font-display), Impact, sans-serif",
+                  fontSize: "12px",
+                  color: "#CC0000",
+                  letterSpacing: "5px",
+                  textTransform: "uppercase",
+                }}
+              >
+                GYM
+              </motion.div>
+            </motion.div>
+          </MotionLink>
 
           <nav
             className="nav-desktop header-desktop-nav"
@@ -509,16 +551,61 @@ export function SiteHeader() {
           >
             <div
               style={{
-                padding: "0 20px 24px",
+                padding: "0 24px 32px",
                 borderBottom: "1px solid rgba(204,0,0,0.2)",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/brand/logo-BigBoysGYM.jpg"
-                alt=""
-                style={{ height: "56px", filter: "drop-shadow(0 0 10px rgba(204,0,0,0.5))" }}
+              <motion.img
+                src="/brand/logo-BigBoysGYM.png"
+                alt="Big Boys Gym"
+                animate={{
+                  filter: [
+                    "drop-shadow(0 0 8px rgba(204,0,0,0.4))",
+                    "drop-shadow(0 0 16px rgba(204,0,0,0.7))",
+                    "drop-shadow(0 0 8px rgba(204,0,0,0.4))",
+                  ],
+                }}
+                transition={{
+                  duration: 2.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                style={{
+                  height: "60px",
+                  width: "auto",
+                  objectFit: "contain",
+                }}
               />
+              <div>
+                <div
+                  style={{
+                    fontFamily: "var(--font-display), Impact, sans-serif",
+                    fontSize: "18px",
+                    color: "#ffffff",
+                    letterSpacing: "3px",
+                    textTransform: "uppercase",
+                    lineHeight: 1,
+                  }}
+                >
+                  BIG BOYS
+                </div>
+                <div
+                  style={{
+                    fontFamily: "var(--font-display), Impact, sans-serif",
+                    fontSize: "13px",
+                    color: "#CC0000",
+                    letterSpacing: "5px",
+                    textTransform: "uppercase",
+                    textShadow: "0 0 8px rgba(204,0,0,0.6)",
+                  }}
+                >
+                  GYM
+                </div>
+              </div>
             </div>
 
             <nav style={{ flex: 1, padding: "20px", display: "flex", flexDirection: "column", gap: "6px" }}>

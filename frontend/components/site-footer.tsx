@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { LOGIN_ENTRY_HREF } from "@/lib/auth-routes";
 import { useAuth } from "@/lib/auth-context";
 import { INSTAGRAM_PROFILE_URL } from "@/data/instagram-gallery";
@@ -47,20 +48,67 @@ export function SiteFooter() {
         }}
       >
         <div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/logo-BigBoysGYM.jpg"
-            alt="Big Boys Gym"
+          <motion.div
+            whileHover={{
+              scale: 1.05,
+              transition: { duration: 0.3 },
+            }}
             style={{
-              height: "80px",
-              width: "auto",
-              objectFit: "contain",
-              filter: "drop-shadow(0 0 12px rgba(204,0,0,0.5))",
+              display: "inline-block",
               marginBottom: "16px",
             }}
-          />
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", lineHeight: 1.6 }}>
-            El gym más intenso de Manizales. Transformamos cuerpos y vidas. 💪
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <motion.img
+              src="/brand/logo-BigBoysGYM.png"
+              alt="Big Boys Gym"
+              animate={{
+                filter: [
+                  "drop-shadow(0 0 10px rgba(204,0,0,0.3))",
+                  "drop-shadow(0 0 20px rgba(204,0,0,0.6))",
+                  "drop-shadow(0 0 10px rgba(204,0,0,0.3))",
+                ],
+                y: [0, -4, 0],
+              }}
+              whileHover={{
+                filter:
+                  "drop-shadow(0 0 24px rgba(204,0,0,0.9)) " +
+                  "drop-shadow(0 0 48px rgba(204,0,0,0.4))",
+                rotateY: 10,
+                scale: 1.08,
+              }}
+              transition={{
+                filter: {
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                },
+                y: {
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                },
+                rotateY: { duration: 0.3 },
+                scale: { duration: 0.3 },
+              }}
+              style={{
+                height: "80px",
+                width: "auto",
+                objectFit: "contain",
+              }}
+            />
+          </motion.div>
+          <p
+            style={{
+              color: "rgba(255,255,255,0.4)",
+              fontSize: "13px",
+              lineHeight: 1.7,
+              marginBottom: "16px",
+            }}
+          >
+            El gym más intenso de Manizales.
+            <br />
+            Transformamos cuerpos y vidas. 💪
           </p>
         </div>
 
