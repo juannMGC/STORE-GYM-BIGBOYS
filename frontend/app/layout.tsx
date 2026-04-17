@@ -8,10 +8,8 @@ import { WhatsAppButton } from "@/components/whatsapp-button";
 import { PushPrompt } from "@/components/push-prompt";
 import { ConsentBanner } from "@/components/consent-banner";
 import { CustomCursor } from "@/components/custom-cursor";
+import { PageTransition } from "@/components/page-transition";
 import { ParticlesBg } from "@/components/particles-bg";
-import { RippleDelegate } from "@/components/ripple-delegate";
-import { ScrollProgress } from "@/components/scroll-progress";
-import { ScrollRevealProvider } from "@/components/scroll-reveal-provider";
 
 const blackOps = Black_Ops_One({
   weight: "400",
@@ -133,11 +131,10 @@ export default function RootLayout({
           aria-hidden
         />
         <Providers>
-          <RippleDelegate />
-          <ScrollRevealProvider />
-          <ScrollProgress />
           <SiteHeader />
-          <div className="main-shell">{children}</div>
+          <div className="main-shell">
+            <PageTransition>{children}</PageTransition>
+          </div>
           <ConditionalSiteFooter />
           <WhatsAppButton />
           <PushPrompt />

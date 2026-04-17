@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -11,6 +12,7 @@ import {
   type StoredNotificationType,
 } from "@/lib/notifications-storage";
 import { usePushNotifications } from "@/lib/use-push-notifications";
+import { fadeUp, staggerContainer } from "@/lib/motion";
 
 function normalizeNotifType(raw: string | undefined): StoredNotificationType {
   if (raw === "ORDER" || raw === "PROMO") return raw;
@@ -251,9 +253,11 @@ export function NotificationBell() {
 
   return (
     <div ref={dropdownRef} style={{ position: "relative" }}>
-      <button
+      <motion.button
         type="button"
         onClick={handleToggleOpen}
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.94 }}
         style={{
           position: "relative",
           width: "40px",
@@ -265,7 +269,6 @@ export function NotificationBell() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          transition: "all 0.2s",
           color: "#e4e4e7",
         }}
         onMouseEnter={(e) => {
@@ -281,64 +284,95 @@ export function NotificationBell() {
         aria-label="Notificaciones"
         aria-expanded={open}
       >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
+        <motion.div
+          animate={
+            unreadCount > 0 ? { rotate: [0, -15, 15, -10, 10, -5, 5, 0] } : { rotate: 0 }
+          }
+          transition={
+            unreadCount > 0
+              ? { duration: 0.8, repeat: Infinity, repeatDelay: 5 }
+              : { duration: 0.2 }
+          }
         >
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-        </svg>
-        {unreadCount > 0 && (
-          <span
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+        </motion.div>
+        <AnimatePresence>
+          {unreadCount > 0 && (
+            <motion.span
+              key={unreadCount}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0 }}
+              transition={{
+                type: "spring",
+                stiffness: 500,
+                damping: 15,
+              }}
+              style={{
+                position: "absolute",
+                top: "-4px",
+                right: "-4px",
+                background: "#CC0000",
+                color: "white",
+                fontSize: "10px",
+                fontWeight: 700,
+                fontFamily: "var(--font-display)",
+                minWidth: "18px",
+                height: "18px",
+                borderRadius: "9px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "0 4px",
+                border: "2px solid #000000",
+              }}
+            >
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </motion.button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 25,
+            }}
             style={{
               position: "absolute",
-              top: "-4px",
-              right: "-4px",
-              background: "#d91920",
-              color: "white",
-              fontSize: "10px",
-              fontWeight: 700,
-              fontFamily: "var(--font-display)",
-              minWidth: "18px",
-              height: "18px",
-              borderRadius: "9px",
+              top: "calc(100% + 12px)",
+              right: 0,
+              width: "min(320px, calc(100vw - 24px))",
+              background: "rgba(10,10,10,0.98)",
+              border: "1px solid rgba(204,0,0,0.3)",
+              boxShadow: "0 0 30px rgba(204,0,0,0.2), 4px 4px 0px rgba(204,0,0,0.35)",
+              backdropFilter: "blur(20px)",
+              zIndex: 200,
+              maxHeight: "min(420px, 70vh)",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "0 4px",
-              border: "2px solid #050505",
-              animation: "notification-badge-pop 0.3s ease",
+              flexDirection: "column",
+              overflow: "hidden",
             }}
           >
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        )}
-      </button>
-
-      {open && (
-        <div
-          style={{
-            position: "absolute",
-            top: "calc(100% + 12px)",
-            right: 0,
-            width: "min(320px, calc(100vw - 24px))",
-            background: "#111111",
-            border: "1px solid #2a2a2a",
-            boxShadow: "4px 4px 0px #d91920",
-            zIndex: 200,
-            maxHeight: "min(420px, 70vh)",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-          }}
-        >
           <div
             style={{
               display: "flex",
@@ -422,11 +456,23 @@ export function NotificationBell() {
                 )}
               </div>
             ) : (
-              notifications.map((notif) => (
-                <div
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+                style={{ display: "flex", flexDirection: "column" }}
+              >
+              {notifications.map((notif) => (
+                <motion.div
                   key={notif.id}
                   role="button"
                   tabIndex={0}
+                  variants={fadeUp}
+                  layout
+                  whileHover={{
+                    background: "rgba(204,0,0,0.1)",
+                    x: 4,
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
@@ -439,7 +485,6 @@ export function NotificationBell() {
                     padding: "12px 16px",
                     borderBottom: "1px solid #1a1a1a",
                     background: notif.read ? "transparent" : "#0d0d0d",
-                    transition: "background 0.15s",
                     cursor: "pointer",
                   }}
                   onClick={() => openNotif(notif)}
@@ -527,8 +572,9 @@ export function NotificationBell() {
                       ×
                     </button>
                   </div>
-                </div>
-              ))
+                </motion.div>
+              ))}
+              </motion.div>
             )}
           </div>
 
@@ -558,16 +604,9 @@ export function NotificationBell() {
               </Link>
             </div>
           )}
-        </div>
-      )}
-
-      <style>{`
-        @keyframes notification-badge-pop {
-          0% { transform: scale(0); }
-          70% { transform: scale(1.2); }
-          100% { transform: scale(1); }
-        }
-      `}</style>
+        </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

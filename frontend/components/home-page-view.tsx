@@ -1,12 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { animate, motion, useInView, useScroll, useTransform } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { BrandsSlider } from "@/components/brands-slider";
 import { HomeRegisterCta } from "@/components/home-register-cta";
-import { TiltCard } from "@/components/tilt-card";
-import { useCounter } from "@/hooks/use-counter";
-import { useMagnetic } from "@/hooks/use-magnetic";
-import { useParallax } from "@/hooks/use-parallax";
+import {
+  fadeLeft,
+  fadeUp,
+  floatAnimation,
+  glitchVariants,
+  scaleIn,
+  staggerContainer,
+  staggerSlow,
+} from "@/lib/motion";
 import { useTypewriter } from "@/hooks/use-typewriter";
 import type { ProductListItem } from "@/lib/types";
 
@@ -29,64 +36,43 @@ const TYPEWRITER_TEXTS = [
   "Entrená como campeón. Viví como Big Boy.",
 ];
 
-function StatBlock({
-  icon,
+function AnimatedCounter({
   end,
-  suffix,
-  label,
-  delay,
+  suffix = "",
+  duration = 2,
 }: {
-  icon: string;
   end: number;
-  suffix: "+" | "%" | "";
-  label: string;
-  delay: string;
+  suffix?: string;
+  duration?: number;
 }) {
-  const { count, ref } = useCounter(end, 2200);
-  const display =
-    suffix === "%" ? `${count}%` : suffix === "+" ? `${count}+` : `${count}`;
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true, amount: 0.35 });
+  const [displayed, setDisplayed] = useState("0");
+
+  useEffect(() => {
+    if (!isInView) return;
+    const controls = animate(0, end, {
+      duration,
+      ease: "easeOut",
+      onUpdate: (v) => setDisplayed(String(Math.round(v))),
+    });
+    return () => controls.stop();
+  }, [isInView, end, duration]);
 
   return (
-    <div ref={ref} data-reveal data-reveal-delay={delay}>
-      <TiltCard
-        className="card-3d glass"
-        intensity={7}
-        style={{
-          padding: "32px 24px",
-          textAlign: "center",
-          cursor: "default",
-          borderRadius: "4px",
-        }}
-      >
-        <span style={{ fontSize: "40px", display: "block", marginBottom: "12px" }}>{icon}</span>
-        <p
-          style={{
-            fontFamily: "var(--font-display), Impact, sans-serif",
-            fontSize: "clamp(32px, 6vw, 48px)",
-            color: "var(--red-neon)",
-            textShadow: "var(--glow-red)",
-            lineHeight: 1,
-            marginBottom: "8px",
-            letterSpacing: "2px",
-          }}
-        >
-          {display}
-        </p>
-        <p
-          style={{
-            color: "rgba(255,255,255,0.5)",
-            fontSize: "13px",
-            fontFamily: "var(--font-display), Impact, sans-serif",
-            letterSpacing: "2px",
-            textTransform: "uppercase",
-          }}
-        >
-          {label}
-        </p>
-      </TiltCard>
-    </div>
+    <span ref={ref}>
+      {displayed}
+      {suffix}
+    </span>
   );
 }
+
+const STATS = [
+  { icon: "👥", end: 500, suffix: "+" as const, label: "Miembros activos" },
+  { icon: "🏆", end: 10, suffix: "+" as const, label: "Años de experiencia" },
+  { icon: "💪", end: 4, suffix: "" as const, label: "Planes de entrenamiento" },
+  { icon: "⚡", end: 100, suffix: "%" as const, label: "Compromiso contigo" },
+];
 
 export function HomePageView({
   trainings,
@@ -95,15 +81,23 @@ export function HomePageView({
   trainings: TrainingCard[];
   products: ProductListItem[];
 }) {
-  const heroParallax = useParallax(0.12);
+  const heroRef = useRef<HTMLElement>(null);
   const subtitle = useTypewriter(TYPEWRITER_TEXTS, 72, 2200);
 
-  const magnetTienda = useMagnetic(0.28);
-  const magnetEntren = useMagnetic(0.28);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+
+  const logoY = useTransform(scrollYProgress, [0, 1], [0, 200]);
+  const logoOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+  const logoScale = useTransform(scrollYProgress, [0, 1], [1, 1.3]);
+  const textY = useTransform(scrollYProgress, [0, 1], [0, -100]);
 
   return (
     <main style={{ position: "relative", zIndex: 1, flex: 1 }}>
       <section
+        ref={heroRef}
         style={{
           minHeight: "100vh",
           display: "flex",
@@ -116,7 +110,6 @@ export function HomePageView({
           style={{
             position: "absolute",
             inset: 0,
-            transform: `translateY(${heroParallax * 0.4}px)`,
             background: `
               radial-gradient(ellipse at 20% 50%, rgba(204,0,0,0.15) 0%, transparent 60%),
               radial-gradient(ellipse at 80% 50%, rgba(139,0,0,0.1) 0%, transparent 60%),
@@ -124,26 +117,27 @@ export function HomePageView({
           }}
         />
 
-        <div
+        <motion.div
           style={{
             position: "absolute",
             right: "-5%",
             top: "50%",
-            transform: `translateY(calc(-50% + ${heroParallax * 0.2}px))`,
+            y: "-50%",
             width: "55%",
             opacity: 0.12,
             filter: "blur(1px)",
-            animation: "float 8s ease-in-out infinite",
             pointerEvents: "none",
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/logo-BigBoysGYM.jpg"
-            alt=""
-            style={{ width: "100%", filter: "drop-shadow(0 0 60px rgba(204,0,0,0.8))" }}
-          />
-        </div>
+          <motion.div animate={floatAnimation.animate} transition={floatAnimation.transition}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/logo-BigBoysGYM.jpg"
+              alt=""
+              style={{ width: "100%", filter: "drop-shadow(0 0 60px rgba(204,0,0,0.8))" }}
+            />
+          </motion.div>
+        </motion.div>
 
         <div
           className="home-hero-logo-foreground"
@@ -151,30 +145,44 @@ export function HomePageView({
             position: "absolute",
             right: "5%",
             top: "50%",
-            transform: `translateY(calc(-50% + ${heroParallax * 0.35}px))`,
+            transform: "translateY(-50%)",
             width: "min(40%, 420px)",
-            animation: "float 6s ease-in-out infinite",
-            filter: "drop-shadow(0 0 30px rgba(204,0,0,0.5))",
             zIndex: 2,
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo-BigBoysGYM.jpg" alt="" style={{ width: "100%" }} />
+          <motion.div
+            style={{
+              y: logoY,
+              opacity: logoOpacity,
+              scale: logoScale,
+              filter: "drop-shadow(0 0 30px rgba(204,0,0,0.5))",
+            }}
+          >
+            <motion.div animate={floatAnimation.animate} transition={floatAnimation.transition}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/logo-BigBoysGYM.jpg" alt="" style={{ width: "100%" }} />
+            </motion.div>
+          </motion.div>
         </div>
 
-        <div
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
           style={{
             position: "relative",
             zIndex: 3,
             maxWidth: "640px",
             padding: "0 clamp(16px, 4vw, 48px)",
+            y: textY,
           }}
         >
-          <div className="badge-neon" style={{ marginBottom: "24px" }}>
+          <motion.div variants={fadeUp} className="badge-neon" style={{ marginBottom: "24px" }}>
             ⚡ Manizales · Colombia
-          </div>
+          </motion.div>
 
-          <h1
+          <motion.h1
+            variants={fadeLeft}
             style={{
               fontFamily: "var(--font-display), Impact, sans-serif",
               fontSize: "clamp(48px, 8vw, 96px)",
@@ -183,12 +191,15 @@ export function HomePageView({
               letterSpacing: "4px",
               lineHeight: 1,
               marginBottom: "8px",
-              animation: "slide-in-left 0.8s ease forwards",
             }}
           >
             BIG BOYS
-          </h1>
-          <h1
+          </motion.h1>
+
+          <motion.h1
+            variants={glitchVariants}
+            initial="normal"
+            animate="glitch"
             className="glitch"
             data-text="GYM"
             style={{
@@ -204,11 +215,18 @@ export function HomePageView({
             }}
           >
             GYM
-          </h1>
+          </motion.h1>
 
-          <div className="neon-line" style={{ marginBottom: "24px", width: "120px" }} />
+          <motion.div
+            className="neon-line"
+            initial={{ width: 0 }}
+            animate={{ width: "120px" }}
+            transition={{ duration: 1, delay: 0.8 }}
+            style={{ marginBottom: "24px" }}
+          />
 
-          <p
+          <motion.p
+            variants={fadeUp}
             style={{
               color: "rgba(255,255,255,0.75)",
               fontSize: "18px",
@@ -216,62 +234,61 @@ export function HomePageView({
               marginBottom: "40px",
               fontFamily: "var(--font-body), system-ui, sans-serif",
               fontWeight: 500,
-              minHeight: "32px",
+              minHeight: "60px",
             }}
           >
             {subtitle}
-            <span
+            <motion.span
+              animate={{ opacity: [1, 0] }}
+              transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
               style={{
                 display: "inline-block",
                 borderRight: "2px solid #CC0000",
-                animation: "blink 1s step-end infinite",
                 marginLeft: "4px",
                 height: "1.1em",
                 verticalAlign: "text-bottom",
-                width: "2px",
+                width: "3px",
               }}
               aria-hidden
             />
-          </p>
+          </motion.p>
 
-          <div
-            style={{
-              display: "flex",
-              gap: "16px",
-              flexWrap: "wrap",
-              animation: "slide-up 0.8s 0.6s ease forwards",
-              opacity: 0,
-              animationFillMode: "forwards",
-            }}
+          <motion.div
+            variants={staggerContainer}
+            style={{ display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "center" }}
           >
-            <span ref={magnetTienda} style={{ display: "inline-block" }}>
-              <Link href="/tienda" className="btn-primary">
+            <motion.div variants={scaleIn} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
+              <Link href="/tienda" className="btn-primary" style={{ fontSize: "16px", padding: "18px 40px", display: "inline-block" }}>
                 🛍️ Ver tienda
               </Link>
-            </span>
-            <span ref={magnetEntren} style={{ display: "inline-block" }}>
-              <Link href="/entrenamientos" className="btn-outline">
+            </motion.div>
+            <motion.div variants={scaleIn} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
+              <Link href="/entrenamientos" className="btn-outline" style={{ fontSize: "16px", padding: "18px 40px", display: "inline-block" }}>
                 🏋️ Entrenamientos
               </Link>
-            </span>
+            </motion.div>
             <HomeRegisterCta />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
-        <div
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2, duration: 1 }}
           style={{
             position: "absolute",
             bottom: "32px",
             left: "50%",
-            transform: "translateX(-50%)",
+            x: "-50%",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             gap: "8px",
-            animation: "float 2s ease-in-out infinite",
           }}
         >
-          <span
+          <motion.span
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }}
             style={{
               color: "var(--gray-dark)",
               fontSize: "11px",
@@ -280,23 +297,28 @@ export function HomePageView({
             }}
           >
             SCROLL
-          </span>
-          <div
+          </motion.span>
+          <motion.div
+            animate={{ scaleY: [0, 1, 0], opacity: [0, 1, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
             style={{
               width: "1px",
               height: "40px",
               background: "linear-gradient(var(--red), transparent)",
+              transformOrigin: "top",
               boxShadow: "var(--glow-sm)",
             }}
           />
-        </div>
+        </motion.div>
       </section>
 
-      <section
-        data-reveal
+      <motion.section
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-80px" }}
         style={{
           padding: "clamp(48px, 8vw, 80px) 24px",
-          position: "relative",
           borderTop: "1px solid rgba(204,0,0,0.2)",
           borderBottom: "1px solid rgba(204,0,0,0.2)",
           background: "linear-gradient(90deg, rgba(204,0,0,0.05), transparent, rgba(204,0,0,0.05))",
@@ -311,18 +333,69 @@ export function HomePageView({
             gap: "24px",
           }}
         >
-          <StatBlock icon="👥" end={500} suffix="+" label="Miembros activos" delay="1" />
-          <StatBlock icon="🏆" end={10} suffix="+" label="Años de experiencia" delay="2" />
-          <StatBlock icon="💪" end={4} suffix="" label="Planes de entrenamiento" delay="3" />
-          <StatBlock icon="⚡" end={100} suffix="%" label="Compromiso contigo" delay="4" />
+          {STATS.map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              variants={fadeUp}
+              custom={i}
+              whileHover={{
+                y: -12,
+                boxShadow: "0 0 30px rgba(204,0,0,0.3), 0 20px 40px rgba(0,0,0,0.5)",
+                borderColor: "rgba(204,0,0,0.5)",
+              }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="glass card-3d"
+              style={{
+                padding: "32px 24px",
+                textAlign: "center",
+                cursor: "default",
+                borderRadius: "4px",
+              }}
+            >
+              <motion.span
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 + i }}
+                style={{ fontSize: "40px", display: "block", marginBottom: "12px" }}
+              >
+                {stat.icon}
+              </motion.span>
+              <p
+                style={{
+                  fontFamily: "var(--font-display), Impact, sans-serif",
+                  fontSize: "clamp(32px, 6vw, 48px)",
+                  color: "var(--red-neon)",
+                  textShadow: "var(--glow-red)",
+                  lineHeight: 1,
+                  marginBottom: "8px",
+                  letterSpacing: "2px",
+                }}
+              >
+                <AnimatedCounter end={stat.end} suffix={stat.suffix} duration={2.2} />
+              </p>
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.5)",
+                  fontSize: "13px",
+                  fontFamily: "var(--font-display), Impact, sans-serif",
+                  letterSpacing: "2px",
+                  textTransform: "uppercase",
+                }}
+              >
+                {stat.label}
+              </p>
+            </motion.div>
+          ))}
         </div>
-      </section>
+      </motion.section>
 
-      <section
-        data-reveal="left"
-        style={{ padding: "clamp(64px, 10vw, 100px) 24px", maxWidth: "1200px", margin: "0 auto" }}
-      >
-        <div style={{ textAlign: "center", marginBottom: "48px" }}>
+      <section style={{ padding: "clamp(64px, 10vw, 100px) 24px", maxWidth: "1200px", margin: "0 auto" }}>
+        <motion.div
+          initial={{ opacity: 0, x: -40 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          style={{ textAlign: "center", marginBottom: "48px" }}
+        >
           <div className="badge-neon" style={{ marginBottom: "16px" }}>
             Nuestros planes
           </div>
@@ -338,14 +411,18 @@ export function HomePageView({
             <span style={{ color: "var(--red-neon)", textShadow: "var(--glow-red)" }}>AMIENTOS</span>
           </h2>
           <div className="neon-line" style={{ width: "80px", margin: "20px auto" }} />
-        </div>
+        </motion.div>
 
         {trainings.length === 0 ? (
           <p style={{ textAlign: "center", color: "rgba(255,255,255,0.45)" }}>
             Cargá el API para ver planes de entrenamiento.
           </p>
         ) : (
-          <div
+          <motion.div
+            variants={staggerSlow}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-40px" }}
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
@@ -353,11 +430,12 @@ export function HomePageView({
             }}
           >
             {trainings.map((t) => (
-              <div key={t.id} data-reveal>
+              <motion.div key={t.id} variants={fadeUp} whileHover={{ y: -8, transition: { type: "spring", stiffness: 400 } }}>
                 <Link href={`/entrenamientos/${t.slug}`} style={{ textDecoration: "none", color: "inherit" }}>
-                  <TiltCard
+                  <motion.div
                     className="card-3d glass"
-                    intensity={8}
+                    whileHover={{ scale: 1.02, boxShadow: "0 0 28px rgba(204,0,0,0.35)" }}
+                    transition={{ type: "spring", stiffness: 300 }}
                     style={{
                       padding: "24px",
                       minHeight: "220px",
@@ -374,9 +452,7 @@ export function HomePageView({
                     ) : null}
                     <span style={{ fontSize: "36px", marginBottom: "8px" }}>{t.icon ?? "🏋️"}</span>
                     <h3 style={{ fontSize: "18px", marginBottom: "8px", color: "#fff" }}>{t.name}</h3>
-                    <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "14px", flex: 1, lineHeight: 1.5 }}>
-                      {t.description}
-                    </p>
+                    <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "14px", flex: 1, lineHeight: 1.5 }}>{t.description}</p>
                     <p
                       style={{
                         marginTop: "16px",
@@ -386,26 +462,25 @@ export function HomePageView({
                       }}
                     >
                       ${Number(t.price).toLocaleString("es-CO")}{" "}
-                      <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px" }}>
-                        {t.priceLabel ?? "por mes"}
-                      </span>
+                      <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px" }}>{t.priceLabel ?? "por mes"}</span>
                     </p>
-                  </TiltCard>
+                  </motion.div>
                 </Link>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
 
         <div style={{ textAlign: "center", marginTop: "40px" }}>
-          <Link href="/entrenamientos" className="btn-outline">
-            Ver todos →
-          </Link>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} style={{ display: "inline-block" }}>
+            <Link href="/entrenamientos" className="btn-outline">
+              Ver todos →
+            </Link>
+          </motion.div>
         </div>
       </section>
 
       <section
-        data-reveal="right"
         style={{
           padding: "clamp(64px, 10vw, 100px) 24px",
           borderTop: "1px solid rgba(204,0,0,0.15)",
@@ -413,7 +488,12 @@ export function HomePageView({
         }}
       >
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "48px" }}>
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            style={{ textAlign: "center", marginBottom: "48px" }}
+          >
             <div className="badge-neon" style={{ marginBottom: "16px" }}>
               Tienda oficial
             </div>
@@ -425,18 +505,21 @@ export function HomePageView({
                 letterSpacing: "6px",
               }}
             >
-              PRODUCTOS{" "}
-              <span style={{ color: "var(--red-neon)", textShadow: "var(--glow-red)" }}>DESTACADOS</span>
+              PRODUCTOS <span style={{ color: "var(--red-neon)", textShadow: "var(--glow-red)" }}>DESTACADOS</span>
             </h2>
             <div className="neon-line" style={{ width: "80px", margin: "20px auto" }} />
-          </div>
+          </motion.div>
 
           {products.length === 0 ? (
             <p style={{ textAlign: "center", color: "rgba(255,255,255,0.45)" }}>
               No hay productos para mostrar.
             </p>
           ) : (
-            <div
+            <motion.div
+              variants={staggerSlow}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
@@ -447,11 +530,11 @@ export function HomePageView({
                 const img = p.images?.[0]?.url;
                 const slug = p.slug ?? p.id;
                 return (
-                  <div key={p.id} data-reveal>
+                  <motion.div key={p.id} variants={scaleIn} whileHover={{ y: -10 }} whileTap={{ scale: 0.98 }}>
                     <Link href={`/tienda/productos/${slug}`} style={{ textDecoration: "none", color: "inherit" }}>
-                      <TiltCard
+                      <motion.div
                         className="card-3d glass"
-                        intensity={7}
+                        layout
                         style={{
                           overflow: "hidden",
                           borderRadius: "4px",
@@ -460,21 +543,10 @@ export function HomePageView({
                           height: "100%",
                         }}
                       >
-                        <div
-                          style={{
-                            aspectRatio: "4/3",
-                            background: "#0a0a0a",
-                            position: "relative",
-                            overflow: "hidden",
-                          }}
-                        >
+                        <div style={{ aspectRatio: "4/3", background: "#0a0a0a", position: "relative", overflow: "hidden" }}>
                           {img ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={img}
-                              alt={p.title}
-                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            />
+                            <img src={img} alt={p.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                           ) : (
                             <div
                               style={{
@@ -491,9 +563,7 @@ export function HomePageView({
                           )}
                         </div>
                         <div style={{ padding: "16px 18px 20px", flex: 1 }}>
-                          <h3 style={{ fontSize: "15px", marginBottom: "8px", color: "#fff", lineHeight: 1.3 }}>
-                            {p.title}
-                          </h3>
+                          <h3 style={{ fontSize: "15px", marginBottom: "8px", color: "#fff", lineHeight: 1.3 }}>{p.title}</h3>
                           <p
                             style={{
                               fontFamily: "var(--font-display), Impact, sans-serif",
@@ -504,18 +574,20 @@ export function HomePageView({
                             ${Number(p.price).toLocaleString("es-CO")}
                           </p>
                         </div>
-                      </TiltCard>
+                      </motion.div>
                     </Link>
-                  </div>
+                  </motion.div>
                 );
               })}
-            </div>
+            </motion.div>
           )}
 
           <div style={{ textAlign: "center", marginTop: "40px" }}>
-            <Link href="/tienda" className="btn-primary">
-              Ir a la tienda
-            </Link>
+            <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.96 }} style={{ display: "inline-block" }}>
+              <Link href="/tienda" className="btn-primary">
+                Ir a la tienda
+              </Link>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -524,8 +596,11 @@ export function HomePageView({
         <BrandsSlider velocidad={25} pausarAlHover />
       </div>
 
-      <section
-        data-reveal="scale"
+      <motion.section
+        initial={{ opacity: 0, scale: 0.94 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
         style={{
           padding: "clamp(72px, 12vw, 100px) 24px",
           textAlign: "center",
@@ -567,9 +642,7 @@ export function HomePageView({
             }}
           >
             ¿LISTO PARA EL
-            <span style={{ color: "var(--red-neon)", textShadow: "var(--glow-red)", display: "block" }}>
-              SIGUIENTE NIVEL?
-            </span>
+            <span style={{ color: "var(--red-neon)", textShadow: "var(--glow-red)", display: "block" }}>SIGUIENTE NIVEL?</span>
           </h2>
           <p
             style={{
@@ -582,21 +655,25 @@ export function HomePageView({
             Unite al gym que forma campeones. 💪
           </p>
           <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/entrenamientos" className="btn-primary" style={{ fontSize: "16px", padding: "18px 40px" }}>
-              🏋️ Empezar ahora
-            </Link>
-            <a
-              href="https://wa.me/573171184925"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-outline"
-              style={{ fontSize: "16px", padding: "18px 40px" }}
-            >
-              💬 Hablar con un asesor
-            </a>
+            <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.95 }} style={{ display: "inline-block" }}>
+              <Link href="/entrenamientos" className="btn-primary" style={{ fontSize: "16px", padding: "18px 40px" }}>
+                🏋️ Empezar ahora
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.95 }} style={{ display: "inline-block" }}>
+              <a
+                href="https://wa.me/573171184925"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-outline"
+                style={{ fontSize: "16px", padding: "18px 40px" }}
+              >
+                💬 Hablar con un asesor
+              </a>
+            </motion.div>
           </div>
         </div>
-      </section>
+      </motion.section>
     </main>
   );
 }

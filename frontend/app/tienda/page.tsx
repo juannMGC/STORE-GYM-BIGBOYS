@@ -1,10 +1,10 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackButton } from "@/components/back-button";
-import { TiltCard } from "@/components/tilt-card";
 import { apiFetch } from "@/lib/api-client";
 import type { Category, ProductListItem, Size } from "@/lib/types";
 
@@ -441,11 +441,7 @@ export default function TiendaPage() {
   };
 
   return (
-    <div
-      className="tienda-page"
-      data-reveal
-      style={{ maxWidth: "1152px", margin: "0 auto", padding: "24px 16px 48px" }}
-    >
+    <div className="tienda-page" style={{ maxWidth: "1152px", margin: "0 auto", padding: "24px 16px 48px" }}>
       <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
         <BackButton href="/" label="← Inicio" />
       </div>
@@ -569,7 +565,9 @@ export default function TiendaPage() {
             ) : null}
           </div>
 
-          <div
+          <motion.div
+            layout
+            transition={{ type: "spring", stiffness: 300, damping: 28 }}
             style={{
               display: "flex",
               gap: "8px",
@@ -577,52 +575,58 @@ export default function TiendaPage() {
               marginBottom: "24px",
             }}
           >
-            <button
+            <motion.button
               type="button"
               onClick={() => setCategoriaActiva("")}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
               style={{
-                padding: "6px 16px",
-                border: `1px solid ${categoriaActiva === "" ? "var(--red)" : "var(--glass-border)"}`,
-                background: categoriaActiva === "" ? "var(--red)" : "transparent",
-                color: categoriaActiva === "" ? "white" : "#a1a1aa",
+                padding: "8px 20px",
+                border: `1px solid ${categoriaActiva === "" ? "var(--red)" : "rgba(255,255,255,0.08)"}`,
+                background: categoriaActiva === "" ? "var(--red)" : "rgba(255,255,255,0.03)",
+                color: "#ffffff",
                 cursor: "pointer",
                 fontFamily: "var(--font-display)",
                 fontSize: "12px",
                 letterSpacing: "2px",
                 textTransform: "uppercase",
-                transition: "all 0.15s",
               }}
             >
               Todas
-            </button>
+            </motion.button>
             {categoriesLoading ? (
               <span style={{ alignSelf: "center", fontSize: "14px", color: "rgba(255,255,255,0.45)" }}>
                 Cargando categorías…
               </span>
             ) : (
               categories.map((cat) => (
-                <button
+                <motion.button
                   key={cat.id}
                   type="button"
                   onClick={() => setCategoriaActiva(categoriaActiva === cat.id ? "" : cat.id)}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  layout
                   style={{
-                    padding: "6px 16px",
-                    border: `1px solid ${categoriaActiva === cat.id ? "var(--red)" : "var(--glass-border)"}`,
-                    background: categoriaActiva === cat.id ? "var(--red)" : "transparent",
-                    color: categoriaActiva === cat.id ? "white" : "#a1a1aa",
+                    padding: "8px 20px",
+                    border: `1px solid ${
+                      categoriaActiva === cat.id ? "var(--red)" : "rgba(255,255,255,0.08)"
+                    }`,
+                    background:
+                      categoriaActiva === cat.id ? "var(--red)" : "rgba(255,255,255,0.03)",
+                    color: "#ffffff",
                     cursor: "pointer",
                     fontFamily: "var(--font-display)",
                     fontSize: "12px",
                     letterSpacing: "2px",
                     textTransform: "uppercase",
-                    transition: "all 0.15s",
                   }}
                 >
                   {cat.name}
-                </button>
+                </motion.button>
               ))
             )}
-          </div>
+          </motion.div>
 
           {hayFiltrosActivos ? (
             <p
@@ -726,133 +730,151 @@ export default function TiendaPage() {
               </p>
             )
           ) : (
-            <ul
+            <motion.div
+              layout
+              role="list"
               style={{
                 display: "grid",
-                listStyle: "none",
                 gap: "20px",
                 padding: 0,
                 margin: 0,
                 gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
               }}
             >
-              {productos.map((p) => (
-                <li key={p.id}>
-                  <Link
-                    href={
-                      p.slug ? `/tienda/productos/${encodeURIComponent(p.slug)}` : `/producto/${p.id}`
-                    }
-                    style={{ textDecoration: "none", color: "inherit" }}
+              <AnimatePresence mode="popLayout">
+                {productos.map((p, i) => (
+                  <motion.div
+                    key={p.id}
+                    role="listitem"
+                    layout
+                    initial={{ opacity: 0, scale: 0.88 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.88 }}
+                    transition={{
+                      duration: 0.32,
+                      delay: i * 0.04,
+                    }}
+                    whileHover={{
+                      y: -10,
+                      transition: { type: "spring", stiffness: 400, damping: 22 },
+                    }}
                   >
-                    <TiltCard
-                      className="card-3d"
-                      intensity={7}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        overflow: "hidden",
-                        borderRadius: "4px",
-                      }}
+                    <Link
+                      href={
+                        p.slug ? `/tienda/productos/${encodeURIComponent(p.slug)}` : `/producto/${p.id}`
+                      }
+                      style={{ textDecoration: "none", color: "inherit" }}
                     >
-                    <div style={{ position: "relative", aspectRatio: "1", background: "var(--black)" }}>
-                      {p.images[0] ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={p.images[0].url}
-                          alt=""
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            display: "flex",
-                            height: "100%",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "rgba(255,255,255,0.35)",
-                          }}
-                        >
-                          Sin foto
-                        </div>
-                      )}
-                      {(p.stock ?? 0) === 0 && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: "8px",
-                            right: "8px",
-                            background: "var(--red)",
-                            color: "white",
-                            fontSize: "11px",
-                            fontWeight: 700,
-                            padding: "3px 8px",
-                            fontFamily: "var(--font-display)",
-                            letterSpacing: "1px",
-                            textTransform: "uppercase",
-                            boxShadow: "var(--glow-sm)",
-                          }}
-                        >
-                          AGOTADO
-                        </div>
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        borderTop: "2px solid rgba(204,0,0,0.25)",
-                        padding: "16px",
-                      }}
-                    >
-                      <span
+                      <motion.div
+                        className="card-3d"
+                        whileTap={{ scale: 0.98 }}
                         style={{
-                          fontFamily: "var(--font-display)",
-                          fontSize: "1.25rem",
-                          textTransform: "uppercase",
-                          lineHeight: 1.2,
-                          color: "var(--white)",
+                          display: "flex",
+                          flexDirection: "column",
+                          overflow: "hidden",
+                          borderRadius: "4px",
                         }}
                       >
-                        {p.title}
-                      </span>
-                      <span
-                        style={{
-                          marginTop: "8px",
-                          display: "block",
-                          fontFamily: "var(--font-display)",
-                          fontSize: "1.5rem",
-                          color: "var(--gold)",
-                          textShadow: "var(--glow-gold)",
-                        }}
-                      >
-                        ${" "}
-                        {p.price.toLocaleString("es-CO", {
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 0,
-                        })}
-                      </span>
-                      {(p.reviewCount ?? 0) > 0 ? (
+                        <div style={{ position: "relative", aspectRatio: "1", background: "var(--black)" }}>
+                          {p.images[0] ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={p.images[0].url}
+                              alt=""
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                display: "flex",
+                                height: "100%",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "rgba(255,255,255,0.35)",
+                              }}
+                            >
+                              Sin foto
+                            </div>
+                          )}
+                          {(p.stock ?? 0) === 0 && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "8px",
+                                right: "8px",
+                                background: "var(--red)",
+                                color: "white",
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                padding: "3px 8px",
+                                fontFamily: "var(--font-display)",
+                                letterSpacing: "1px",
+                                textTransform: "uppercase",
+                                boxShadow: "var(--glow-sm)",
+                              }}
+                            >
+                              AGOTADO
+                            </div>
+                          )}
+                        </div>
                         <div
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            marginTop: "8px",
+                            borderTop: "2px solid rgba(204,0,0,0.25)",
+                            padding: "16px",
                           }}
                         >
-                          <span style={{ color: "var(--gold)", fontSize: "12px", letterSpacing: "1px" }}>
-                            {"★".repeat(Math.round(p.avgRating ?? 0))}
-                            {"☆".repeat(5 - Math.round(p.avgRating ?? 0))}
+                          <span
+                            style={{
+                              fontFamily: "var(--font-display)",
+                              fontSize: "1.25rem",
+                              textTransform: "uppercase",
+                              lineHeight: 1.2,
+                              color: "var(--white)",
+                            }}
+                          >
+                            {p.title}
                           </span>
-                          <span style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px" }}>
-                            ({p.reviewCount})
+                          <span
+                            style={{
+                              marginTop: "8px",
+                              display: "block",
+                              fontFamily: "var(--font-display)",
+                              fontSize: "1.5rem",
+                              color: "var(--gold)",
+                              textShadow: "var(--glow-gold)",
+                            }}
+                          >
+                            ${" "}
+                            {p.price.toLocaleString("es-CO", {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0,
+                            })}
                           </span>
+                          {(p.reviewCount ?? 0) > 0 ? (
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                marginTop: "8px",
+                              }}
+                            >
+                              <span style={{ color: "var(--gold)", fontSize: "12px", letterSpacing: "1px" }}>
+                                {"★".repeat(Math.round(p.avgRating ?? 0))}
+                                {"☆".repeat(5 - Math.round(p.avgRating ?? 0))}
+                              </span>
+                              <span style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px" }}>
+                                ({p.reviewCount})
+                              </span>
+                            </div>
+                          ) : null}
                         </div>
-                      ) : null}
-                    </div>
-                    </TiltCard>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                      </motion.div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
           )}
         </div>
       </div>

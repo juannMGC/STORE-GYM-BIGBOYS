@@ -1,22 +1,22 @@
 "use client";
 
-import type { CSSProperties } from "react";
-import { useEffect, useRef, useState } from "react";
+import { motion, useMotionValue, useSpring } from "framer-motion";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 export function CustomCursor() {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin") ?? false;
   const [desktop, setDesktop] = useState(false);
-
   const [hovering, setHovering] = useState(false);
   const [clicking, setClicking] = useState(false);
-  const [burst, setBurst] = useState(false);
-  const mouseRef = useRef({ x: 0, y: 0 });
-  const trailRef = useRef({ x: 0, y: 0 });
-  const dotRef = useRef<HTMLDivElement>(null);
-  const ringRef = useRef<HTMLDivElement>(null);
-  const burstRef = useRef<HTMLDivElement>(null);
+
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const springConfig = { damping: 28, stiffness: 220, mass: 0.45 };
+  const trailX = useSpring(mouseX, springConfig);
+  const trailY = useSpring(mouseY, springConfig);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 769px)");
@@ -31,57 +31,27 @@ export function CustomCursor() {
 
     document.body.classList.add("custom-cursor-active");
 
-    const onMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
-      if (dotRef.current) {
-        dotRef.current.style.left = `${e.clientX}px`;
-        dotRef.current.style.top = `${e.clientY}px`;
-      }
-      if (burstRef.current) {
-        burstRef.current.style.left = `${e.clientX}px`;
-        burstRef.current.style.top = `${e.clientY}px`;
-      }
+    const move = (e: MouseEvent) => {
+      mouseX.set(e.clientX);
+      mouseY.set(e.clientY);
     };
-
-    const onDown = () => {
-      setClicking(true);
-      setBurst(true);
-      window.setTimeout(() => setBurst(false), 420);
+    const over = (e: MouseEvent) => {
+      setHovering(!!(e.target as HTMLElement).closest("a, button, [role='button'], input, select, textarea, label"));
     };
-    const onUp = () => setClicking(false);
+    const down = () => setClicking(true);
+    const up = () => setClicking(false);
 
-    const onOver = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const isInteractive = target.closest(
-        "a, button, [role='button'], input, select, textarea, label",
-      );
-      setHovering(!!isInteractive);
-    };
-
-    let raf = 0;
-    const loop = () => {
-      trailRef.current.x += (mouseRef.current.x - trailRef.current.x) * 0.12;
-      trailRef.current.y += (mouseRef.current.y - trailRef.current.y) * 0.12;
-      if (ringRef.current) {
-        ringRef.current.style.left = `${trailRef.current.x}px`;
-        ringRef.current.style.top = `${trailRef.current.y}px`;
-      }
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-
-    document.addEventListener("mousemove", onMove, { passive: true });
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("mouseup", onUp);
-    document.addEventListener("mouseover", onOver, true);
+    window.addEventListener("mousemove", move, { passive: true });
+    window.addEventListener("mouseover", over, true);
+    window.addEventListener("mousedown", down);
+    window.addEventListener("mouseup", up);
 
     return () => {
       document.body.classList.remove("custom-cursor-active");
-      cancelAnimationFrame(raf);
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("mouseup", onUp);
-      document.removeEventListener("mouseover", onOver, true);
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseover", over, true);
+      window.removeEventListener("mousedown", down);
+      window.removeEventListener("mouseup", up);
     };
   }, [isAdmin, desktop]);
 
@@ -90,90 +60,54 @@ export function CustomCursor() {
   return (
     <>
       <style>{`
-        body.custom-cursor-active,
-        body.custom-cursor-active * {
-          cursor: none !important;
+        @media (min-width: 769px) {
+          body.custom-cursor-active,
+          body.custom-cursor-active * {
+            cursor: none !important;
+          }
         }
       `}</style>
 
-      <div
-        ref={dotRef}
-        className="custom-cursor-dot"
+      <motion.div
         style={{
           position: "fixed",
-          left: 0,
-          top: 0,
-          width: clicking ? "8px" : hovering ? "6px" : "10px",
-          height: clicking ? "8px" : hovering ? "6px" : "10px",
-          background: "#CC0000",
-          borderRadius: "50%",
-          transform: "translate(-50%, -50%)",
+          left: mouseX,
+          top: mouseY,
+          x: "-50%",
+          y: "-50%",
           pointerEvents: "none",
           zIndex: 99999,
-          transition: "width 0.1s, height 0.1s",
-          boxShadow: clicking ? "0 0 20px #FF0000, 0 0 40px #CC0000" : "0 0 10px #CC0000",
+          borderRadius: "50%",
+          background: "#CC0000",
         }}
-        aria-hidden
+        animate={{
+          width: clicking ? 6 : hovering ? 8 : 10,
+          height: clicking ? 6 : hovering ? 8 : 10,
+          boxShadow: clicking
+            ? "0 0 20px #FF0000, 0 0 40px #CC0000"
+            : "0 0 8px rgba(204,0,0,0.8)",
+        }}
+        transition={{ duration: 0.12 }}
       />
 
-      <div
-        ref={ringRef}
-        className="custom-cursor-ring"
+      <motion.div
         style={{
           position: "fixed",
-          left: 0,
-          top: 0,
-          width: hovering ? "50px" : clicking ? "20px" : "36px",
-          height: hovering ? "50px" : clicking ? "20px" : "36px",
-          border: `2px solid ${hovering ? "#FF0000" : "rgba(204,0,0,0.5)"}`,
-          borderRadius: "50%",
-          transform: "translate(-50%, -50%)",
+          left: trailX,
+          top: trailY,
+          x: "-50%",
+          y: "-50%",
           pointerEvents: "none",
           zIndex: 99998,
-          transition: "width 0.2s, height 0.2s, border-color 0.2s",
-          boxShadow: hovering ? "0 0 15px rgba(255,0,0,0.4)" : "none",
+          borderRadius: "50%",
+          border: hovering ? "2px solid rgba(255,0,0,0.8)" : "2px solid rgba(204,0,0,0.4)",
         }}
-        aria-hidden
+        animate={{
+          width: hovering ? 50 : clicking ? 20 : 36,
+          height: hovering ? 50 : clicking ? 20 : 36,
+        }}
+        transition={{ duration: 0.2 }}
       />
-
-      {burst ? (
-        <div
-          ref={burstRef}
-          style={{
-            position: "fixed",
-            left: 0,
-            top: 0,
-            width: "60px",
-            height: "60px",
-            transform: "translate(-50%, -50%)",
-            pointerEvents: "none",
-            zIndex: 99997,
-            animation: "cursor-burst 0.4s ease-out forwards",
-          }}
-          aria-hidden
-        >
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              className="cursor-particle-burst"
-              style={
-                {
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  width: "4px",
-                  height: "4px",
-                  marginLeft: "-2px",
-                  marginTop: "-2px",
-                  background: "#FF0000",
-                  borderRadius: "50%",
-                  "--burst-angle": `${i * 60}deg`,
-                } as CSSProperties
-              }
-            />
-          ))}
-        </div>
-      ) : null}
     </>
   );
 }
