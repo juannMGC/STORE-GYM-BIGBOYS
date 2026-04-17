@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { animate, motion, useInView, useScroll, useTransform } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
+import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { BrandsSlider } from "@/components/brands-slider";
 import { HomeRegisterCta } from "@/components/home-register-cta";
 import {
@@ -81,6 +82,8 @@ export function HomePageView({
   trainings: TrainingCard[];
   products: ProductListItem[];
 }) {
+  const bp = useBreakpoint();
+  const isMobile = bp === "sm";
   const heroRef = useRef<HTMLElement>(null);
   const subtitle = useTypewriter(TYPEWRITER_TEXTS, 72, 2200);
 
@@ -99,11 +102,12 @@ export function HomePageView({
       <section
         ref={heroRef}
         style={{
-          minHeight: "100vh",
+          minHeight: "100svh",
           display: "flex",
           alignItems: "center",
           position: "relative",
           overflow: "hidden",
+          padding: isMobile ? "64px 16px 40px" : "80px 48px 48px",
         }}
       >
         <div
@@ -127,6 +131,7 @@ export function HomePageView({
             opacity: 0.12,
             filter: "blur(1px)",
             pointerEvents: "none",
+            display: isMobile ? "none" : "block",
           }}
         >
           <motion.div animate={floatAnimation.animate} transition={floatAnimation.transition}>
@@ -172,12 +177,30 @@ export function HomePageView({
           style={{
             position: "relative",
             zIndex: 3,
-            maxWidth: "640px",
-            padding: "0 clamp(16px, 4vw, 48px)",
+            maxWidth: isMobile ? "100%" : "640px",
+            width: "100%",
+            padding: isMobile ? "0" : "0 clamp(16px, 4vw, 48px)",
             y: textY,
+            textAlign: isMobile ? "center" : "left",
           }}
         >
-          <motion.div variants={fadeUp} className="badge-neon" style={{ marginBottom: "24px" }}>
+          {isMobile ? (
+            <div style={{ textAlign: "center", marginBottom: "20px" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/logo-BigBoysGYM.jpg"
+                alt=""
+                style={{
+                  height: "120px",
+                  width: "auto",
+                  margin: "0 auto",
+                  filter: "drop-shadow(0 0 20px rgba(204,0,0,0.6))",
+                }}
+              />
+            </div>
+          ) : null}
+
+          <motion.div variants={fadeUp} className="badge-neon" style={{ marginBottom: "24px", display: "inline-block" }}>
             ⚡ Manizales · Colombia
           </motion.div>
 
@@ -185,12 +208,13 @@ export function HomePageView({
             variants={fadeLeft}
             style={{
               fontFamily: "var(--font-display), Impact, sans-serif",
-              fontSize: "clamp(48px, 8vw, 96px)",
+              fontSize: isMobile ? "clamp(40px, 12vw, 64px)" : "clamp(48px, 8vw, 96px)",
               color: "#ffffff",
               textTransform: "uppercase",
               letterSpacing: "4px",
               lineHeight: 1,
               marginBottom: "8px",
+              textAlign: isMobile ? "center" : "left",
             }}
           >
             BIG BOYS
@@ -204,7 +228,7 @@ export function HomePageView({
             data-text="GYM"
             style={{
               fontFamily: "var(--font-display), Impact, sans-serif",
-              fontSize: "clamp(48px, 8vw, 96px)",
+              fontSize: isMobile ? "clamp(40px, 12vw, 64px)" : "clamp(48px, 8vw, 96px)",
               color: "var(--red-neon)",
               textTransform: "uppercase",
               letterSpacing: "4px",
@@ -212,6 +236,7 @@ export function HomePageView({
               marginBottom: "24px",
               textShadow: "var(--glow-red)",
               position: "relative",
+              textAlign: isMobile ? "center" : "left",
             }}
           >
             GYM
@@ -220,21 +245,22 @@ export function HomePageView({
           <motion.div
             className="neon-line"
             initial={{ width: 0 }}
-            animate={{ width: "120px" }}
+            animate={{ width: isMobile ? "80px" : "120px" }}
             transition={{ duration: 1, delay: 0.8 }}
-            style={{ marginBottom: "24px" }}
+            style={{ marginBottom: "24px", marginLeft: isMobile ? "auto" : undefined, marginRight: isMobile ? "auto" : undefined }}
           />
 
           <motion.p
             variants={fadeUp}
             style={{
               color: "rgba(255,255,255,0.75)",
-              fontSize: "18px",
+              fontSize: isMobile ? "16px" : "18px",
               lineHeight: 1.7,
               marginBottom: "40px",
               fontFamily: "var(--font-body), system-ui, sans-serif",
               fontWeight: 500,
               minHeight: "60px",
+              maxWidth: isMobile ? "100%" : undefined,
             }}
           >
             {subtitle}
@@ -255,19 +281,52 @@ export function HomePageView({
 
           <motion.div
             variants={staggerContainer}
-            style={{ display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "center" }}
+            style={{
+              display: "flex",
+              gap: "12px",
+              flexWrap: "wrap",
+              alignItems: "stretch",
+              flexDirection: isMobile ? "column" : "row",
+              justifyContent: isMobile ? "stretch" : "flex-start",
+            }}
           >
-            <motion.div variants={scaleIn} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
-              <Link href="/tienda" className="btn-primary" style={{ fontSize: "16px", padding: "18px 40px", display: "inline-block" }}>
+            <motion.div variants={scaleIn} whileHover={{ scale: isMobile ? 1 : 1.08 }} whileTap={{ scale: 0.95 }} style={{ width: isMobile ? "100%" : "auto" }}>
+              <Link
+                href="/tienda"
+                className="btn-primary btn-full-mobile"
+                style={{
+                  fontSize: "16px",
+                  padding: "16px 28px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: "48px",
+                  width: isMobile ? "100%" : "auto",
+                }}
+              >
                 🛍️ Ver tienda
               </Link>
             </motion.div>
-            <motion.div variants={scaleIn} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
-              <Link href="/entrenamientos" className="btn-outline" style={{ fontSize: "16px", padding: "18px 40px", display: "inline-block" }}>
+            <motion.div variants={scaleIn} whileHover={{ scale: isMobile ? 1 : 1.08 }} whileTap={{ scale: 0.95 }} style={{ width: isMobile ? "100%" : "auto" }}>
+              <Link
+                href="/entrenamientos"
+                className="btn-outline btn-full-mobile"
+                style={{
+                  fontSize: "16px",
+                  padding: "16px 28px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: "48px",
+                  width: isMobile ? "100%" : "auto",
+                }}
+              >
                 🏋️ Entrenamientos
               </Link>
             </motion.div>
-            <HomeRegisterCta />
+            <div style={{ width: isMobile ? "100%" : "auto" }}>
+              <HomeRegisterCta />
+            </div>
           </motion.div>
         </motion.div>
 
@@ -280,7 +339,7 @@ export function HomePageView({
             bottom: "32px",
             left: "50%",
             x: "-50%",
-            display: "flex",
+            display: isMobile ? "none" : "flex",
             flexDirection: "column",
             alignItems: "center",
             gap: "8px",
@@ -329,8 +388,9 @@ export function HomePageView({
             maxWidth: "1200px",
             margin: "0 auto",
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: "24px",
+            gridTemplateColumns:
+              bp === "lg" ? "repeat(4, minmax(0, 1fr))" : "repeat(2, minmax(0, 1fr))",
+            gap: isMobile ? "12px" : "24px",
           }}
         >
           {STATS.map((stat, i) => (
@@ -425,8 +485,10 @@ export function HomePageView({
             viewport={{ once: true, margin: "-40px" }}
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-              gap: "24px",
+              gridTemplateColumns: isMobile
+                ? "1fr"
+                : "repeat(auto-fill, minmax(260px, 1fr))",
+              gap: isMobile ? "16px" : "24px",
             }}
           >
             {trainings.map((t) => (
@@ -522,8 +584,11 @@ export function HomePageView({
               viewport={{ once: true, margin: "-50px" }}
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-                gap: "24px",
+                gridTemplateColumns:
+                  isMobile
+                    ? "repeat(2, minmax(0, 1fr))"
+                    : "repeat(auto-fill, minmax(240px, 1fr))",
+                gap: isMobile ? "12px" : "24px",
               }}
             >
               {products.map((p) => {
@@ -654,19 +719,48 @@ export function HomePageView({
           >
             Unite al gym que forma campeones. 💪
           </p>
-          <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
-            <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.95 }} style={{ display: "inline-block" }}>
-              <Link href="/entrenamientos" className="btn-primary" style={{ fontSize: "16px", padding: "18px 40px" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              flexDirection: isMobile ? "column" : "row",
+              alignItems: "stretch",
+              maxWidth: "480px",
+              margin: isMobile ? "0 auto" : undefined,
+            }}
+          >
+            <motion.div whileHover={{ scale: isMobile ? 1 : 1.06 }} whileTap={{ scale: 0.95 }} style={{ flex: 1, minWidth: 0 }}>
+              <Link
+                href="/entrenamientos"
+                className="btn-primary"
+                style={{
+                  fontSize: "16px",
+                  padding: "16px 28px",
+                  display: "flex",
+                  justifyContent: "center",
+                  minHeight: "48px",
+                  width: isMobile ? "100%" : "auto",
+                }}
+              >
                 🏋️ Empezar ahora
               </Link>
             </motion.div>
-            <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.95 }} style={{ display: "inline-block" }}>
+            <motion.div whileHover={{ scale: isMobile ? 1 : 1.06 }} whileTap={{ scale: 0.95 }} style={{ flex: 1, minWidth: 0 }}>
               <a
                 href="https://wa.me/573171184925"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-outline"
-                style={{ fontSize: "16px", padding: "18px 40px" }}
+                style={{
+                  fontSize: "16px",
+                  padding: "16px 28px",
+                  display: "flex",
+                  justifyContent: "center",
+                  minHeight: "48px",
+                  width: isMobile ? "100%" : "auto",
+                }}
               >
                 💬 Hablar con un asesor
               </a>

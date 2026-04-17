@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackButton } from "@/components/back-button";
+import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { apiFetch } from "@/lib/api-client";
 import type { Category, ProductListItem, Size } from "@/lib/types";
 
@@ -279,6 +280,8 @@ function FiltrosContent({
 }
 
 export default function TiendaPage() {
+  const bp = useBreakpoint();
+  const isMobile = bp === "sm";
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
@@ -441,7 +444,14 @@ export default function TiendaPage() {
   };
 
   return (
-    <div className="tienda-page" style={{ maxWidth: "1152px", margin: "0 auto", padding: "24px 16px 48px" }}>
+    <div
+      className="tienda-page"
+      style={{
+        maxWidth: "1152px",
+        margin: "0 auto",
+        padding: isMobile ? "16px 12px 40px" : "24px 16px 48px",
+      }}
+    >
       <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
         <BackButton href="/" label="← Inicio" />
       </div>
@@ -566,12 +576,13 @@ export default function TiendaPage() {
           </div>
 
           <motion.div
+            className="tienda-filter-scroll"
             layout
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
             style={{
               display: "flex",
               gap: "8px",
-              flexWrap: "wrap",
+              flexWrap: isMobile ? "nowrap" : "wrap",
               marginBottom: "24px",
             }}
           >
@@ -735,10 +746,12 @@ export default function TiendaPage() {
               role="list"
               style={{
                 display: "grid",
-                gap: "20px",
+                gap: isMobile ? "12px" : "20px",
                 padding: 0,
                 margin: 0,
-                gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+                gridTemplateColumns: isMobile
+                  ? "repeat(2, minmax(0, 1fr))"
+                  : "repeat(auto-fill, minmax(260px, 1fr))",
               }}
             >
               <AnimatePresence mode="popLayout">

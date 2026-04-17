@@ -115,7 +115,7 @@ export default function PerfilPage() {
   }
 
   return (
-    <div className="min-h-[60vh] bg-[#050505] px-4 py-8 sm:py-10">
+    <div className="min-h-[60vh] bg-[#050505] px-3 py-6 sm:px-4 sm:py-10">
       <div className="mx-auto w-full max-w-[520px]">
         <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
           <BackButton href="/" label="← Inicio" />

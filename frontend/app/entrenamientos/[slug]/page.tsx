@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BackButton } from "@/components/back-button";
+import { useIsMobile } from "@/hooks/use-breakpoint";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -33,6 +34,7 @@ function detailUrl(slug: string): string {
 }
 
 export default function EntrenamientoDetallePage() {
+  const isMobile = useIsMobile();
   const params = useParams();
   const slug = typeof params?.slug === "string" ? params.slug : "";
   const [training, setTraining] = useState<TrainingDetail | null>(null);
@@ -79,14 +81,14 @@ export default function EntrenamientoDetallePage() {
 
   return (
     <main style={{ minHeight: "100vh", background: "#050505" }}>
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "16px 24px 0" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: isMobile ? "12px 16px 0" : "16px 24px 0" }}>
         <BackButton href="/entrenamientos" label="← Entrenamientos" />
       </div>
 
       <div
         style={{
           width: "100%",
-          height: "min(400px, 55vh)",
+          height: isMobile ? "min(250px, 45vh)" : "min(400px, 55vh)",
           background: "#1a1a1a",
           overflow: "hidden",
           position: "relative",
@@ -160,7 +162,7 @@ export default function EntrenamientoDetallePage() {
         style={{
           maxWidth: "800px",
           margin: "0 auto",
-          padding: "40px 24px",
+          padding: isMobile ? "24px 16px 40px" : "40px 24px",
         }}
       >
         <div
@@ -301,8 +303,9 @@ export default function EntrenamientoDetallePage() {
         <div
           style={{
             display: "flex",
-            gap: "16px",
+            gap: "12px",
             flexWrap: "wrap",
+            flexDirection: isMobile ? "column" : "row",
           }}
         >
           <a
@@ -311,13 +314,15 @@ export default function EntrenamientoDetallePage() {
             rel="noopener noreferrer"
             className="btn-brand"
             style={{
-              display: "inline-flex",
+              display: "flex",
               alignItems: "center",
-              gap: "8px",
-              padding: "14px 28px",
-              textDecoration: "none",
-              flex: "1 1 200px",
               justifyContent: "center",
+              gap: "8px",
+              padding: "14px 24px",
+              textDecoration: "none",
+              flex: 1,
+              minHeight: "48px",
+              width: isMobile ? "100%" : "auto",
             }}
           >
             💬 Consultar por WhatsApp
@@ -327,13 +332,15 @@ export default function EntrenamientoDetallePage() {
             href="/tienda"
             className="btn-brand-outline"
             style={{
-              display: "inline-flex",
+              display: "flex",
               alignItems: "center",
-              gap: "8px",
-              padding: "14px 28px",
-              textDecoration: "none",
-              flex: "1 1 200px",
               justifyContent: "center",
+              gap: "8px",
+              padding: "14px 24px",
+              textDecoration: "none",
+              flex: 1,
+              minHeight: "48px",
+              width: isMobile ? "100%" : "auto",
             }}
           >
             🛍️ Ver suplementos

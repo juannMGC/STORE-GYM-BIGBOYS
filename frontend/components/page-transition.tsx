@@ -26,7 +26,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
           transition={{ duration: 0.45, ease: "easeOut" }}
           style={{
             position: "fixed",
-            top: "72px",
+            top: "64px",
             left: 0,
             right: 0,
             height: "2px",

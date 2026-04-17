@@ -79,7 +79,7 @@ const STATUS_CONFIG: Record<
 
 function MisPedidosSkeleton() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
+    <div className="mx-auto max-w-3xl px-3 py-8 sm:px-4 sm:py-10">
       <div className="panel-brand animate-pulse space-y-4 p-6">
         <div className="h-8 w-56 rounded bg-brand-steel/40" />
         <div className="h-40 rounded bg-brand-steel/25" />
@@ -119,7 +119,7 @@ export default function MisPedidosPage() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-10">
+      <div className="mx-auto max-w-3xl px-3 py-8 sm:px-4 sm:py-10">
         <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
           <BackButton href="/" label="← Inicio" />
         </div>
@@ -135,7 +135,7 @@ export default function MisPedidosPage() {
   const list = orders ?? [];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
+    <div className="mx-auto max-w-3xl px-3 py-6 sm:px-4 sm:py-10">
       <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
         <BackButton href="/" label="← Inicio" />
       </div>

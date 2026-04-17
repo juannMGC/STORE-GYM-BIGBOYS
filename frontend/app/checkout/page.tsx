@@ -441,8 +441,8 @@ export default function CheckoutPage() {
     <div
       className={
         step === 2
-          ? "checkout-page-wrap mx-auto max-w-[1100px] px-4 py-10"
-          : "checkout-page-wrap mx-auto max-w-lg px-4 py-10 md:max-w-[1100px]"
+          ? "checkout-page-wrap mx-auto max-w-[1100px] px-3 py-8 sm:px-4 sm:py-10"
+          : "checkout-page-wrap mx-auto max-w-lg px-3 py-8 sm:px-4 sm:py-10 md:max-w-[1100px]"
       }
     >
       <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>

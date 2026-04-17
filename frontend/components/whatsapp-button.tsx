@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useIsMobile } from "@/hooks/use-breakpoint";
 
 const WHATSAPP_NUMBER = "573171184925";
 
 export function WhatsAppButton() {
+  const isMobile = useIsMobile();
   const pathname = usePathname();
   const [visible, setVisible] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -79,6 +81,12 @@ export function WhatsAppButton() {
         rel="noopener noreferrer"
         aria-label="Contactar por WhatsApp"
         className="whatsapp-float-btn"
+        style={{
+          width: isMobile ? 52 : 60,
+          height: isMobile ? 52 : 60,
+          bottom: isMobile ? 16 : undefined,
+          right: isMobile ? 16 : undefined,
+        }}
         onMouseEnter={(e) => {
           tooltipHoverRef.current = true;
           setShowTooltip(true);

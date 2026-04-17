@@ -12,6 +12,7 @@ import {
   type StoredNotificationType,
 } from "@/lib/notifications-storage";
 import { usePushNotifications } from "@/lib/use-push-notifications";
+import { useIsMobile } from "@/hooks/use-breakpoint";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 
 function normalizeNotifType(raw: string | undefined): StoredNotificationType {
@@ -57,6 +58,7 @@ function mergeLsWithIdb(idb: StoredNotification[]): StoredNotification[] {
 }
 
 export function NotificationBell() {
+  const isMobile = useIsMobile();
   const { isLoggedIn } = useAuth();
   const { subscribed, subscribe, loading: pushSubLoading, isSupported } = usePushNotifications();
   const router = useRouter();
@@ -357,21 +359,40 @@ export function NotificationBell() {
               stiffness: 400,
               damping: 25,
             }}
-            style={{
-              position: "absolute",
-              top: "calc(100% + 12px)",
-              right: 0,
-              width: "min(320px, calc(100vw - 24px))",
-              background: "rgba(10,10,10,0.98)",
-              border: "1px solid rgba(204,0,0,0.3)",
-              boxShadow: "0 0 30px rgba(204,0,0,0.2), 4px 4px 0px rgba(204,0,0,0.35)",
-              backdropFilter: "blur(20px)",
-              zIndex: 200,
-              maxHeight: "min(420px, 70vh)",
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-            }}
+            style={
+              isMobile
+                ? {
+                    position: "fixed",
+                    top: "70px",
+                    left: "8px",
+                    right: "8px",
+                    width: "auto",
+                    background: "rgba(10,10,10,0.98)",
+                    border: "1px solid rgba(204,0,0,0.3)",
+                    boxShadow: "0 0 30px rgba(204,0,0,0.2)",
+                    backdropFilter: "blur(20px)",
+                    zIndex: 1105,
+                    maxHeight: "min(420px, calc(100vh - 90px))",
+                    display: "flex",
+                    flexDirection: "column",
+                    overflow: "hidden",
+                  }
+                : {
+                    position: "absolute",
+                    top: "calc(100% + 12px)",
+                    right: 0,
+                    width: "min(320px, calc(100vw - 24px))",
+                    background: "rgba(10,10,10,0.98)",
+                    border: "1px solid rgba(204,0,0,0.3)",
+                    boxShadow: "0 0 30px rgba(204,0,0,0.2), 4px 4px 0px rgba(204,0,0,0.35)",
+                    backdropFilter: "blur(20px)",
+                    zIndex: 200,
+                    maxHeight: "min(420px, 70vh)",
+                    display: "flex",
+                    flexDirection: "column",
+                    overflow: "hidden",
+                  }
+            }
           >
           <div
             style={{

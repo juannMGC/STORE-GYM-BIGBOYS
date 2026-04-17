@@ -4,6 +4,7 @@ import { motion, useMotionValue, useTransform } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { BackButton } from "@/components/back-button";
+import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { fadeUp, staggerContainer, staggerSlow } from "@/lib/motion";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -279,6 +280,8 @@ function TrainingCard({ training }: { training: TrainingListItem }) {
 }
 
 export default function EntrenamientosPage() {
+  const bp = useBreakpoint();
+  const isMobile = bp === "sm";
   const [trainings, setTrainings] = useState<TrainingListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -302,7 +305,7 @@ export default function EntrenamientosPage() {
         style={{
           minHeight: "min(92vh, 900px)",
           position: "relative",
-          padding: "72px 24px 64px",
+          padding: isMobile ? "64px 16px 48px" : "72px 24px 64px",
           textAlign: "center",
           borderBottom: "1px solid rgba(204,0,0,0.2)",
           overflow: "hidden",
@@ -482,7 +485,7 @@ export default function EntrenamientosPage() {
         style={{
           maxWidth: "1200px",
           margin: "0 auto",
-          padding: "56px 24px 80px",
+          padding: isMobile ? "40px 16px 56px" : "56px 24px 80px",
         }}
       >
         <motion.p
@@ -537,8 +540,10 @@ export default function EntrenamientosPage() {
             viewport={{ once: true, margin: "-80px" }}
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: "24px",
+              gridTemplateColumns: isMobile
+                ? "1fr"
+                : "repeat(2, minmax(0, 1fr))",
+              gap: isMobile ? "16px" : "24px",
             }}
           >
             {trainings.map((training) => (
