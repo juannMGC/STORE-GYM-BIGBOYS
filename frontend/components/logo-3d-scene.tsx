@@ -14,6 +14,26 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 
+// Suprimir warnings deprecados de Three.js que vienen de @react-three/fiber internamente
+if (typeof window !== "undefined") {
+  const w = window as Window & { __bbgSuppressThreeWarns?: boolean };
+  if (!w.__bbgSuppressThreeWarns) {
+    w.__bbgSuppressThreeWarns = true;
+    const originalWarn = console.warn.bind(console);
+    console.warn = (...args: unknown[]) => {
+      const msg = String(args[0] ?? "");
+      if (
+        msg.includes("THREE.Clock") ||
+        msg.includes("PCFSoftShadowMap") ||
+        msg.includes("has been deprecated")
+      ) {
+        return;
+      }
+      originalWarn(...args);
+    };
+  }
+}
+
 const MODEL_URL = "/models/logo-BigBoysGYM-v01.glb";
 
 function Loader() {
