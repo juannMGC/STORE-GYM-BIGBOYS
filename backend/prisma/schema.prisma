@@ -213,3 +213,40 @@ model TrainingBenefit {
   text       String
   order      Int      @default(0)
 }
+
+model MuscleGroup {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  slug        String     @unique
+  description String?
+  icon        String?
+  order       Int        @default(0)
+  exercises   Exercise[]
+  createdAt   DateTime   @default(now())
+}
+
+model Exercise {
+  id            String      @id @default(uuid())
+  name          String
+  slug          String      @unique
+  description   String?
+  instructions  String?
+  muscleGroupId String
+  muscleGroup   MuscleGroup @relation(fields: [muscleGroupId], references: [id], onDelete: Restrict)
+  level         String      @default("BEGINNER")
+  sets          Int?
+  reps          String?
+  restSeconds   Int?
+  equipment     String?
+  tips          String?
+  imageUrl      String?
+  videoUrl      String?
+  active        Boolean     @default(true)
+  featured      Boolean     @default(false)
+  order         Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([muscleGroupId])
+  @@index([active])
+}

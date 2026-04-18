@@ -428,54 +428,104 @@ export default function EntrenamientosPage() {
                 flexWrap: "wrap",
               }}
             >
-              {[
-                { valor: "∞", label: "Rutinas" },
-                { valor: "100%", label: "Gratis" },
-                { valor: "24/7", label: "Disponible" },
-              ].map((stat) => (
-                <motion.div
-                  key={stat.label}
-                  variants={fadeUp}
-                  whileHover={{
-                    y: -8,
-                    boxShadow: "0 0 24px rgba(204,0,0,0.25), 0 16px 32px rgba(0,0,0,0.45)",
-                    borderColor: "rgba(204,0,0,0.35)",
-                  }}
-                  transition={{ type: "spring", stiffness: 320 }}
-                  className="glass"
-                  style={{
-                    padding: "16px 28px",
-                    minWidth: "120px",
-                    borderRadius: "4px",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                  }}
-                >
-                  <p
+              {(
+                [
+                  { valor: "Rutinas", label: "Biblioteca", href: "/entrenamientos/rutinas" as const },
+                  { valor: "100%", label: "Gratis", href: null },
+                  { valor: "24/7", label: "Disponible", href: null },
+                ] as const
+              ).map((stat) =>
+                stat.href ? (
+                  <Link key={stat.label} href={stat.href} style={{ textDecoration: "none", color: "inherit" }}>
+                    <motion.div
+                      variants={fadeUp}
+                      whileHover={{
+                        y: -8,
+                        scale: 1.05,
+                        boxShadow: "0 0 24px rgba(204,0,0,0.25), 0 16px 32px rgba(0,0,0,0.45)",
+                        borderColor: "rgba(204,0,0,0.35)",
+                      }}
+                      transition={{ type: "spring", stiffness: 320 }}
+                      className="glass"
+                      style={{
+                        padding: "16px 28px",
+                        minWidth: "120px",
+                        borderRadius: "4px",
+                        border: "1px solid rgba(255,255,255,0.06)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: "26px",
+                          color: "#CC0000",
+                          margin: "0 0 6px",
+                          letterSpacing: "2px",
+                          textShadow: "0 0 10px rgba(204,0,0,0.4)",
+                        }}
+                      >
+                        {stat.valor}
+                      </p>
+                      <p
+                        style={{
+                          color: "rgba(255,255,255,0.4)",
+                          fontSize: "10px",
+                          fontFamily: "var(--font-display)",
+                          letterSpacing: "3px",
+                          textTransform: "uppercase",
+                          margin: 0,
+                        }}
+                      >
+                        {stat.label}
+                      </p>
+                    </motion.div>
+                  </Link>
+                ) : (
+                  <motion.div
+                    key={stat.label}
+                    variants={fadeUp}
+                    whileHover={{
+                      y: -8,
+                      boxShadow: "0 0 24px rgba(204,0,0,0.25), 0 16px 32px rgba(0,0,0,0.45)",
+                      borderColor: "rgba(204,0,0,0.35)",
+                    }}
+                    transition={{ type: "spring", stiffness: 320 }}
+                    className="glass"
                     style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: "26px",
-                      color: "var(--gold)",
-                      margin: "0 0 6px",
-                      letterSpacing: "2px",
-                      textShadow: "var(--glow-gold)",
+                      padding: "16px 28px",
+                      minWidth: "120px",
+                      borderRadius: "4px",
+                      border: "1px solid rgba(255,255,255,0.06)",
                     }}
                   >
-                    {stat.valor}
-                  </p>
-                  <p
-                    style={{
-                      color: "rgba(255,255,255,0.4)",
-                      fontSize: "10px",
-                      fontFamily: "var(--font-display)",
-                      letterSpacing: "3px",
-                      textTransform: "uppercase",
-                      margin: 0,
-                    }}
-                  >
-                    {stat.label}
-                  </p>
-                </motion.div>
-              ))}
+                    <p
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontSize: "26px",
+                        color: "var(--gold)",
+                        margin: "0 0 6px",
+                        letterSpacing: "2px",
+                        textShadow: "var(--glow-gold)",
+                      }}
+                    >
+                      {stat.valor}
+                    </p>
+                    <p
+                      style={{
+                        color: "rgba(255,255,255,0.4)",
+                        fontSize: "10px",
+                        fontFamily: "var(--font-display)",
+                        letterSpacing: "3px",
+                        textTransform: "uppercase",
+                        margin: 0,
+                      }}
+                    >
+                      {stat.label}
+                    </p>
+                  </motion.div>
+                ),
+              )}
             </motion.div>
           </motion.div>
         </div>

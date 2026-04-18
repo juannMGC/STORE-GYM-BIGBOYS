@@ -20,6 +20,7 @@ import { CouponsModule } from './coupons/coupons.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { TrainingsModule } from './trainings/trainings.module';
+import { ExercisesModule } from './exercises/exercises.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { TrainingsModule } from './trainings/trainings.module';
     ReviewsModule,
     NotificationsModule,
     TrainingsModule,
+    ExercisesModule,
   ],
   controllers: [AppController],
   providers: [
