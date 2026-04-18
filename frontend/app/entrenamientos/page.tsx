@@ -90,6 +90,10 @@ function TrainingCard({ training }: { training: TrainingListItem }) {
               cursor: "pointer",
               position: "relative",
               borderRadius: "4px",
+              background: "rgba(10,10,14,0.42)",
+              borderColor: "rgba(255,255,255,0.1)",
+              backdropFilter: "blur(12px) saturate(1.05)",
+              WebkitBackdropFilter: "blur(12px) saturate(1.05)",
             }}
           >
             {training.featured ? (
@@ -305,7 +309,12 @@ export default function EntrenamientosPage() {
           pointerEvents: "none",
         }}
       >
-        <Logo3DScene height="100vh" showScrollHint={false} modelUrl={TRAININGS_LOGO_MODEL_URL} />
+        <Logo3DScene
+          height="100vh"
+          showScrollHint={false}
+          modelUrl={TRAININGS_LOGO_MODEL_URL}
+          lightSceneOverlays
+        />
       </div>
 
       <main
@@ -346,9 +355,9 @@ export default function EntrenamientosPage() {
             position: "absolute",
             inset: 0,
             background: `
-              radial-gradient(ellipse at 20% 40%, rgba(204,0,0,0.12) 0%, transparent 55%),
-              radial-gradient(ellipse at 80% 60%, rgba(139,0,0,0.1) 0%, transparent 55%),
-              radial-gradient(ellipse at 50% 100%, rgba(204,0,0,0.06) 0%, transparent 50%)
+              radial-gradient(ellipse at 20% 40%, rgba(204,0,0,0.07) 0%, transparent 55%),
+              radial-gradient(ellipse at 80% 60%, rgba(139,0,0,0.06) 0%, transparent 55%),
+              radial-gradient(ellipse at 50% 100%, rgba(204,0,0,0.04) 0%, transparent 50%)
             `,
             pointerEvents: "none",
           }}
@@ -437,8 +446,11 @@ export default function EntrenamientosPage() {
                         padding: "16px 28px",
                         minWidth: "120px",
                         borderRadius: "4px",
-                        border: "1px solid rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(255,255,255,0.1)",
                         cursor: "pointer",
+                        background: "rgba(8,8,12,0.38)",
+                        backdropFilter: "blur(12px) saturate(1.05)",
+                        WebkitBackdropFilter: "blur(12px) saturate(1.05)",
                       }}
                     >
                       <p
@@ -482,7 +494,10 @@ export default function EntrenamientosPage() {
                       padding: "16px 28px",
                       minWidth: "120px",
                       borderRadius: "4px",
-                      border: "1px solid rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      background: "rgba(8,8,12,0.38)",
+                      backdropFilter: "blur(12px) saturate(1.05)",
+                      WebkitBackdropFilter: "blur(12px) saturate(1.05)",
                     }}
                   >
                     <p
@@ -522,7 +537,10 @@ export default function EntrenamientosPage() {
           maxWidth: "1200px",
           margin: "0 auto",
           padding: isMobile ? "40px 16px 56px" : "56px 24px 80px",
-          background: "var(--black)",
+          background: "rgba(0,0,0,0.38)",
+          backdropFilter: "blur(14px) saturate(1.05)",
+          WebkitBackdropFilter: "blur(14px) saturate(1.05)",
+          borderTop: "1px solid rgba(204,0,0,0.15)",
         }}
       >
         <motion.p
@@ -563,6 +581,10 @@ export default function EntrenamientosPage() {
               textAlign: "center",
               padding: "48px 24px",
               borderRadius: "8px",
+              background: "rgba(10,10,14,0.42)",
+              borderColor: "rgba(255,255,255,0.1)",
+              backdropFilter: "blur(12px) saturate(1.05)",
+              WebkitBackdropFilter: "blur(12px) saturate(1.05)",
             }}
           >
             <p style={{ color: "rgba(255,255,255,0.5)", fontFamily: "var(--font-body)" }}>
