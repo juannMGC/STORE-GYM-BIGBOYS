@@ -9,7 +9,7 @@ export class UpdateMuscleGroupDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(80)
+  @MaxLength(2000)
   description?: string | null;
 
   @IsOptional()
