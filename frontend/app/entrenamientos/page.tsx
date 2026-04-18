@@ -4,6 +4,7 @@ import { motion, useMotionValue, useTransform } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { BackButton } from "@/components/back-button";
+import { Logo3DScene, TRAININGS_LOGO_MODEL_URL } from "@/components/logo-3d";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { fadeUp, staggerContainer, staggerSlow } from "@/lib/motion";
 
@@ -294,13 +295,28 @@ export default function EntrenamientosPage() {
   }, []);
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "var(--black)",
-        overflowX: "hidden",
-      }}
-    >
+    <>
+      <div
+        aria-hidden
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
+      >
+        <Logo3DScene height="100vh" showScrollHint={false} modelUrl={TRAININGS_LOGO_MODEL_URL} />
+      </div>
+
+      <main
+        style={{
+          position: "relative",
+          zIndex: 1,
+          minHeight: "100vh",
+          background: "transparent",
+          overflowX: "hidden",
+        }}
+      >
       <section
         style={{
           minHeight: "min(92vh, 900px)",
@@ -337,36 +353,6 @@ export default function EntrenamientosPage() {
             pointerEvents: "none",
           }}
         />
-
-        <motion.div
-          animate={{
-            y: [0, -12, 0],
-            rotateY: [0, 4, 0],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          style={{
-            position: "absolute",
-            right: "-8%",
-            top: "50%",
-            transform: "translateY(-50%)",
-            width: "min(55vw, 480px)",
-            opacity: 0.12,
-            filter: "blur(2px)",
-            pointerEvents: "none",
-            zIndex: 0,
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/logo-BigBoysGYM.png"
-            alt=""
-            style={{ width: "100%", height: "auto", filter: "drop-shadow(0 0 40px rgba(204,0,0,0.5))" }}
-          />
-        </motion.div>
 
         <div style={{ position: "relative", zIndex: 2 }}>
           <motion.div
@@ -536,6 +522,7 @@ export default function EntrenamientosPage() {
           maxWidth: "1200px",
           margin: "0 auto",
           padding: isMobile ? "40px 16px 56px" : "56px 24px 80px",
+          background: "var(--black)",
         }}
       >
         <motion.p
@@ -603,5 +590,6 @@ export default function EntrenamientosPage() {
         )}
       </section>
     </main>
+    </>
   );
 }

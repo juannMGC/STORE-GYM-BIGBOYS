@@ -45,3 +45,4 @@ const Logo3DScene = dynamic(
 );
 
 export { Logo3DScene };
+export { DEFAULT_LOGO_MODEL_URL, TRAININGS_LOGO_MODEL_URL } from "./logo-3d-model-urls";

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Html, Preload, useGLTF, useProgress } from "@react-three/drei";
 import * as THREE from "three";
+import { DEFAULT_LOGO_MODEL_URL, TRAININGS_LOGO_MODEL_URL } from "./logo-3d-model-urls";
 
 if (typeof window !== "undefined") {
   const w = window as Window & { __bbgSuppressThreeWarns?: boolean };
@@ -19,8 +20,6 @@ if (typeof window !== "undefined") {
     };
   }
 }
-
-const MODEL_URL = "/models/logo-BigBoysGYM-v01.glb";
 
 /**
  * Rotación Y del mesh para que mire a la cámara (GLB a veces viene de costado).
@@ -81,9 +80,17 @@ function CameraController({ scrollProgress }: { scrollProgress: number }) {
   return null;
 }
 
-function LogoModel({ scrollProgress, isMobile }: { scrollProgress: number; isMobile: boolean }) {
+function LogoModel({
+  modelUrl,
+  scrollProgress,
+  isMobile,
+}: {
+  modelUrl: string;
+  scrollProgress: number;
+  isMobile: boolean;
+}) {
   const groupRef = useRef<THREE.Group>(null);
-  const { scene } = useGLTF(MODEL_URL);
+  const { scene } = useGLTF(modelUrl);
 
   const clonedScene = useMemo(() => {
     const c = scene.clone(true);
@@ -242,7 +249,15 @@ function OrbitalRings() {
   );
 }
 
-function Scene({ scrollProgress, isMobile }: { scrollProgress: number; isMobile: boolean }) {
+function Scene({
+  modelUrl,
+  scrollProgress,
+  isMobile,
+}: {
+  modelUrl: string;
+  scrollProgress: number;
+  isMobile: boolean;
+}) {
   return (
     <>
       <color attach="background" args={["#000000"]} />
@@ -251,7 +266,7 @@ function Scene({ scrollProgress, isMobile }: { scrollProgress: number; isMobile:
       <FloatingParticles />
       <FloorGrid />
       <OrbitalRings />
-      <LogoModel scrollProgress={scrollProgress} isMobile={isMobile} />
+      <LogoModel modelUrl={modelUrl} scrollProgress={scrollProgress} isMobile={isMobile} />
       <ContactShadows position={[0, -2.85, 0]} opacity={0.5} scale={14} blur={2.2} far={4.5} color="#CC0000" />
       <Environment preset="night" />
       <Preload all />
@@ -262,10 +277,13 @@ function Scene({ scrollProgress, isMobile }: { scrollProgress: number; isMobile:
 export function Logo3DScene({
   height = "100vh",
   showScrollHint = true,
+  modelUrl = DEFAULT_LOGO_MODEL_URL,
   children,
 }: {
   height?: string;
   showScrollHint?: boolean;
+  /** GLB en `public/models/`. Por defecto el logo v01 de inicio. */
+  modelUrl?: string;
   children?: ReactNode;
 }) {
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -313,7 +331,7 @@ export function Logo3DScene({
         }}
       >
         <Suspense fallback={<Loader />}>
-          <Scene scrollProgress={scrollProgress} isMobile={isMobile} />
+          <Scene modelUrl={modelUrl} scrollProgress={scrollProgress} isMobile={isMobile} />
         </Suspense>
       </Canvas>
 
@@ -412,4 +430,5 @@ export function Logo3DScene({
   );
 }
 
-useGLTF.preload(MODEL_URL);
+useGLTF.preload(DEFAULT_LOGO_MODEL_URL);
+useGLTF.preload(TRAININGS_LOGO_MODEL_URL);
