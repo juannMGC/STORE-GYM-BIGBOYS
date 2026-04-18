@@ -118,7 +118,7 @@ function LogoModel({ scrollProgress, isMobile }: { scrollProgress: number; isMob
       <primitive
         object={clonedScene}
         scale={3.5}
-        position={[0, isMobile ? -0.55 : -0.38, 0]}
+        position={[0, isMobile ? -0.72 : -0.52, 0]}
         rotation={[0, LOGO_MESH_Y_ROTATION, 0]}
       />
     </group>
