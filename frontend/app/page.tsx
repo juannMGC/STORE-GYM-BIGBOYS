@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { HomePageView } from "@/components/home-page-view";
 import type { ProductListItem } from "@/lib/types";
 
+/** Home: canvas 3D fijo + contenido en `HomePageView` (scroll → zoom cámara). */
+
 export const metadata: Metadata = {
   title: "Inicio",
   description:

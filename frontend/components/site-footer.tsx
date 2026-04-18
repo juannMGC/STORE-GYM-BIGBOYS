@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { LOGIN_ENTRY_HREF } from "@/lib/auth-routes";
@@ -32,6 +33,7 @@ export function SiteFooter() {
         borderTop: "1px solid rgba(204,0,0,0.3)",
         padding: "60px 24px 24px",
         position: "relative",
+        zIndex: 2,
         marginTop: "auto",
       }}
     >
@@ -58,10 +60,7 @@ export function SiteFooter() {
               marginBottom: "16px",
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <motion.img
-              src="/brand/logo-BigBoysGYM.png"
-              alt="Big Boys Gym"
+            <motion.div
               animate={{
                 filter: [
                   "drop-shadow(0 0 10px rgba(204,0,0,0.3))",
@@ -74,8 +73,7 @@ export function SiteFooter() {
                 filter:
                   "drop-shadow(0 0 24px rgba(204,0,0,0.9)) " +
                   "drop-shadow(0 0 48px rgba(204,0,0,0.4))",
-                rotateY: 10,
-                scale: 1.08,
+                scale: 1.06,
               }}
               transition={{
                 filter: {
@@ -88,15 +86,24 @@ export function SiteFooter() {
                   repeat: Infinity,
                   ease: "easeInOut",
                 },
-                rotateY: { duration: 0.3 },
                 scale: { duration: 0.3 },
               }}
-              style={{
-                height: "80px",
-                width: "auto",
-                objectFit: "contain",
-              }}
-            />
+              style={{ display: "inline-block" }}
+            >
+              <Image
+                src="/brand/logo-BigBoysGYM.png"
+                alt="Big Boys Gym"
+                width={160}
+                height={80}
+                quality={85}
+                sizes="160px"
+                style={{
+                  height: "80px",
+                  width: "auto",
+                  objectFit: "contain",
+                }}
+              />
+            </motion.div>
           </motion.div>
           <p
             style={{

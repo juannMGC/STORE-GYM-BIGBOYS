@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { usePathname } from "next/navigation";
@@ -171,16 +172,13 @@ export function SiteHeader() {
               minWidth: 0,
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <motion.img
-              src="/brand/logo-BigBoysGYM.png"
-              alt="Big Boys Gym"
+            <motion.div
+              style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
               whileHover={{
                 filter:
                   "drop-shadow(0 0 16px rgba(204,0,0,0.9)) " +
                   "drop-shadow(0 0 32px rgba(204,0,0,0.4))",
-                scale: 1.1,
-                rotateY: 15,
+                scale: 1.08,
               }}
               animate={{
                 filter: [
@@ -196,15 +194,24 @@ export function SiteHeader() {
                   ease: "easeInOut",
                 },
                 scale: { duration: 0.2 },
-                rotateY: { duration: 0.3 },
               }}
-              style={{
-                height: "48px",
-                width: "auto",
-                maxWidth: "min(140px, 38vw)",
-                objectFit: "contain",
-              }}
-            />
+            >
+              <Image
+                src="/brand/logo-BigBoysGYM.png"
+                alt="Big Boys Gym"
+                width={120}
+                height={48}
+                priority
+                quality={90}
+                sizes="(max-width: 768px) min(140px, 38vw), 120px"
+                style={{
+                  height: "48px",
+                  width: "auto",
+                  maxWidth: "min(140px, 38vw)",
+                  objectFit: "contain",
+                }}
+              />
+            </motion.div>
             <motion.div
               className="hide-mobile"
               whileHover={{
@@ -558,10 +565,7 @@ export function SiteHeader() {
                 gap: "12px",
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <motion.img
-                src="/brand/logo-BigBoysGYM.png"
-                alt="Big Boys Gym"
+              <motion.div
                 animate={{
                   filter: [
                     "drop-shadow(0 0 8px rgba(204,0,0,0.4))",
@@ -574,12 +578,22 @@ export function SiteHeader() {
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
-                style={{
-                  height: "60px",
-                  width: "auto",
-                  objectFit: "contain",
-                }}
-              />
+                style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
+              >
+                <Image
+                  src="/brand/logo-BigBoysGYM.png"
+                  alt="Big Boys Gym"
+                  width={180}
+                  height={60}
+                  quality={90}
+                  sizes="180px"
+                  style={{
+                    height: "60px",
+                    width: "auto",
+                    objectFit: "contain",
+                  }}
+                />
+              </motion.div>
               <div>
                 <div
                   style={{

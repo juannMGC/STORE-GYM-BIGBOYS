@@ -113,6 +113,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${blackOps.variable} ${rajdhani.variable} h-full`}>
+      <head>
+        <link rel="preload" href="/brand/logo-BigBoysGYM.png" as="image" type="image/png" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+      </head>
       <body className="relative flex min-h-screen flex-col antialiased text-white">
         <CustomCursor />
         <ParticlesBg count={40} />

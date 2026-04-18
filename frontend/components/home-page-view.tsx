@@ -87,17 +87,30 @@ export function HomePageView({
   const subtitle = useTypewriter(TYPEWRITER_TEXTS, 72, 2200);
 
   return (
-    <main style={{ position: "relative", zIndex: 1, flex: 1 }}>
+    <>
+      <div
+        aria-hidden
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
+      >
+        <Logo3DScene height="100vh" showScrollHint={false} />
+      </div>
+
+      <main style={{ position: "relative", zIndex: 1, flex: 1, background: "transparent" }}>
       <section
         style={{
           position: "relative",
+          zIndex: 1,
           minHeight: "min(100svh, 100dvh)",
           width: "100%",
           overflow: "hidden",
+          paddingTop: "88px",
         }}
       >
-        <Logo3DScene height="min(100svh, 100dvh)" interactive showScrollHint />
-
         <motion.div
           variants={staggerContainer}
           initial="hidden"
@@ -260,10 +273,14 @@ export function HomePageView({
         whileInView="visible"
         viewport={{ once: true, margin: "-80px" }}
         style={{
+          position: "relative",
+          zIndex: 1,
           padding: "clamp(48px, 8vw, 80px) 24px",
           borderTop: "1px solid rgba(204,0,0,0.2)",
           borderBottom: "1px solid rgba(204,0,0,0.2)",
-          background: "linear-gradient(90deg, rgba(204,0,0,0.05), transparent, rgba(204,0,0,0.05))",
+          background: "rgba(0,0,0,0.88)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
         }}
       >
         <div
@@ -331,7 +348,19 @@ export function HomePageView({
         </div>
       </motion.section>
 
-      <section style={{ padding: "clamp(64px, 10vw, 100px) 24px", maxWidth: "1200px", margin: "0 auto" }}>
+      <section
+        style={{
+          position: "relative",
+          zIndex: 1,
+          padding: "clamp(64px, 10vw, 100px) 24px",
+          maxWidth: "1200px",
+          margin: "0 auto",
+          background: "rgba(0,0,0,0.9)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          borderTop: "1px solid rgba(204,0,0,0.2)",
+        }}
+      >
         <motion.div
           initial={{ opacity: 0, x: -40 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -427,9 +456,13 @@ export function HomePageView({
 
       <section
         style={{
+          position: "relative",
+          zIndex: 1,
           padding: "clamp(64px, 10vw, 100px) 24px",
           borderTop: "1px solid rgba(204,0,0,0.15)",
-          background: "rgba(255,255,255,0.02)",
+          background: "rgba(0,0,0,0.9)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
         }}
       >
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
@@ -540,7 +573,18 @@ export function HomePageView({
         </div>
       </section>
 
-      <div className="glass" style={{ borderTop: "1px solid rgba(204,0,0,0.2)", borderBottom: "1px solid rgba(204,0,0,0.2)" }}>
+      <div
+        className="glass"
+        style={{
+          position: "relative",
+          zIndex: 1,
+          borderTop: "1px solid rgba(204,0,0,0.2)",
+          borderBottom: "1px solid rgba(204,0,0,0.2)",
+          background: "rgba(0,0,0,0.85)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+        }}
+      >
         <BrandsSlider velocidad={25} pausarAlHover />
       </div>
 
@@ -550,10 +594,15 @@ export function HomePageView({
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
         style={{
+          position: "relative",
+          zIndex: 1,
           padding: "clamp(72px, 12vw, 100px) 24px",
           textAlign: "center",
-          position: "relative",
           overflow: "hidden",
+          background: "rgba(0,0,0,0.9)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          borderTop: "1px solid rgba(204,0,0,0.2)",
         }}
       >
         <div
@@ -652,5 +701,6 @@ export function HomePageView({
         </div>
       </motion.section>
     </main>
+    </>
   );
 }
