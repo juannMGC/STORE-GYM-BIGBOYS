@@ -66,22 +66,22 @@ function Loader() {
 
 function CameraController({ scrollProgress }: { scrollProgress: number }) {
   const { camera } = useThree();
-  const CAMERA_START_Z = 2.5;
-  const CAMERA_END_Z = 0.8;
-  const CAMERA_MIN_Z = 0.6;
+  const CAMERA_START_Z = 5.0;
+  const CAMERA_END_Z = 1.8;
+  const CAMERA_MIN_Z = 1.5;
 
   useFrame(() => {
     const targetZ = THREE.MathUtils.lerp(CAMERA_START_Z, CAMERA_END_Z, scrollProgress);
     camera.position.z = THREE.MathUtils.lerp(camera.position.z, Math.max(targetZ, CAMERA_MIN_Z), 0.05);
     camera.position.x = THREE.MathUtils.lerp(camera.position.x, 0, 0.05);
-    camera.position.y = THREE.MathUtils.lerp(camera.position.y, 0, 0.05);
-    camera.lookAt(0, 0, 0);
+    camera.position.y = THREE.MathUtils.lerp(camera.position.y, -0.3, 0.05);
+    camera.lookAt(0, 0.2, 0);
   });
 
   return null;
 }
 
-function LogoModel({ scrollProgress }: { scrollProgress: number }) {
+function LogoModel({ scrollProgress, isMobile }: { scrollProgress: number; isMobile: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF(MODEL_URL);
 
@@ -117,8 +117,8 @@ function LogoModel({ scrollProgress }: { scrollProgress: number }) {
     <group ref={groupRef}>
       <primitive
         object={clonedScene}
-        scale={3.5}
-        position={[0, 0, 0]}
+        scale={isMobile ? 2.2 : 2.8}
+        position={[0, isMobile ? -0.5 : -0.3, 0]}
         rotation={[0, LOGO_MESH_Y_ROTATION, 0]}
       />
     </group>
@@ -242,7 +242,7 @@ function OrbitalRings() {
   );
 }
 
-function Scene({ scrollProgress }: { scrollProgress: number }) {
+function Scene({ scrollProgress, isMobile }: { scrollProgress: number; isMobile: boolean }) {
   return (
     <>
       <color attach="background" args={["#000000"]} />
@@ -251,7 +251,7 @@ function Scene({ scrollProgress }: { scrollProgress: number }) {
       <FloatingParticles />
       <FloorGrid />
       <OrbitalRings />
-      <LogoModel scrollProgress={scrollProgress} />
+      <LogoModel scrollProgress={scrollProgress} isMobile={isMobile} />
       <ContactShadows position={[0, -2.85, 0]} opacity={0.5} scale={14} blur={2.2} far={4.5} color="#CC0000" />
       <Environment preset="night" />
       <Preload all />
@@ -298,8 +298,8 @@ export function Logo3DScene({
     >
       <Canvas
         camera={{
-          position: [0, 0, 2.5],
-          fov: isMobile ? 70 : 50,
+          position: [0, -0.3, 5],
+          fov: isMobile ? 65 : 52,
           near: 0.1,
           far: 100,
         }}
@@ -313,7 +313,7 @@ export function Logo3DScene({
         }}
       >
         <Suspense fallback={<Loader />}>
-          <Scene scrollProgress={scrollProgress} />
+          <Scene scrollProgress={scrollProgress} isMobile={isMobile} />
         </Suspense>
       </Canvas>
 

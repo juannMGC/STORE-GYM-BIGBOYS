@@ -5,7 +5,6 @@ import { animate, motion, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { BrandsSlider } from "@/components/brands-slider";
-import { HomeRegisterCta } from "@/components/home-register-cta";
 import { Logo3DScene } from "@/components/logo-3d";
 import {
   fadeLeft,
@@ -108,7 +107,12 @@ export function HomePageView({
           minHeight: "min(100svh, 100dvh)",
           width: "100%",
           overflow: "hidden",
-          paddingTop: "88px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: isMobile ? "center" : "flex-start",
+          justifyContent: isMobile ? "flex-end" : "center",
+          padding: isMobile ? "88px 16px 48px" : "88px clamp(16px, 5vw, 80px) max(80px, 10vh)",
+          pointerEvents: "none",
         }}
       >
         <motion.div
@@ -116,23 +120,18 @@ export function HomePageView({
           initial="hidden"
           animate="visible"
           style={{
-            position: "absolute",
-            inset: 0,
+            position: "relative",
             zIndex: 10,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-end",
-            alignItems: isMobile ? "center" : "flex-start",
-            padding: isMobile ? "64px 16px max(100px, 18vh)" : "80px 48px max(80px, 10vh)",
-            pointerEvents: "none",
+            width: "100%",
+            maxWidth: isMobile ? "100%" : "640px",
+            pointerEvents: "auto",
+            textAlign: isMobile ? "center" : "left",
           }}
         >
           <div
             style={{
               maxWidth: isMobile ? "100%" : "640px",
               width: "100%",
-              pointerEvents: "auto",
-              textAlign: isMobile ? "center" : "left",
             }}
           >
           <motion.div variants={fadeUp} className="badge-neon" style={{ marginBottom: "24px", display: "inline-block" }}>
@@ -259,9 +258,6 @@ export function HomePageView({
                 🏋️ Entrenamientos
               </Link>
             </motion.div>
-            <div style={{ width: isMobile ? "100%" : "auto" }}>
-              <HomeRegisterCta />
-            </div>
           </motion.div>
           </div>
         </motion.div>
