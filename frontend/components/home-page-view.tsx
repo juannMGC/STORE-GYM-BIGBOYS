@@ -97,7 +97,7 @@ export function HomePageView({
           pointerEvents: "none",
         }}
       >
-        <Logo3DScene height="100vh" showScrollHint={false} />
+        <Logo3DScene height="100vh" showScrollHint={false} lightSceneOverlays />
       </div>
 
       <main style={{ position: "relative", zIndex: 1, flex: 1, background: "transparent" }}>
@@ -278,9 +278,9 @@ export function HomePageView({
           padding: "clamp(48px, 8vw, 80px) 24px",
           borderTop: "1px solid rgba(204,0,0,0.2)",
           borderBottom: "1px solid rgba(204,0,0,0.2)",
-          background: "rgba(0,0,0,0.88)",
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
+          background: "rgba(0,0,0,0.42)",
+          backdropFilter: "blur(12px) saturate(1.1)",
+          WebkitBackdropFilter: "blur(12px) saturate(1.1)",
         }}
       >
         <div
@@ -310,6 +310,8 @@ export function HomePageView({
                 textAlign: "center",
                 cursor: "default",
                 borderRadius: "4px",
+                background: "rgba(8,8,12,0.38)",
+                borderColor: "rgba(255,255,255,0.1)",
               }}
             >
               <motion.span
@@ -355,10 +357,10 @@ export function HomePageView({
           padding: "clamp(64px, 10vw, 100px) 24px",
           maxWidth: "1200px",
           margin: "0 auto",
-          background: "rgba(0,0,0,0.9)",
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
           borderTop: "1px solid rgba(204,0,0,0.2)",
+          background: "rgba(0,0,0,0.38)",
+          backdropFilter: "blur(14px) saturate(1.05)",
+          WebkitBackdropFilter: "blur(14px) saturate(1.05)",
         }}
       >
         <motion.div
@@ -417,6 +419,8 @@ export function HomePageView({
                       flexDirection: "column",
                       borderRadius: "4px",
                       height: "100%",
+                      background: "rgba(10,10,14,0.42)",
+                      borderColor: "rgba(255,255,255,0.1)",
                     }}
                   >
                     {t.featured ? (
@@ -460,9 +464,9 @@ export function HomePageView({
           zIndex: 1,
           padding: "clamp(64px, 10vw, 100px) 24px",
           borderTop: "1px solid rgba(204,0,0,0.15)",
-          background: "rgba(0,0,0,0.9)",
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
+          background: "rgba(0,0,0,0.38)",
+          backdropFilter: "blur(14px) saturate(1.05)",
+          WebkitBackdropFilter: "blur(14px) saturate(1.05)",
         }}
       >
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
@@ -522,6 +526,8 @@ export function HomePageView({
                           display: "flex",
                           flexDirection: "column",
                           height: "100%",
+                          background: "rgba(10,10,14,0.42)",
+                          borderColor: "rgba(255,255,255,0.1)",
                         }}
                       >
                         <div style={{ aspectRatio: "4/3", background: "#0a0a0a", position: "relative", overflow: "hidden" }}>
@@ -580,9 +586,9 @@ export function HomePageView({
           zIndex: 1,
           borderTop: "1px solid rgba(204,0,0,0.2)",
           borderBottom: "1px solid rgba(204,0,0,0.2)",
-          background: "rgba(0,0,0,0.85)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
+          background: "rgba(0,0,0,0.32)",
+          backdropFilter: "blur(10px) saturate(1.05)",
+          WebkitBackdropFilter: "blur(10px) saturate(1.05)",
         }}
       >
         <BrandsSlider velocidad={25} pausarAlHover />
@@ -599,9 +605,9 @@ export function HomePageView({
           padding: "clamp(72px, 12vw, 100px) 24px",
           textAlign: "center",
           overflow: "hidden",
-          background: "rgba(0,0,0,0.9)",
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
+          background: "rgba(0,0,0,0.4)",
+          backdropFilter: "blur(12px) saturate(1.05)",
+          WebkitBackdropFilter: "blur(12px) saturate(1.05)",
           borderTop: "1px solid rgba(204,0,0,0.2)",
         }}
       >
@@ -609,7 +615,7 @@ export function HomePageView({
           style={{
             position: "absolute",
             inset: 0,
-            background: "radial-gradient(ellipse at center, rgba(204,0,0,0.2) 0%, transparent 70%)",
+            background: "radial-gradient(ellipse at center, rgba(204,0,0,0.12) 0%, transparent 65%)",
           }}
         />
         {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -32,9 +32,14 @@ function tweakMeshMaterials(mesh: THREE.Mesh) {
   for (const mat of mats) {
     if (!mat) continue;
     if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
-      mat.metalness = Math.min((mat.metalness ?? 0) + 0.1, 0.3);
-      mat.roughness = Math.max((mat.roughness ?? 1) - 0.1, 0.3);
-      mat.envMapIntensity = 1.2;
+      mat.metalness = Math.min((mat.metalness ?? 0) + 0.08, 0.28);
+      mat.roughness = Math.max((mat.roughness ?? 1) - 0.12, 0.28);
+      mat.envMapIntensity = 2.15;
+      if (mat.color) mat.color.multiplyScalar(1.12);
+      mat.needsUpdate = true;
+    }
+    if (mat instanceof THREE.MeshBasicMaterial) {
+      if (mat.color) mat.color.multiplyScalar(1.18);
       mat.needsUpdate = true;
     }
   }
@@ -139,28 +144,30 @@ function NeonLights() {
 
   useFrame((state) => {
     const time = state.clock.elapsedTime;
-    if (redLight1Ref.current) redLight1Ref.current.intensity = 3 + Math.sin(time * 2) * 1;
+    if (redLight1Ref.current) redLight1Ref.current.intensity = 5.5 + Math.sin(time * 2) * 1.2;
     if (redLight2Ref.current) {
       redLight2Ref.current.position.x = Math.sin(time * 0.5) * 4;
       redLight2Ref.current.position.z = Math.cos(time * 0.5) * 4;
-      redLight2Ref.current.intensity = 2 + Math.sin(time * 1.5) * 0.5;
+      redLight2Ref.current.intensity = 3.2 + Math.sin(time * 1.5) * 0.6;
     }
-    if (goldLightRef.current) goldLightRef.current.intensity = 1.5 + Math.sin(time * 1.2) * 0.5;
+    if (goldLightRef.current) goldLightRef.current.intensity = 3 + Math.sin(time * 1.2) * 0.6;
   });
 
   return (
     <>
-      <ambientLight intensity={0.22} color="#111111" />
-      <pointLight ref={redLight1Ref} position={[0, 2, 4]} color="#FF0000" intensity={4} distance={12} decay={2} />
-      <pointLight ref={redLight2Ref} position={[4, 0, 0]} color="#CC0000" intensity={2} distance={10} decay={2} />
-      <pointLight ref={goldLightRef} position={[0, 5, 0]} color="#FFD700" intensity={2} distance={8} decay={2} />
-      <pointLight position={[0, 0, -5]} color="#ffffff" intensity={1} distance={8} decay={2} />
+      <ambientLight intensity={0.52} color="#d4d4dc" />
+      <hemisphereLight color="#f0f0f8" groundColor="#1a1020" intensity={0.38} />
+      <pointLight ref={redLight1Ref} position={[0, 2, 4]} color="#FF4444" intensity={5.5} distance={14} decay={2} />
+      <pointLight ref={redLight2Ref} position={[4, 0, 0]} color="#FF3333" intensity={3.2} distance={12} decay={2} />
+      <pointLight ref={goldLightRef} position={[0, 5, 0]} color="#FFE566" intensity={3} distance={10} decay={2} />
+      <pointLight position={[0, 0, -5]} color="#ffffff" intensity={2.2} distance={10} decay={2} />
+      <pointLight position={[-3, 1, 3]} color="#ffffff" intensity={1.4} distance={12} decay={2} />
       <spotLight
         position={[0, 8, 2]}
-        angle={0.4}
-        penumbra={0.8}
-        intensity={3}
-        color="#FF3333"
+        angle={0.42}
+        penumbra={0.75}
+        intensity={4.5}
+        color="#FF5555"
         castShadow
         shadow-mapSize={[1024, 1024]}
       />
@@ -267,8 +274,8 @@ function Scene({
       <FloorGrid />
       <OrbitalRings />
       <LogoModel modelUrl={modelUrl} scrollProgress={scrollProgress} isMobile={isMobile} />
-      <ContactShadows position={[0, -2.85, 0]} opacity={0.5} scale={14} blur={2.2} far={4.5} color="#CC0000" />
-      <Environment preset="night" />
+      <ContactShadows position={[0, -2.85, 0]} opacity={0.38} scale={14} blur={2.4} far={4.5} color="#CC0000" />
+      <Environment preset="city" environmentIntensity={1.35} />
       <Preload all />
     </>
   );
@@ -278,12 +285,15 @@ export function Logo3DScene({
   height = "100vh",
   showScrollHint = true,
   modelUrl = DEFAULT_LOGO_MODEL_URL,
+  /** Inicio: menos viñeta/scanlines para ver más el 3D detrás del contenido. */
+  lightSceneOverlays = false,
   children,
 }: {
   height?: string;
   showScrollHint?: boolean;
   /** GLB en `public/models/`. Por defecto el logo v01 de inicio. */
   modelUrl?: string;
+  lightSceneOverlays?: boolean;
   children?: ReactNode;
 }) {
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -328,6 +338,8 @@ export function Logo3DScene({
         frameloop="always"
         onCreated={({ gl }) => {
           gl.shadowMap.type = THREE.PCFShadowMap;
+          gl.toneMapping = THREE.ACESFilmicToneMapping;
+          gl.toneMappingExposure = 1.22;
         }}
       >
         <Suspense fallback={<Loader />}>
@@ -398,8 +410,10 @@ export function Logo3DScene({
           bottom: 0,
           left: 0,
           right: 0,
-          height: "min(200px, 28vh)",
-          background: "linear-gradient(transparent, #000000)",
+          height: lightSceneOverlays ? "min(120px, 18vh)" : "min(200px, 28vh)",
+          background: lightSceneOverlays
+            ? "linear-gradient(transparent, rgba(0,0,0,0.45))"
+            : "linear-gradient(transparent, #000000)",
           pointerEvents: "none",
           zIndex: 8,
         }}
@@ -409,7 +423,15 @@ export function Logo3DScene({
         style={{
           position: "absolute",
           inset: 0,
-          background: `repeating-linear-gradient(
+          background: lightSceneOverlays
+            ? `repeating-linear-gradient(
+            0deg,
+            rgba(0,0,0,0) 0px,
+            rgba(0,0,0,0) 2px,
+            rgba(0,0,0,0.012) 2px,
+            rgba(0,0,0,0.012) 4px
+          )`
+            : `repeating-linear-gradient(
             0deg,
             rgba(0,0,0,0) 0px,
             rgba(0,0,0,0) 2px,
