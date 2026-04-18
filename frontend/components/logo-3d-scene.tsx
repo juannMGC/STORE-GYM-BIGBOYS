@@ -81,7 +81,7 @@ function CameraController({ scrollProgress }: { scrollProgress: number }) {
   return null;
 }
 
-function LogoModel({ scrollProgress }: { scrollProgress: number }) {
+function LogoModel({ scrollProgress, isMobile }: { scrollProgress: number; isMobile: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF(MODEL_URL);
 
@@ -118,7 +118,7 @@ function LogoModel({ scrollProgress }: { scrollProgress: number }) {
       <primitive
         object={clonedScene}
         scale={3.5}
-        position={[0, 0, 0]}
+        position={[0, isMobile ? -0.55 : -0.38, 0]}
         rotation={[0, LOGO_MESH_Y_ROTATION, 0]}
       />
     </group>
@@ -242,7 +242,7 @@ function OrbitalRings() {
   );
 }
 
-function Scene({ scrollProgress }: { scrollProgress: number }) {
+function Scene({ scrollProgress, isMobile }: { scrollProgress: number; isMobile: boolean }) {
   return (
     <>
       <color attach="background" args={["#000000"]} />
@@ -251,7 +251,7 @@ function Scene({ scrollProgress }: { scrollProgress: number }) {
       <FloatingParticles />
       <FloorGrid />
       <OrbitalRings />
-      <LogoModel scrollProgress={scrollProgress} />
+      <LogoModel scrollProgress={scrollProgress} isMobile={isMobile} />
       <ContactShadows position={[0, -2.85, 0]} opacity={0.5} scale={14} blur={2.2} far={4.5} color="#CC0000" />
       <Environment preset="night" />
       <Preload all />
@@ -313,7 +313,7 @@ export function Logo3DScene({
         }}
       >
         <Suspense fallback={<Loader />}>
-          <Scene scrollProgress={scrollProgress} />
+          <Scene scrollProgress={scrollProgress} isMobile={isMobile} />
         </Suspense>
       </Canvas>
 
