@@ -88,6 +88,17 @@ export default function RutinasPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (selectedExercise) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [selectedExercise]);
+
   const filteredExercises = useMemo(() => {
     let list = [...exercises];
     if (selectedGroup !== "all") {
@@ -500,283 +511,387 @@ export default function RutinasPage() {
 
       <AnimatePresence>
         {selectedExercise ? (
-          <>
+          <motion.div
+            key="exercise-modal-root"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 200,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "16px",
+              overflowY: "auto",
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setSelectedExercise(null);
+            }}
+          >
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedExercise(null)}
+              aria-hidden
               style={{
-                position: "fixed",
+                position: "absolute",
                 inset: 0,
-                background: "rgba(0,0,0,0.85)",
-                zIndex: 100,
+                background: "rgba(0,0,0,0.88)",
                 backdropFilter: "blur(8px)",
+                zIndex: 0,
               }}
             />
+
             <motion.div
-              initial={{ opacity: 0, y: 60, scale: 0.95 }}
+              initial={{ opacity: 0, y: 40, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 60, scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              exit={{ opacity: 0, y: 40, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
               style={{
-                position: "fixed",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                width: "min(680px, 95vw)",
-                maxHeight: "85vh",
+                width: "100%",
+                maxWidth: "680px",
+                maxHeight: "90vh",
                 background: "#0a0a0a",
                 border: "1px solid rgba(204,0,0,0.3)",
-                boxShadow: "0 0 60px rgba(204,0,0,0.2)",
-                zIndex: 101,
+                boxShadow: "0 0 60px rgba(204,0,0,0.15)",
                 overflowY: "auto",
-                borderRadius: "2px",
+                position: "relative",
+                zIndex: 1,
+                flexShrink: 0,
+                scrollbarWidth: "thin",
+                scrollbarColor: "#CC0000 #111111",
               }}
             >
-              <div style={{ position: "relative" }}>
-                {selectedExercise.videoUrl ? (
-                  <div style={{ width: "100%", aspectRatio: "16/9", background: "#000" }}>
-                    <video
-                      src={selectedExercise.videoUrl}
-                      controls
-                      playsInline
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      poster={selectedExercise.imageUrl ?? undefined}
-                    />
-                  </div>
-                ) : selectedExercise.imageUrl ? (
-                  <div style={{ width: "100%", height: "240px", overflow: "hidden" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={selectedExercise.imageUrl}
-                      alt=""
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
+              <button
+                type="button"
+                onClick={() => setSelectedExercise(null)}
+                style={{
+                  position: "sticky",
+                  top: "12px",
+                  float: "right",
+                  marginRight: "12px",
+                  marginTop: "12px",
+                  background: "rgba(204,0,0,0.2)",
+                  border: "1px solid rgba(204,0,0,0.5)",
+                  color: "#CC0000",
+                  width: "32px",
+                  height: "32px",
+                  cursor: "pointer",
+                  fontSize: "18px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 10,
+                  fontFamily: "monospace",
+                  lineHeight: 1,
+                  flexShrink: 0,
+                }}
+              >
+                x
+              </button>
+
+              {selectedExercise.videoUrl ? (
+                <div
+                  style={{
+                    width: "100%",
+                    aspectRatio: "16/9",
+                    background: "#000",
+                    overflow: "hidden",
+                    clear: "both" as const,
+                  }}
+                >
+                  <video
+                    src={selectedExercise.videoUrl}
+                    controls
+                    playsInline
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                    poster={selectedExercise.imageUrl ?? undefined}
+                  />
+                </div>
+              ) : selectedExercise.imageUrl ? (
+                <div
+                  style={{
+                    width: "100%",
+                    height: "clamp(180px, 35vw, 280px)",
+                    overflow: "hidden",
+                    flexShrink: 0,
+                    clear: "both" as const,
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={selectedExercise.imageUrl}
+                    alt={selectedExercise.name}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                </div>
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    height: "clamp(120px, 20vw, 180px)",
+                    background: "linear-gradient(135deg, #0a0a0a, rgba(204,0,0,0.08))",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    clear: "both" as const,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "clamp(32px, 8vw, 56px)",
+                      color: "rgba(204,0,0,0.2)",
+                      letterSpacing: "4px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {selectedExercise.muscleGroup?.name}
+                  </span>
+                </div>
+              )}
+
+              <div style={{ padding: "clamp(16px, 4vw, 28px)" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                    flexWrap: "wrap",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <span
+                    style={{
+                      padding: "4px 14px",
+                      background: "rgba(204,0,0,0.12)",
+                      border: "1px solid #CC0000",
+                      color: "#CC0000",
+                      fontFamily: "var(--font-display)",
+                      fontSize: "11px",
+                      letterSpacing: "2px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {selectedExercise.muscleGroup?.name}
+                  </span>
+                  <span
+                    style={{
+                      padding: "4px 14px",
+                      background: "rgba(0,0,0,0.4)",
+                      border: `1px solid ${LEVEL_COLORS[selectedExercise.level] ?? "#CC0000"}`,
+                      color: LEVEL_COLORS[selectedExercise.level] ?? "#CC0000",
+                      fontFamily: "var(--font-display)",
+                      fontSize: "11px",
+                      letterSpacing: "2px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {LEVELS[selectedExercise.level] ?? selectedExercise.level}
+                  </span>
+                </div>
+
+                <h2
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "clamp(20px, 5vw, 32px)",
+                    color: "#ffffff",
+                    textTransform: "uppercase",
+                    letterSpacing: "3px",
+                    marginBottom: "20px",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {selectedExercise.name}
+                </h2>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: "clamp(8px, 2vw, 14px)",
+                    marginBottom: "24px",
+                  }}
+                >
+                  {(
+                    [
+                      { label: "Series", value: selectedExercise.sets ?? "-" },
+                      { label: "Repeticiones", value: selectedExercise.reps ?? "-" },
+                      {
+                        label: "Descanso",
+                        value: selectedExercise.restSeconds
+                          ? formatRest(selectedExercise.restSeconds)
+                          : "-",
+                      },
+                    ] as const
+                  ).map((stat) => (
+                    <div
+                      key={stat.label}
+                      style={{
+                        padding: "clamp(10px, 2vw, 18px)",
+                        background: "#111111",
+                        border: "1px solid rgba(204,0,0,0.15)",
+                        textAlign: "center",
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: "clamp(20px, 4vw, 28px)",
+                          color: "#CC0000",
+                          textShadow: "0 0 10px rgba(204,0,0,0.3)",
+                          margin: "0 0 4px",
+                          letterSpacing: "2px",
+                        }}
+                      >
+                        {stat.value}
+                      </p>
+                      <p
+                        style={{
+                          color: "rgba(255,255,255,0.35)",
+                          fontSize: "clamp(9px, 2vw, 11px)",
+                          textTransform: "uppercase",
+                          fontFamily: "var(--font-display)",
+                          letterSpacing: "2px",
+                          margin: 0,
+                        }}
+                      >
+                        {stat.label}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {selectedExercise.description ? (
+                  <div style={{ marginBottom: "20px" }}>
+                    <h4
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        color: "#CC0000",
+                        fontSize: "11px",
+                        letterSpacing: "3px",
+                        textTransform: "uppercase",
+                        marginBottom: "10px",
+                        paddingBottom: "6px",
+                        borderBottom: "1px solid rgba(204,0,0,0.15)",
+                      }}
+                    >
+                      Descripción
+                    </h4>
+                    <p
+                      style={{
+                        color: "rgba(255,255,255,0.55)",
+                        fontSize: "clamp(13px, 2vw, 15px)",
+                        lineHeight: 1.7,
+                      }}
+                    >
+                      {selectedExercise.description}
+                    </p>
                   </div>
                 ) : null}
 
-                <div style={{ padding: "24px" }}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedExercise(null)}
-                    style={{
-                      position: "absolute",
-                      top: "16px",
-                      right: "16px",
-                      background: "rgba(204,0,0,0.2)",
-                      border: "1px solid rgba(204,0,0,0.4)",
-                      color: "#CC0000",
-                      width: "32px",
-                      height: "32px",
-                      cursor: "pointer",
-                      fontSize: "16px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      zIndex: 2,
-                    }}
-                  >
-                    x
-                  </button>
-
-                  <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
-                    <span
+                {selectedExercise.instructions ? (
+                  <div style={{ marginBottom: "20px" }}>
+                    <h4
                       style={{
-                        padding: "3px 12px",
-                        background: "rgba(204,0,0,0.15)",
-                        border: "1px solid #CC0000",
+                        fontFamily: "var(--font-display)",
                         color: "#CC0000",
-                        fontFamily: "var(--font-display)",
                         fontSize: "11px",
-                        letterSpacing: "2px",
+                        letterSpacing: "3px",
                         textTransform: "uppercase",
+                        marginBottom: "10px",
+                        paddingBottom: "6px",
+                        borderBottom: "1px solid rgba(204,0,0,0.15)",
                       }}
                     >
-                      {selectedExercise.muscleGroup?.name}
-                    </span>
-                    <span
+                      Cómo ejecutar
+                    </h4>
+                    <p
                       style={{
-                        padding: "3px 12px",
-                        background: "rgba(0,0,0,0.5)",
-                        border: `1px solid ${LEVEL_COLORS[selectedExercise.level] ?? "#CC0000"}`,
-                        color: LEVEL_COLORS[selectedExercise.level] ?? "#CC0000",
-                        fontFamily: "var(--font-display)",
-                        fontSize: "11px",
-                        letterSpacing: "2px",
-                        textTransform: "uppercase",
+                        color: "rgba(255,255,255,0.55)",
+                        fontSize: "clamp(13px, 2vw, 15px)",
+                        lineHeight: 1.7,
+                        whiteSpace: "pre-line",
                       }}
                     >
-                      {LEVELS[selectedExercise.level] ?? selectedExercise.level}
-                    </span>
+                      {selectedExercise.instructions}
+                    </p>
                   </div>
+                ) : null}
 
-                  <h2
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: "clamp(22px, 4vw, 32px)",
-                      color: "#ffffff",
-                      textTransform: "uppercase",
-                      letterSpacing: "3px",
-                      marginBottom: "16px",
-                      paddingRight: "40px",
-                    }}
-                  >
-                    {selectedExercise.name}
-                  </h2>
+                {selectedExercise.equipment ? (
+                  <div style={{ marginBottom: "20px" }}>
+                    <h4
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        color: "#CC0000",
+                        fontSize: "11px",
+                        letterSpacing: "3px",
+                        textTransform: "uppercase",
+                        marginBottom: "10px",
+                        paddingBottom: "6px",
+                        borderBottom: "1px solid rgba(204,0,0,0.15)",
+                      }}
+                    >
+                      Equipo necesario
+                    </h4>
+                    <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "clamp(13px, 2vw, 15px)" }}>
+                      {selectedExercise.equipment}
+                    </p>
+                  </div>
+                ) : null}
 
+                {selectedExercise.tips ? (
                   <div
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(3, 1fr)",
-                      gap: "12px",
-                      marginBottom: "24px",
+                      padding: "clamp(12px, 3vw, 18px)",
+                      background: "rgba(204,0,0,0.04)",
+                      border: "1px solid rgba(204,0,0,0.15)",
+                      borderLeft: "3px solid #CC0000",
+                      marginBottom: "8px",
                     }}
                   >
-                    {(
-                      [
-                        { label: "Series", value: selectedExercise.sets ?? "-" },
-                        { label: "Repeticiones", value: selectedExercise.reps ?? "-" },
-                        {
-                          label: "Descanso",
-                          value: formatRest(selectedExercise.restSeconds),
-                        },
-                      ] as const
-                    ).map((stat) => (
-                      <div
-                        key={stat.label}
-                        style={{
-                          padding: "16px",
-                          background: "#111111",
-                          border: "1px solid rgba(204,0,0,0.2)",
-                          textAlign: "center",
-                        }}
-                      >
-                        <p
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontSize: "28px",
-                            color: "#CC0000",
-                            textShadow: "0 0 10px rgba(204,0,0,0.4)",
-                            margin: "0 0 4px",
-                            letterSpacing: "2px",
-                          }}
-                        >
-                          {stat.value}
-                        </p>
-                        <p
-                          style={{
-                            color: "rgba(255,255,255,0.4)",
-                            fontSize: "11px",
-                            textTransform: "uppercase",
-                            fontFamily: "var(--font-display)",
-                            letterSpacing: "2px",
-                            margin: 0,
-                          }}
-                        >
-                          {stat.label}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {selectedExercise.description ? (
-                    <div style={{ marginBottom: "20px" }}>
-                      <h4
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          color: "#CC0000",
-                          fontSize: "12px",
-                          letterSpacing: "3px",
-                          textTransform: "uppercase",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        Descripción
-                      </h4>
-                      <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", lineHeight: 1.7 }}>
-                        {selectedExercise.description}
-                      </p>
-                    </div>
-                  ) : null}
-
-                  {selectedExercise.instructions ? (
-                    <div style={{ marginBottom: "20px" }}>
-                      <h4
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          color: "#CC0000",
-                          fontSize: "12px",
-                          letterSpacing: "3px",
-                          textTransform: "uppercase",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        Cómo ejecutar
-                      </h4>
-                      <p
-                        style={{
-                          color: "rgba(255,255,255,0.6)",
-                          fontSize: "14px",
-                          lineHeight: 1.7,
-                          whiteSpace: "pre-line",
-                        }}
-                      >
-                        {selectedExercise.instructions}
-                      </p>
-                    </div>
-                  ) : null}
-
-                  {selectedExercise.equipment ? (
-                    <div style={{ marginBottom: "20px" }}>
-                      <h4
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          color: "#CC0000",
-                          fontSize: "12px",
-                          letterSpacing: "3px",
-                          textTransform: "uppercase",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        Equipo necesario
-                      </h4>
-                      <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px" }}>
-                        {selectedExercise.equipment}
-                      </p>
-                    </div>
-                  ) : null}
-
-                  {selectedExercise.tips ? (
-                    <div
+                    <h4
                       style={{
-                        padding: "16px",
-                        background: "rgba(204,0,0,0.05)",
-                        border: "1px solid rgba(204,0,0,0.2)",
-                        borderLeft: "3px solid #CC0000",
+                        fontFamily: "var(--font-display)",
+                        color: "#CC0000",
+                        fontSize: "11px",
+                        letterSpacing: "3px",
+                        textTransform: "uppercase",
+                        marginBottom: "8px",
                       }}
                     >
-                      <h4
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          color: "#CC0000",
-                          fontSize: "12px",
-                          letterSpacing: "3px",
-                          textTransform: "uppercase",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        Consejo del entrenador
-                      </h4>
-                      <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", lineHeight: 1.7, margin: 0 }}>
-                        {selectedExercise.tips}
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
+                      Consejo del entrenador
+                    </h4>
+                    <p
+                      style={{
+                        color: "rgba(255,255,255,0.55)",
+                        fontSize: "clamp(13px, 2vw, 15px)",
+                        lineHeight: 1.7,
+                        margin: 0,
+                      }}
+                    >
+                      {selectedExercise.tips}
+                    </p>
+                  </div>
+                ) : null}
               </div>
             </motion.div>
-          </>
+          </motion.div>
         ) : null}
       </AnimatePresence>
     </main>
