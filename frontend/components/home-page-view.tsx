@@ -239,7 +239,7 @@ export function HomePageView({
                   width: isMobile ? "100%" : "auto",
                 }}
               >
-                🛍️ Ver tienda
+                 Ver tienda
               </Link>
             </motion.div>
             <motion.div variants={scaleIn} whileHover={{ scale: isMobile ? 1 : 1.08 }} whileTap={{ scale: 0.95 }} style={{ width: isMobile ? "100%" : "auto" }}>
@@ -256,7 +256,7 @@ export function HomePageView({
                   width: isMobile ? "100%" : "auto",
                 }}
               >
-                🏋️ Entrenamientos
+                 Entrenamientos
               </Link>
             </motion.div>
             <div style={{ width: isMobile ? "100%" : "auto" }}>
