@@ -22,6 +22,12 @@ if (typeof window !== "undefined") {
 
 const MODEL_URL = "/models/logo-BigBoysGYM-v01.glb";
 
+/**
+ * Rotación Y del mesh para que mire a la cámara (GLB a veces viene de costado).
+ * A: Math.PI / 2  ·  B: -Math.PI / 2 (por defecto)  ·  C: Math.PI  ·  D: 0
+ */
+const LOGO_MESH_Y_ROTATION = -Math.PI / 2;
+
 function tweakMeshMaterials(mesh: THREE.Mesh) {
   const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
   for (const mat of mats) {
@@ -99,6 +105,7 @@ function LogoModel({ scrollProgress }: { scrollProgress: number }) {
     const floatY = Math.sin(time * 0.6) * 0.06;
     g.position.y = THREE.MathUtils.lerp(g.position.y, floatY, 0.03);
 
+    // Sin rotación automática del grupo (solo flotación + escala con scroll)
     g.rotation.set(0, 0, 0);
 
     const scaleBoost = 1 + scrollProgress * 0.15;
@@ -108,7 +115,12 @@ function LogoModel({ scrollProgress }: { scrollProgress: number }) {
 
   return (
     <group ref={groupRef}>
-      <primitive object={clonedScene} scale={3.5} position={[0, 0, 0]} />
+      <primitive
+        object={clonedScene}
+        scale={3.5}
+        position={[0, 0, 0]}
+        rotation={[0, LOGO_MESH_Y_ROTATION, 0]}
+      />
     </group>
   );
 }
