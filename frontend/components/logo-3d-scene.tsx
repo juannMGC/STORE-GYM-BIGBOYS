@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Html, Preload, useGLTF, useProgress } from "@react-three/drei";
 import * as THREE from "three";
-import { DEFAULT_LOGO_MODEL_URL, TRAININGS_LOGO_MODEL_URL } from "./logo-3d-model-urls";
+import { DEFAULT_LOGO_MODEL_URL, SHOP_LOGO_MODEL_URL, TRAININGS_LOGO_MODEL_URL } from "./logo-3d-model-urls";
 
 if (typeof window !== "undefined") {
   const w = window as Window & { __bbgSuppressThreeWarns?: boolean };
@@ -432,3 +432,4 @@ export function Logo3DScene({
 
 useGLTF.preload(DEFAULT_LOGO_MODEL_URL);
 useGLTF.preload(TRAININGS_LOGO_MODEL_URL);
+useGLTF.preload(SHOP_LOGO_MODEL_URL);

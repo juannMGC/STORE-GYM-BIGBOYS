@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackButton } from "@/components/back-button";
+import { Logo3DScene, SHOP_LOGO_MODEL_URL } from "@/components/logo-3d";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { apiFetch } from "@/lib/api-client";
 import type { Category, ProductListItem, Size } from "@/lib/types";
@@ -444,14 +445,30 @@ export default function TiendaPage() {
   };
 
   return (
-    <div
-      className="tienda-page"
-      style={{
-        maxWidth: "1152px",
-        margin: "0 auto",
-        padding: isMobile ? "16px 12px 40px" : "24px 16px 48px",
-      }}
-    >
+    <>
+      <div
+        aria-hidden
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
+      >
+        <Logo3DScene height="100vh" showScrollHint={false} modelUrl={SHOP_LOGO_MODEL_URL} />
+      </div>
+
+      <div
+        className="tienda-page"
+        style={{
+          position: "relative",
+          zIndex: 1,
+          maxWidth: "1152px",
+          margin: "0 auto",
+          padding: isMobile ? "16px 12px 40px" : "24px 16px 48px",
+          background: "transparent",
+        }}
+      >
       <div style={{ padding: "16px 0 8px", marginBottom: "8px" }}>
         <BackButton href="/" label="← Inicio" />
       </div>
@@ -965,5 +982,6 @@ export default function TiendaPage() {
         </>
       ) : null}
     </div>
+    </>
   );
 }
