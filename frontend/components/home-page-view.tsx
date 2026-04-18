@@ -70,7 +70,7 @@ function AnimatedCounter({
 
 const STATS = [
   { icon: "👥", end: 500, suffix: "+" as const, label: "Miembros activos" },
-  { icon: "🏆", end: 10, suffix: "+" as const, label: "Años de experiencia" },
+  { icon: "🏆", end: 34, suffix: "+" as const, label: "Años de experiencia" },
   { icon: "💪", end: 4, suffix: "" as const, label: "Planes de entrenamiento" },
   { icon: "⚡", end: 100, suffix: "%" as const, label: "Compromiso contigo" },
 ];
