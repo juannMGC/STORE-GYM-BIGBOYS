@@ -4,7 +4,7 @@ import { motion, useMotionValue, useTransform } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { BackButton } from "@/components/back-button";
-import { Logo3DScene, TRAININGS_LOGO_MODEL_URL } from "@/components/logo-3d";
+import { Logo3DHero, TRAININGS_LOGO_MODEL_URL } from "@/components/logo-3d";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { fadeUp, staggerContainer, staggerSlow } from "@/lib/motion";
 
@@ -309,7 +309,7 @@ export default function EntrenamientosPage() {
           pointerEvents: "none",
         }}
       >
-        <Logo3DScene
+        <Logo3DHero
           height="100vh"
           showScrollHint={false}
           modelUrl={TRAININGS_LOGO_MODEL_URL}

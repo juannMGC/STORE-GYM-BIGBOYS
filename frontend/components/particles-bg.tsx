@@ -44,7 +44,7 @@ export function ParticlesBg({ count = 50 }: { count?: number }) {
 
     let mouseX = 0;
     let mouseY = 0;
-    let animId: number;
+    let animId = 0;
 
     const handleMouse = (e: MouseEvent) => {
       mouseX = e.clientX;
@@ -56,6 +56,10 @@ export function ParticlesBg({ count = 50 }: { count?: number }) {
       p.isGold ? `rgba(255,215,0,${p.opacity})` : `rgba(204,0,0,${p.opacity})`;
 
     const animate = () => {
+      if (document.hidden) {
+        animId = 0;
+        return;
+      }
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       particles.forEach((p, i) => {
@@ -96,12 +100,23 @@ export function ParticlesBg({ count = 50 }: { count?: number }) {
       animId = requestAnimationFrame(animate);
     };
 
-    animate();
+    const onVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animId);
+        animId = 0;
+      } else if (animId === 0) {
+        animId = requestAnimationFrame(animate);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    animId = requestAnimationFrame(animate);
 
     window.addEventListener("resize", resize);
 
     return () => {
       cancelAnimationFrame(animId);
+      document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("mousemove", handleMouse);
       window.removeEventListener("resize", resize);
     };

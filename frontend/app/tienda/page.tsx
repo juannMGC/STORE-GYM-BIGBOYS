@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackButton } from "@/components/back-button";
-import { Logo3DScene, SHOP_LOGO_MODEL_URL } from "@/components/logo-3d";
+import { Logo3DHero, SHOP_LOGO_MODEL_URL } from "@/components/logo-3d";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { apiFetch } from "@/lib/api-client";
 import type { Category, ProductListItem, Size } from "@/lib/types";
@@ -455,7 +455,7 @@ export default function TiendaPage() {
           pointerEvents: "none",
         }}
       >
-        <Logo3DScene height="100vh" showScrollHint={false} modelUrl={SHOP_LOGO_MODEL_URL} />
+        <Logo3DHero height="100vh" showScrollHint={false} modelUrl={SHOP_LOGO_MODEL_URL} />
       </div>
 
       <div

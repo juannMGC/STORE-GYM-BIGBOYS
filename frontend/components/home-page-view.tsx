@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { BrandsSlider } from "@/components/brands-slider";
 import { HomeRegisterCta } from "@/components/home-register-cta";
-import { Logo3DScene } from "@/components/logo-3d";
+import { Logo3DHero } from "@/components/logo-3d";
 import {
   fadeLeft,
   fadeUp,
@@ -97,7 +97,7 @@ export function HomePageView({
           pointerEvents: "none",
         }}
       >
-        <Logo3DScene height="100vh" showScrollHint={false} lightSceneOverlays />
+        <Logo3DHero height="100vh" showScrollHint={false} lightSceneOverlays />
       </div>
 
       <main style={{ position: "relative", zIndex: 1, flex: 1, background: "transparent" }}>

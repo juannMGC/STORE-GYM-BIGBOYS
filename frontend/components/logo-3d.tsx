@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic";
 
+export { Logo3DHero } from "./logo-3d-hero";
+
 const Logo3DScene = dynamic(
   () => import("./logo-3d-scene").then((mod) => ({ default: mod.Logo3DScene })),
   {
