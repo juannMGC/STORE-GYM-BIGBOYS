@@ -1,22 +1,30 @@
 /**
- * Decide si conviene montar WebGL (Three.js) o un hero estático ligero.
- * En móvil / datos limitados el GLB + bundle de Three bloquea CPU/GPU y la navegación.
+ * Política del hero 3D:
+ * - static: sin WebGL (ahorro máximo de datos/GPU).
+ * - lite: WebGL optimizado para móvil / 3g / CPUs modestos.
+ * - full: escritorio / buena red.
  */
-export function getWebglHeroEligible(): boolean {
-  if (typeof window === "undefined") return false;
 
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+export type WebglHeroMode = "static" | "lite" | "full";
 
-  /* Táctil en viewports típicos (hasta iPad Pro 12.9" en horizontal) — sin WebGL */
-  if (window.matchMedia("(hover: none) and (max-width: 1366px)").matches) return false;
+export function getWebglHeroMode(): WebglHeroMode {
+  if (typeof window === "undefined") return "static";
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return "static";
 
   const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } })
     .connection;
 
-  if (conn && "saveData" in conn && conn.saveData === true) return false;
+  if (conn && "saveData" in conn && conn.saveData === true) return "static";
 
   const et = conn?.effectiveType;
-  if (et === "slow-2g" || et === "2g" || et === "3g") return false;
+  if (et === "slow-2g" || et === "2g") return "static";
 
-  return true;
+  const liteNetwork = et === "3g";
+  const liteTouch =
+    window.matchMedia("(hover: none)").matches || window.matchMedia("(max-width: 900px)").matches;
+
+  if (liteTouch || liteNetwork) return "lite";
+
+  return "full";
 }

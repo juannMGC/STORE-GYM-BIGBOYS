@@ -89,10 +89,12 @@ function LogoModel({
   modelUrl,
   scrollProgress,
   isMobile,
+  performanceMode,
 }: {
   modelUrl: string;
   scrollProgress: number;
   isMobile: boolean;
+  performanceMode: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF(modelUrl);
@@ -102,19 +104,20 @@ function LogoModel({
     c.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         tweakMeshMaterials(child);
-        child.castShadow = true;
-        child.receiveShadow = true;
+        child.castShadow = !performanceMode;
+        child.receiveShadow = !performanceMode;
       }
     });
     return c;
-  }, [scene]);
+  }, [scene, performanceMode]);
 
   useFrame((state) => {
     const g = groupRef.current;
     if (!g) return;
     const time = state.clock.elapsedTime;
 
-    const floatY = Math.sin(time * 0.6) * 0.06;
+    const amp = performanceMode ? 0.035 : 0.06;
+    const floatY = Math.sin(time * 0.6) * amp;
     g.position.y = THREE.MathUtils.lerp(g.position.y, floatY, 0.03);
 
     // Sin rotación automática del grupo (solo flotación + escala con scroll)
@@ -175,9 +178,22 @@ function NeonLights() {
   );
 }
 
-function FloatingParticles() {
+/** Luces fijas sin useFrame — menos trabajo por frame en móvil */
+function SimpleNeonLights() {
+  return (
+    <>
+      <ambientLight intensity={0.58} color="#e8e8f0" />
+      <hemisphereLight color="#f2f2fa" groundColor="#181028" intensity={0.42} />
+      <pointLight position={[0, 2.5, 4]} color="#FF5555" intensity={5.2} distance={16} decay={2} />
+      <pointLight position={[-3.5, 0.5, 2]} color="#CC3333" intensity={2.6} distance={12} decay={2} />
+      <pointLight position={[2, 4, 1]} color="#FFE499" intensity={2.2} distance={10} decay={2} />
+      <pointLight position={[0, 0, -4.5]} color="#ffffff" intensity={1.9} distance={11} decay={2} />
+    </>
+  );
+}
+
+function FloatingParticles({ count, performanceMode }: { count: number; performanceMode: boolean }) {
   const particlesRef = useRef<THREE.Points>(null);
-  const count = 160;
   const geometry = useMemo(() => {
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
@@ -199,22 +215,24 @@ function FloatingParticles() {
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
     return geo;
-  }, []);
+  }, [count]);
 
   useFrame(() => {
     const pts = particlesRef.current;
     if (!pts) return;
-    pts.rotation.y += 0.0005;
-    pts.rotation.x += 0.0003;
+    const ry = performanceMode ? 0.00022 : 0.0005;
+    const rx = performanceMode ? 0.00014 : 0.0003;
+    pts.rotation.y += ry;
+    pts.rotation.x += rx;
   });
 
   return (
     <points ref={particlesRef} geometry={geometry}>
       <pointsMaterial
-        size={0.06}
+        size={performanceMode ? 0.045 : 0.06}
         vertexColors
         transparent
-        opacity={0.55}
+        opacity={performanceMode ? 0.38 : 0.55}
         sizeAttenuation
         depthWrite={false}
       />
@@ -260,23 +278,38 @@ function Scene({
   modelUrl,
   scrollProgress,
   isMobile,
+  performanceMode,
 }: {
   modelUrl: string;
   scrollProgress: number;
   isMobile: boolean;
+  performanceMode: boolean;
 }) {
+  const particleCount = performanceMode ? 36 : 160;
+
   return (
     <>
       <color attach="background" args={["#000000"]} />
       <CameraController scrollProgress={scrollProgress} />
-      <NeonLights />
-      <FloatingParticles />
-      <FloorGrid />
-      <OrbitalRings />
-      <LogoModel modelUrl={modelUrl} scrollProgress={scrollProgress} isMobile={isMobile} />
-      <ContactShadows position={[0, -2.85, 0]} opacity={0.38} scale={14} blur={2.4} far={4.5} color="#CC0000" />
-      <Environment preset="city" environmentIntensity={1.35} />
-      <Preload all />
+      {performanceMode ? <SimpleNeonLights /> : <NeonLights />}
+      <FloatingParticles count={particleCount} performanceMode={performanceMode} />
+      {!performanceMode ? (
+        <>
+          <FloorGrid />
+          <OrbitalRings />
+        </>
+      ) : null}
+      <LogoModel
+        modelUrl={modelUrl}
+        scrollProgress={scrollProgress}
+        isMobile={isMobile}
+        performanceMode={performanceMode}
+      />
+      {!performanceMode ? (
+        <ContactShadows position={[0, -2.85, 0]} opacity={0.38} scale={14} blur={2.4} far={4.5} color="#CC0000" />
+      ) : null}
+      <Environment preset="city" environmentIntensity={performanceMode ? 0.72 : 1.35} />
+      {!performanceMode ? <Preload all /> : null}
     </>
   );
 }
@@ -287,6 +320,8 @@ export function Logo3DScene({
   modelUrl = DEFAULT_LOGO_MODEL_URL,
   /** Inicio: menos viñeta/scanlines para ver más el 3D detrás del contenido. */
   lightSceneOverlays = false,
+  /** Menos geometría, sin sombras proyectadas, menos partículas — para móvil / 3G */
+  performanceMode = false,
   children,
 }: {
   height?: string;
@@ -294,6 +329,7 @@ export function Logo3DScene({
   /** GLB en `public/models/`. Por defecto el logo v01 de inicio. */
   modelUrl?: string;
   lightSceneOverlays?: boolean;
+  performanceMode?: boolean;
   children?: ReactNode;
 }) {
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -339,19 +375,32 @@ export function Logo3DScene({
           near: 0.1,
           far: 100,
         }}
-        shadows
-        dpr={[1, isMobile ? 1.25 : 1.75]}
+        shadows={!performanceMode}
+        dpr={
+          performanceMode ? [1, 1] : [1, isMobile ? 1.25 : 1.75]
+        }
         style={{ background: "transparent" }}
-        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        gl={{
+          antialias: !performanceMode,
+          alpha: true,
+          powerPreference: performanceMode ? "low-power" : "high-performance",
+          stencil: false,
+          depth: true,
+        }}
         frameloop={tabVisible ? "always" : "never"}
         onCreated={({ gl }) => {
           gl.shadowMap.type = THREE.PCFShadowMap;
           gl.toneMapping = THREE.ACESFilmicToneMapping;
-          gl.toneMappingExposure = 1.22;
+          gl.toneMappingExposure = performanceMode ? 1.28 : 1.22;
         }}
       >
         <Suspense fallback={<Loader />}>
-          <Scene modelUrl={modelUrl} scrollProgress={scrollProgress} isMobile={isMobile} />
+          <Scene
+            modelUrl={modelUrl}
+            scrollProgress={scrollProgress}
+            isMobile={isMobile}
+            performanceMode={performanceMode}
+          />
         </Suspense>
       </Canvas>
 

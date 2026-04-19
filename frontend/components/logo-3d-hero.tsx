@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useLayoutEffect, useState, type ReactNode } from "react";
-import { getWebglHeroEligible } from "@/hooks/webgl-hero-eligibility";
+import { getWebglHeroMode } from "@/hooks/webgl-hero-eligibility";
 import { DEFAULT_LOGO_MODEL_URL } from "./logo-3d-model-urls";
 import { Logo3DStaticHero } from "./logo-3d-static-hero";
 
@@ -74,8 +74,9 @@ export type Logo3DHeroProps = {
 };
 
 /**
- * Misma API que Logo3DScene pero elige hero estático (PNG + CSS) en móvil / redes lentas
- * para no cargar Three.js ni bloquear la GPU.
+ * - static: reducir movimiento, 2G, ahorro de datos (sin Three).
+ * - lite: WebGL aligerado (móvil, 3G, CPUs muy pequeñas).
+ * - full: experiencia completa.
  */
 export function Logo3DHero({
   height = "100vh",
@@ -84,15 +85,23 @@ export function Logo3DHero({
   lightSceneOverlays = false,
   children,
 }: Logo3DHeroProps) {
-  const [mode, setMode] = useState<"deciding" | "static" | "webgl">("deciding");
+  const [mode, setMode] = useState<"deciding" | "static" | "lite" | "full">("deciding");
 
   useLayoutEffect(() => {
-    const apply = () => setMode(getWebglHeroEligible() ? "webgl" : "static");
+    const apply = () => {
+      const m = getWebglHeroMode();
+      if (m === "static") setMode("static");
+      else if (m === "lite") setMode("lite");
+      else setMode("full");
+    };
 
     apply();
 
-    const mqTouch = window.matchMedia("(hover: none) and (max-width: 1366px)");
-    mqTouch.addEventListener("change", apply);
+    const mqA = window.matchMedia("(hover: none)");
+    const mqB = window.matchMedia("(max-width: 900px)");
+    mqA.addEventListener("change", apply);
+    mqB.addEventListener("change", apply);
+    window.addEventListener("resize", apply);
 
     const conn = (navigator as Navigator & { connection?: EventTarget }).connection;
     conn?.addEventListener?.("change", apply);
@@ -101,7 +110,9 @@ export function Logo3DHero({
     mqReduce.addEventListener("change", apply);
 
     return () => {
-      mqTouch.removeEventListener("change", apply);
+      mqA.removeEventListener("change", apply);
+      mqB.removeEventListener("change", apply);
+      window.removeEventListener("resize", apply);
       conn?.removeEventListener?.("change", apply);
       mqReduce.removeEventListener("change", apply);
     };
@@ -125,6 +136,7 @@ export function Logo3DHero({
       showScrollHint={showScrollHint}
       modelUrl={modelUrl}
       lightSceneOverlays={lightSceneOverlays}
+      performanceMode={mode === "lite"}
     >
       {children}
     </Logo3DScene>
